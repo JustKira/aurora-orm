@@ -1,0 +1,179 @@
+==================
+All primitive types
+==================
+
+table T {
+  a bool
+  b int
+  c float
+  d decimal
+  e number
+  f string
+  g datetime
+  h duration
+  i uuid
+  j bytes
+  k any
+  l regex
+  m object
+  n range
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition name: (identifier) type: (type_expression base: (type_node (primitive_type))))
+      (field_definition name: (identifier) type: (type_expression base: (type_node (primitive_type))))
+      (field_definition name: (identifier) type: (type_expression base: (type_node (primitive_type))))
+      (field_definition name: (identifier) type: (type_expression base: (type_node (primitive_type))))
+      (field_definition name: (identifier) type: (type_expression base: (type_node (primitive_type))))
+      (field_definition name: (identifier) type: (type_expression base: (type_node (primitive_type))))
+      (field_definition name: (identifier) type: (type_expression base: (type_node (primitive_type))))
+      (field_definition name: (identifier) type: (type_expression base: (type_node (primitive_type))))
+      (field_definition name: (identifier) type: (type_expression base: (type_node (primitive_type))))
+      (field_definition name: (identifier) type: (type_expression base: (type_node (primitive_type))))
+      (field_definition name: (identifier) type: (type_expression base: (type_node (primitive_type))))
+      (field_definition name: (identifier) type: (type_expression base: (type_node (primitive_type))))
+      (field_definition name: (identifier) type: (type_expression base: (type_node (primitive_type))))
+      (field_definition name: (identifier) type: (type_expression base: (type_node (primitive_type)))))))
+
+==================
+Option types
+==================
+
+table T {
+  a option<int>
+  b int?
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (option_type inner: (type_node (primitive_type))))))
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (primitive_type))
+          (optional_marker))))))
+
+==================
+Array unbounded and sized
+==================
+
+table T {
+  tags array<string>
+  fixed array<int, 5>
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (array_type inner: (type_node (primitive_type))))))
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (array_type
+            inner: (type_node (primitive_type))
+            length: (array_length))))))))
+
+==================
+Set type
+==================
+
+table T { ids set<uuid> }
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (set_type inner: (type_node (primitive_type)))))))))
+
+==================
+Record without and with table
+==================
+
+table T {
+  any_ref record
+  user_ref record<user>
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (record_type))))
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (record_type table: (identifier))))))))
+
+==================
+Geometry single and multiple features
+==================
+
+table T {
+  pt geometry<point>
+  shape geometry<point | polygon | multipolygon>
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (geometry_type feature: (identifier)))))
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (geometry_type
+            feature: (identifier)
+            feature: (identifier)
+            feature: (identifier))))))))
+
+==================
+Nested compound types
+==================
+
+table T { tags array<option<string>> }
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (array_type
+            inner: (type_node (option_type
+              inner: (type_node (primitive_type)))))))))))

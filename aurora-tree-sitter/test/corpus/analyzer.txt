@@ -1,0 +1,85 @@
+==================
+Analyzer with tokenizers and filters (no args)
+==================
+
+analyzer simple {
+  tokenizers blank, class
+  filters lowercase, uppercase
+}
+
+---
+
+(source_file
+  (analyzer_definition
+    name: (identifier)
+    body: (analyzer_body
+      (analyzer_tokenizers
+        name: (identifier)
+        name: (identifier))
+      (analyzer_filters
+        call: (filter_call name: (identifier))
+        call: (filter_call name: (identifier))))))
+
+==================
+Analyzer with filter args (snowball, edgengram)
+==================
+
+analyzer edu {
+  tokenizers blank, class
+  filters lowercase, snowball(english), edgengram(1, 3)
+}
+
+---
+
+(source_file
+  (analyzer_definition
+    name: (identifier)
+    body: (analyzer_body
+      (analyzer_tokenizers
+        name: (identifier)
+        name: (identifier))
+      (analyzer_filters
+        call: (filter_call name: (identifier))
+        call: (filter_call
+          name: (identifier)
+          arg: (filter_arg))
+        call: (filter_call
+          name: (identifier)
+          arg: (filter_arg)
+          arg: (filter_arg))))))
+
+==================
+Analyzer with only tokenizers
+==================
+
+analyzer just_tokens {
+  tokenizers blank
+}
+
+---
+
+(source_file
+  (analyzer_definition
+    name: (identifier)
+    body: (analyzer_body
+      (analyzer_tokenizers
+        name: (identifier)))))
+
+==================
+Analyzer with doc comment
+==================
+
+/// Splits text on whitespace.
+analyzer simple {
+  tokenizers blank
+}
+
+---
+
+(source_file
+  (analyzer_definition
+    (doc_comment (doc_comment_line))
+    name: (identifier)
+    body: (analyzer_body
+      (analyzer_tokenizers
+        name: (identifier)))))

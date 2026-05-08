@@ -1,0 +1,65 @@
+$schema: 'https://moonrepo.dev/schemas/tasks.json'
+
+inheritedBy:
+  toolchains: ['rust']
+
+fileGroups:
+  sources:
+    - 'src/**/*.rs'
+    - 'Cargo.toml'
+  tests:
+    - 'tests/**/*.rs'
+    - 'benches/**/*.rs'
+    - '**/Cargo.toml'
+
+tasks:
+  build:
+    command: 'cargo'
+    args:
+      - 'build'
+      - '--workspace'
+    inputs:
+      - '@globs(sources)'
+      - '/Cargo.toml'
+      - '/rust-toolchain.toml'
+
+  check:
+    command: 'cargo'
+    args:
+      - 'check'
+      - '--workspace'
+    inputs:
+      - '@globs(sources)'
+      - '/Cargo.toml'
+
+  fmt:
+    command: 'cargo'
+    args:
+      - 'fmt'
+      - '--all'
+      - '--'
+      - '--check'
+    inputs:
+      - '@globs(sources)'
+      - '/rustfmt.toml'
+
+  clippy:
+    command: 'cargo'
+    args:
+      - 'clippy'
+      - '--workspace'
+      - '--all-targets'
+      - '--all-features'
+    inputs:
+      - '@globs(sources)'
+      - '@globs(tests)'
+      - '/.clippy.toml'
+
+  test:
+    command: 'cargo'
+    args:
+      - 'test'
+      - '--workspace'
+    inputs:
+      - '@globs(sources)'
+      - '@globs(tests)'

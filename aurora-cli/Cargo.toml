@@ -1,0 +1,17 @@
+[package]
+name = "aurora-cli"
+description = "Internal Aurora CLI proof of concept."
+version = "0.0.0"
+edition = "2024"
+license = "UNLICENSED"
+publish = false
+
+[[bin]]
+name = "aurora"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+aurora-core = { path = "../aurora-core" }
+aurora-migrate = { path = "../aurora-migrate" }
+tokio = { version = "1", features = ["macros", "rt"] }

@@ -1,0 +1,21 @@
+{
+  "name": "aurora-tree-sitter",
+  "version": "0.1.0",
+  "description": "Tree-sitter grammar for the Aurora schema language.",
+  "private": true,
+  "scripts": {
+    "generate": "tree-sitter generate",
+    "test": "tree-sitter test",
+    "parse": "tree-sitter parse"
+  },
+  "tree-sitter": [
+    {
+      "scope": "source.aurora",
+      "file-types": ["aurora"],
+      "highlights": "queries/highlights.scm"
+    }
+  ],
+  "devDependencies": {
+    "tree-sitter-cli": "^0.25.0"
+  }
+}

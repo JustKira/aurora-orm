@@ -1,0 +1,6 @@
+$schema: 'https://moonrepo.dev/schemas/project.json'
+
+id: aurora-migrate
+language: rust
+project:
+  type: library

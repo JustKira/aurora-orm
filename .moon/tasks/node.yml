@@ -1,0 +1,68 @@
+$schema: 'https://moonrepo.dev/schemas/tasks.json'
+
+inheritedBy:
+  toolchains: ['javascript', 'typescript']
+
+fileGroups:
+  sources:
+    - 'src/**/*'
+    - 'types/**/*'
+  tests:
+    - 'tests/**/*.test.*'
+    - 'tests/**/*.stories.*'
+    - '**/__tests__/**/*'
+  configs:
+    - '*.{js,json,yml,yaml}'
+
+tasks:
+  lint:
+    command: 'eslint'
+    args:
+      - '--ext'
+      - '.ts,.tsx,.js,.jsx,.svelte'
+      - '--max-warnings'
+      - '100'
+      - '.'
+    inputs:
+      - '@globs(sources)'
+      - '@globs(tests)'
+      - '@group(configs)'
+      - '/.eslintignore'
+      - '/eslint.config.mjs'
+      - '/tsconfig.eslint.json'
+
+  format:
+    command: 'prettier'
+    args:
+      - '--check'
+      - '.'
+    inputs:
+      - '@globs(sources)'
+      - '@globs(tests)'
+      - '@group(configs)'
+      - '/.prettierignore'
+      - '/prettier.config.mjs'
+
+  format-write:
+    command: 'prettier'
+    args:
+      - '--write'
+      - '.'
+    inputs:
+      - '@globs(sources)'
+      - '@globs(tests)'
+      - '@group(configs)'
+      - '/.prettierignore'
+      - '/prettier.config.mjs'
+    options:
+      runInCI: false
+
+  typecheck:
+    command: 'tsc'
+    args:
+      - '--build'
+    inputs:
+      - '@globs(sources)'
+      - '@group(configs)'
+      - 'tsconfig.json'
+      - '/tsconfig.options.json'

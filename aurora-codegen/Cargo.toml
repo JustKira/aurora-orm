@@ -1,0 +1,11 @@
+[package]
+name = "aurora-codegen"
+description = "Internal Aurora client code generation placeholder."
+version = "0.0.0"
+edition = "2024"
+license = "UNLICENSED"
+publish = false
+
+[dependencies]
+aurora-core = { path = "../aurora-core" }
+
