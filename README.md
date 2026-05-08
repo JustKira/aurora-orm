@@ -104,7 +104,7 @@ similar = await (
 | `aurora-config` | Shared `aurora.toml` loader | Every tool reads the same config — URL, NS, DB, env path — in one place. No tool re-implements credential loading. |
 | `aurora-migrate` | `diff` / `generate` / `apply` against live SurrealDB | Idempotent migrations tracked in `_aurora_migrations`. Talks to SurrealDB via the official Rust SDK, not raw HTTP. Drift detection compares snapshot checksums to refuse re-applying mutated migrations. |
 | `aurora-cli` | The `aurora` binary | Thin wrapper around the libraries — one entrypoint per workflow. |
-| `aurora-codegen` | Schema → typed clients (JS/TS, Rust, Python) | Single source of truth: the schema. Codegen reads the validated AST and emits a Drizzle-style fluent client per language. **Work in progress.** |
+| `aurora-codegen` | Schema → intermediate JSON → wasm-plugin generators | The codegen pipeline emits a stable JSON intermediate that any wasm plugin can consume to generate a typed client. Built-in plugins planned for TS, Rust, and Python; the plugin model means new target languages (Go, Kotlin, Elixir, anything) just need a wasm plugin — not a Rust contribution to Aurora itself. **Work in progress.** |
 | `aurora-lsp` | Language server | Reads the *raw* AST (not the validated one), so editors can offer structure for in-progress / invalid schemas too. **Scaffolding.** |
 | `aurora-tree-sitter` | Grammar + corpus tests + showcase | Editor-agnostic syntax highlighting + structure. Single source of highlight queries; per-editor extensions symlink to it. |
 | `aurora-zed` | Zed editor extension | Wraps the grammar + LSP for Zed. Grammar URL points back at this repo. |
@@ -125,13 +125,11 @@ What Aurora replaces it with:
 
 ## Design philosophies
 
-**One canonical syntax per concept.** No "two ways to do X". Index args are keyword-only. Naming is always the `name:` keyword. `@@` is reserved for composites and table-level concepts only. The grammar accepts exactly one shape per declaration.
-
-**Mirror SurrealDB, don't reinvent.** BM25 tunings are written `bm25: (1.2, 0.75)` because SurrealQL writes them `BM25(1.2, 0.75)`. Distance modes, vector types, count indexes — every Aurora concept maps directly to a SurrealDB primitive.
-
 **Two-layer parser.** Raw AST (every attribute is a blob) for LSP/tooling — works on incomplete code. Validated AST for migrate/codegen — guaranteed-shape, ready to emit. Same parser pipeline, different consumers.
 
-**Schema is the source of truth.** The schema produces SurrealQL DDL. The schema produces the codegen'd client. The schema produces editor highlights. Everything downstream is derived; nothing is hand-maintained twice.
+**Schema is the source of truth.** The schema produces SurrealQL DDL. The schema produces editor highlights. The schema produces the JSON intermediate that codegen plugins consume. Everything downstream is derived; nothing is hand-maintained twice.
+
+**Codegen via wasm plugins, not built-in language support.** Aurora itself doesn't ship a TS generator or a Rust generator — it ships a stable JSON schema intermediate and a wasm plugin host. Any language can be supported by a wasm plugin that reads the JSON and emits target code. Built-ins planned for TS, Rust, and Python; everything else (Go, Kotlin, Elixir, internal DSLs, custom ORMs) is a plugin, not a fork.
 
 ## Quickstart
 
