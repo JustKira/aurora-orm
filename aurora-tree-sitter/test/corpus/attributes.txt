@@ -1,0 +1,230 @@
+==================
+Field-level @unique with no args
+==================
+
+table user {
+  email string @unique
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (primitive_type)))
+        attribute: (attribute name: (identifier))))))
+
+==================
+Field-level @index with name keyword
+==================
+
+table user {
+  status string @index(name: "idx_user_status")
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (primitive_type)))
+        attribute: (attribute
+          name: (identifier)
+          args: (attribute_args
+            (attribute_kv key: (identifier) value: (attribute_string))))))))
+
+==================
+Field-level @hnsw keyword form
+==================
+
+table doc {
+  embedding array<float> @hnsw(dimension: 1536, dist: cosine, type: f32, efc: 200, m: 16)
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (array_type inner: (type_node (primitive_type)))))
+        attribute: (attribute
+          name: (identifier)
+          args: (attribute_args
+            (attribute_kv key: (identifier) value: (attribute_number))
+            (attribute_kv key: (identifier) value: (attribute_ident (identifier)))
+            (attribute_kv key: (identifier) value: (attribute_ident (identifier)))
+            (attribute_kv key: (identifier) value: (attribute_number))
+            (attribute_kv key: (identifier) value: (attribute_number))))))))
+
+==================
+Field-level @fulltext with bm25 tuple and highlights flag
+==================
+
+table article {
+  body string @fulltext(analyzer: simple, bm25: (1.2, 0.75), highlights: true)
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (primitive_type)))
+        attribute: (attribute
+          name: (identifier)
+          args: (attribute_args
+            (attribute_kv key: (identifier) value: (attribute_ident (identifier)))
+            (attribute_kv
+              key: (identifier)
+              value: (attribute_tuple
+                (attribute_number)
+                (attribute_number)))
+            (attribute_kv key: (identifier) value: (attribute_bool))))))))
+
+==================
+Field-level @flexible on object
+==================
+
+table doc {
+  meta object @flexible
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (primitive_type)))
+        attribute: (attribute name: (identifier))))))
+
+==================
+Multiple field-level annotations on one field
+==================
+
+table doc {
+  body string @index @fulltext(analyzer: simple)
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (primitive_type)))
+        attribute: (attribute name: (identifier))
+        attribute: (attribute
+          name: (identifier)
+          args: (attribute_args
+            (attribute_kv key: (identifier) value: (attribute_ident (identifier)))))))))
+
+==================
+Block-level @@unique with composite fields keyword
+==================
+
+table user {
+  account string
+  email   string
+
+  @@unique(fields: [account, email])
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression base: (type_node (primitive_type))))
+      (field_definition
+        name: (identifier)
+        type: (type_expression base: (type_node (primitive_type))))
+      (block_attribute
+        name: (identifier)
+        args: (attribute_args
+          (attribute_kv
+            key: (identifier)
+            value: (attribute_array
+              (attribute_ident (identifier))
+              (attribute_ident (identifier)))))))))
+
+==================
+Block-level @@index with fields and name keywords
+==================
+
+table user {
+  account string
+  email   string
+
+  @@index(fields: [account, email], name: "lookup_idx")
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression base: (type_node (primitive_type))))
+      (field_definition
+        name: (identifier)
+        type: (type_expression base: (type_node (primitive_type))))
+      (block_attribute
+        name: (identifier)
+        args: (attribute_args
+          (attribute_kv
+            key: (identifier)
+            value: (attribute_array
+              (attribute_ident (identifier))
+              (attribute_ident (identifier))))
+          (attribute_kv
+            key: (identifier)
+            value: (attribute_string)))))))
+
+==================
+Block-level @@count
+==================
+
+table user {
+  email string
+
+  @@count
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression base: (type_node (primitive_type))))
+      (block_attribute name: (identifier)))))

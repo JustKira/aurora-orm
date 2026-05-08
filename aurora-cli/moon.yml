@@ -1,0 +1,6 @@
+$schema: 'https://moonrepo.dev/schemas/project.json'
+
+id: aurora-cli
+language: rust
+project:
+  type: application

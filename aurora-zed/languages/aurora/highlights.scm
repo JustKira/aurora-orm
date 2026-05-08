@@ -1,0 +1,1 @@
+../../../aurora-tree-sitter/queries/highlights.scm

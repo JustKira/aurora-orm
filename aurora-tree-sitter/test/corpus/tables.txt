@@ -1,0 +1,111 @@
+==================
+Empty table
+==================
+
+table T {}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body)))
+
+==================
+Schemafull table with primitives
+==================
+
+table User schemafull {
+  name string
+  age int
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    modifier: (table_modifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (primitive_type))))
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (primitive_type)))))))
+
+==================
+Schemaless and drop modifiers
+==================
+
+table A schemaless {}
+table B drop {}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    modifier: (table_modifier)
+    body: (table_body))
+  (table_definition
+    name: (identifier)
+    modifier: (table_modifier)
+    body: (table_body)))
+
+==================
+Doc comment attached to table
+==================
+
+/// First line
+/// Second line
+table User {}
+
+---
+
+(source_file
+  (table_definition
+    (doc_comment
+      (doc_comment_line)
+      (doc_comment_line))
+    name: (identifier)
+    body: (table_body)))
+
+==================
+Line comment between tables
+==================
+
+table A {}
+// just a note
+table B {}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body))
+  (line_comment)
+  (table_definition
+    name: (identifier)
+    body: (table_body)))
+
+==================
+Optional field marker with question mark
+==================
+
+table T { x int? }
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (primitive_type))
+          (optional_marker))))))

@@ -1,0 +1,7 @@
+projects:
+  - .
+  - aurora-*
+
+vcs:
+  defaultBranch: main
+  provider: github

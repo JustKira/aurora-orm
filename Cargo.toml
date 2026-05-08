@@ -1,0 +1,11 @@
+[workspace]
+resolver = "3"
+members = [
+  "aurora-cli",
+  "aurora-codegen",
+  "aurora-config",
+  "aurora-core",
+  "aurora-lsp",
+  "aurora-migrate",
+]
+exclude = ["aurora-zed"]

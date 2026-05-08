@@ -1,0 +1,20 @@
+id = "aurora"
+name = "Aurora"
+description = "Aurora schema language support for Zed"
+version = "0.1.0"
+schema_version = 1
+authors = ["Aurora"]
+
+# The grammar lives in this repo at aurora-tree-sitter/. The `path` field
+# tells Zed to look in that subdirectory after cloning. The field is real
+# (zed/crates/extension/src/extension_manifest.rs:310) even though it's not
+# in the public docs. Update `rev` when the grammar changes — pin to a
+# commit SHA for published versions, branch name is fine for dev.
+[grammars.aurora]
+repository = "https://github.com/JustKira/aurora-orm.git"
+rev = "main"
+path = "aurora-tree-sitter"
+
+[language_servers.aurora-lsp]
+name = "Aurora LSP"
+languages = ["Aurora"]

@@ -1,0 +1,19 @@
+$schema: "https://moonrepo.dev/schemas/toolchain.json"
+
+node:
+  packageManager: bun
+  installDependencies: true
+
+bun:
+  version: "1.3.11"
+
+rust:
+  version: "1.94.0"
+  syncToolchainConfig: true
+
+unstable_python:
+  packageManager: 'uv'
+  version: '3.13.12'
+
+unstable_uv:
+  version: '0.11.3'

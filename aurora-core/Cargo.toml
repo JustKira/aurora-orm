@@ -1,0 +1,16 @@
+[package]
+name = "aurora-core"
+description = "Internal Aurora language parser and serializable AST."
+version = "0.0.0"
+edition = "2024"
+license = "UNLICENSED"
+publish = false
+
+[dependencies]
+from-pest = "0.3"
+pest = "2.8"
+pest-ast = "0.3"
+pest_derive = "2.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"

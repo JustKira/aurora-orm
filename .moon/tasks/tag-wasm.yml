@@ -1,0 +1,79 @@
+$schema: 'https://moonrepo.dev/schemas/tasks.json'
+
+# WASM build tasks for Rust projects targeting wasm32-unknown-unknown
+# These tasks compile Rust to WebAssembly for browser deployment
+#
+# Inherited only by projects that opt in via `tags: [wasm]` in their
+# project moon.yml. Individual projects customize wasm-bindgen args to
+# match their crate name.
+
+inheritedBy:
+  tags: ['wasm']
+
+fileGroups:
+  wasm-sources:
+    - 'src/**/*.rs'
+    - 'Cargo.toml'
+
+tasks:
+  # Build the Rust project for WASM target
+  wasm-build:
+    command: 'cargo'
+    args:
+      - 'build'
+      - '--target'
+      - 'wasm32-unknown-unknown'
+      - '--release'
+    inputs:
+      - '@globs(wasm-sources)'
+      - '/rust-toolchain.toml'
+    outputs:
+      - 'target/wasm32-unknown-unknown/release/*.wasm'
+
+  # Generate JavaScript bindings using wasm-bindgen
+  # Depends on wasm-build to ensure the WASM file exists
+  wasm-bindgen:
+    command: 'wasm-bindgen'
+    args:
+      - '--out-dir'
+      - 'dist'
+      - '--target'
+      - 'web'
+      - '--no-typescript'
+    deps:
+      - 'wasm-build'
+    inputs:
+      - 'target/wasm32-unknown-unknown/release/*.wasm'
+    outputs:
+      - 'dist/*.js'
+      - 'dist/*.wasm'
+    # NOTE: Projects inheriting this task should specify the WASM file path:
+    # args:
+    #   - 'target/wasm32-unknown-unknown/release/YOUR_CRATE_NAME.wasm'
+    #   - '--out-dir'
+    #   - 'dist'
+    #   - '--target'
+    #   - 'web'
+
+  # Optimize WASM binary using wasm-opt
+  # This is optional - only runs if wasm-opt is installed
+  # Significantly reduces WASM file size
+  wasm-opt:
+    command: 'wasm-opt'
+    args:
+      - '-Oz'
+    deps:
+      - 'wasm-bindgen'
+    inputs:
+      - 'dist/*_bg.wasm'
+    outputs:
+      - 'dist/*_bg.wasm'
+    options:
+      # Make this task optional - don't fail if wasm-opt is not installed
+      runInCI: false
+    # NOTE: Projects should add the input/output file paths:
+    # args:
+    #   - '-Oz'
+    #   - '-o'
+    #   - 'dist/YOUR_CRATE_NAME_bg.wasm'
+    #   - 'dist/YOUR_CRATE_NAME_bg.wasm'
