@@ -3,7 +3,12 @@
 > ⚠️ **Highly experimental.** A lot of this code is AI-generated and needs careful human review.
 > Expect rough edges, breaking changes, and incomplete features. Do not use in production yet.
 
-A schema language for SurrealDB. Schema syntax inspired by **Prisma**; the future typed client API is inspired by **Drizzle**.
+A schema language for SurrealDB.
+
+## Heavily inspired by
+
+- [Prisma](https://www.prisma.io) — schema syntax, the `@field` / `@@table` annotation style, the "schema is the source of truth" philosophy.
+- [Drizzle](https://orm.drizzle.team) — the future typed client API: fluent, schema-driven, statically checked end-to-end.
 
 ## Schema
 
