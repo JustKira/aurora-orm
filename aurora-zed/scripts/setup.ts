@@ -11,7 +11,7 @@ const localGrammarRepo = resolve(zedDir, ".local-grammar", "aurora");
 const localGrammarRepoUrl = pathToFileURL(localGrammarRepo).href;
 
 const mode = parseMode(Bun.argv.slice(2));
-const manifest = mode === "dev" ? devManifest(await prepareLocalGrammarRepo()) : prodManifest();
+const manifest = mode === "dev" ? devManifest(await prepareDevEnvironment()) : prodManifest();
 
 await Bun.write(extensionTomlPath, manifest);
 
@@ -61,6 +61,32 @@ async function prepareLocalGrammarRepo(): Promise<string> {
   );
 
   return commandOutput(["git", "rev-parse", "HEAD"], localGrammarRepo);
+}
+
+async function prepareDevEnvironment(): Promise<string> {
+  clearZedGrammarCaches();
+  return prepareLocalGrammarRepo();
+}
+
+function clearZedGrammarCaches(): void {
+  const cachePaths = [
+    resolve(zedDir, "grammars"),
+    resolve(homeDir(), "Library", "Application Support", "Zed", "extensions", "work", "aurora"),
+  ];
+
+  for (const cachePath of cachePaths) {
+    rmSync(cachePath, { recursive: true, force: true });
+  }
+}
+
+function homeDir(): string {
+  const home = process.env.HOME ?? process.env.USERPROFILE;
+
+  if (!home) {
+    throw new Error("Could not determine the home directory for Zed cache cleanup.");
+  }
+
+  return home;
 }
 
 function run(cmd: string[], cwd = repoRoot): void {
