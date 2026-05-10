@@ -78,10 +78,6 @@ the known Aurora grammar/work caches before rebuilding. We are still looking for
 a cleaner extension development experience; see
 [issue #79](https://github.com/JustKira/aurora-orm/issues/79).
 
-If you want to keep a hand-edited local manifest instead, copy
-`extension.local.toml.example` to `extension.local.toml`. That file is ignored
-by Git.
-
 If Zed still shows old highlighting after running setup, rebuild the dev
 extension again or fully restart Zed.
 
@@ -97,7 +93,6 @@ grammar changes; pin to a commit SHA for stable versions.
 
 - `Cargo.toml` — WASM cdylib that gets compiled by Zed.
 - `extension.toml` — manifest declaring language + grammar + LSP.
-- `extension.local.toml.example` — local grammar manifest template ignored by Git after copying.
 - `src/lib.rs` — extension entry point; resolves `aurora-lsp` from `PATH`.
 - `languages/aurora/` — language config + tree-sitter queries:
   - `config.toml` — name, grammar, file suffixes, comment syntax.
