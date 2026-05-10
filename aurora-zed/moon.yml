@@ -1,9 +1,7 @@
-$schema: 'https://moonrepo.dev/schemas/project.json'
+$schema: "https://moonrepo.dev/schemas/project.json"
 
 id: aurora-zed
 language: rust
-project:
-  type: application
 
 # This crate is a WASM cdylib for Zed's extension API. It's in the cargo
 # workspace's `[workspace] exclude` list — the `cargo build --workspace` task
@@ -13,3 +11,14 @@ project:
 workspace:
   inheritedTasks:
     include: []
+
+tasks:
+  setup:
+    command: bun
+    args: ["scripts/setup.ts"]
+    options:
+      cache: false
+    inputs:
+      - "scripts/setup.ts"
+    outputs:
+      - "extension.toml"
