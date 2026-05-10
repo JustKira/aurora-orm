@@ -28,3 +28,14 @@ tasks:
       - 'test/corpus/**/*'
     deps:
       - 'generate'
+
+  # Parse a file with the generated grammar. Pass the file after `--`.
+  parse:
+    command: bunx
+    args: ['tree-sitter', 'parse']
+    inputs:
+      - 'grammar.js'
+      - 'src/**/*'
+      - 'examples/**/*'
+    deps:
+      - 'generate'
