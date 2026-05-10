@@ -12,14 +12,14 @@ folding, and outline.
 ```bash
 # from the repository root
 bun install                # one-time, installs tree-sitter-cli
-bun run tree-sitter:generate   # regenerate src/parser.c from grammar.js
-bun run tree-sitter:test       # run the corpus tests
-bun run tree-sitter:parse -- aurora-tree-sitter/examples/showcase.aurora
+moon run aurora-tree-sitter:generate   # regenerate src/parser.c from grammar.js
+moon run aurora-tree-sitter:test       # run the corpus tests
+moon run aurora-tree-sitter:parse -- examples/showcase.aurora
 ```
 
 The generated `src/parser.c` and `src/grammar.json` are committed so
-consumers don't need `tree-sitter-cli` installed. Re-run `bun run generate`
-whenever you change `grammar.js`.
+consumers don't need `tree-sitter-cli` installed. Re-run
+`moon run aurora-tree-sitter:generate` whenever you change `grammar.js`.
 
 ## Layout
 
