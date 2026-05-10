@@ -1,7 +1,7 @@
 use std::collections::{BTreeSet, HashMap};
 
 /// Where a key sits relative to two schemas being compared. Lets callers
-/// match on `Added` / `Removed` / `Both` instead of decoding `Option`
+/// match on `Added` / `Removed` / `Change` instead of decoding `Option`
 /// tuples like `(None, Some)`.
 pub(crate) enum Diff<'a, T> {
     /// Key is only on the new side — the item appeared.
