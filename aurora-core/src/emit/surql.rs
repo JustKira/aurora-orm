@@ -45,6 +45,7 @@ pub fn emit_schema(schema: &Schema) -> String {
     join_statements(parts)
 }
 
+/// Emits the raw SurQL body with outer whitespace stripped.
 pub fn emit_surql_block(block: &SurqlBlock) -> String {
     block.body.trim().to_string()
 }

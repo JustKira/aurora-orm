@@ -124,8 +124,20 @@ Top-level raw SurQL block
 
 (source_file
   (surql_block
-    name: (identifier)
     (surql_text)
     (surql_nested_block
       (surql_text))
     (surql_text)))
+
+==================
+Reject spaced SurQL marker
+==================
+
+# surql {}
+
+---
+
+(source_file
+  (ERROR
+    (UNEXPECTED ' ')
+    (identifier)))

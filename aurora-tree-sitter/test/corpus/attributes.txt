@@ -228,3 +228,40 @@ table user {
         name: (identifier)
         type: (type_expression base: (type_node (primitive_type))))
       (block_attribute name: (identifier)))))
+
+==================
+Reject spaced field attribute marker
+==================
+
+table user {
+  email string @ index
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression base: (type_node (primitive_type))))
+      (ERROR
+        (identifier)))))
+
+==================
+Reject spaced block attribute marker
+==================
+
+table user {
+  @@ index
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (ERROR
+        (identifier)))))

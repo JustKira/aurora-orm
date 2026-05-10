@@ -221,19 +221,33 @@ pub struct OptionalMarker;
 #[derive(FromPest)]
 #[pest_ast(rule(Rule::attribute))]
 pub struct AttributeNode {
-    #[pest_ast(outer(with(span_to_source_range)))]
-    pub source_range: SourceRange,
-    pub name: Identifier,
+    pub name: AttributeName,
     pub call: Option<AttrCall>,
 }
 
 #[derive(FromPest)]
 #[pest_ast(rule(Rule::block_attribute))]
 pub struct BlockAttribute {
+    pub name: BlockAttributeName,
+    pub call: Option<AttrCall>,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::attribute_name))]
+pub struct AttributeName {
     #[pest_ast(outer(with(span_to_source_range)))]
     pub source_range: SourceRange,
-    pub name: Identifier,
-    pub call: Option<AttrCall>,
+    #[pest_ast(outer(with(span_to_string)))]
+    pub value: String,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::block_attribute_name))]
+pub struct BlockAttributeName {
+    #[pest_ast(outer(with(span_to_source_range)))]
+    pub source_range: SourceRange,
+    #[pest_ast(outer(with(span_to_string)))]
+    pub value: String,
 }
 
 #[derive(FromPest)]
@@ -526,9 +540,9 @@ impl TypeNode {
 impl AttributeNode {
     fn into_attribute(self) -> ast::Attribute {
         ast::Attribute {
-            name: self.name.value,
+            name: self.name.value.strip_prefix('@').unwrap().to_string(),
             args: self.call.map(AttrCall::into_args).unwrap_or_default(),
-            source_range: Some(self.source_range),
+            source_range: Some(self.name.source_range),
         }
     }
 }
@@ -536,9 +550,9 @@ impl AttributeNode {
 impl BlockAttribute {
     fn into_attribute(self) -> ast::Attribute {
         ast::Attribute {
-            name: self.name.value,
+            name: self.name.value.strip_prefix("@@").unwrap().to_string(),
             args: self.call.map(AttrCall::into_args).unwrap_or_default(),
-            source_range: Some(self.source_range),
+            source_range: Some(self.name.source_range),
         }
     }
 }

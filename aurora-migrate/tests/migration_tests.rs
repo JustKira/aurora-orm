@@ -352,6 +352,22 @@ fn fs_io_reads_schema_and_latest_snapshot() {
     assert_eq!(read_previous_schema(&meta_dir, &journal).unwrap(), parsed);
 }
 
+#[test]
+fn fs_io_rejects_surql_blocks_for_migrations() {
+    let dir = temp_dir("fs_io_surql");
+    let schema_path = dir.join("schema.aurora");
+    fs::write(&schema_path, "#surql { RETURN 1; }\n").unwrap();
+
+    let result = read_schema(&schema_path);
+
+    match result {
+        Err(Error::UnsupportedSchemaItem { message, .. }) => {
+            assert!(message.contains("#surql blocks are not yet supported"));
+        }
+        other => panic!("expected unsupported #surql schema item, got {other:?}"),
+    }
+}
+
 fn schema(tables: Vec<Table>) -> Schema {
     Schema {
         items: tables.into_iter().map(SchemaItem::TableDecl).collect(),

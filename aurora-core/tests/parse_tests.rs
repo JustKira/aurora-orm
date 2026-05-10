@@ -255,6 +255,12 @@ table Demo {
 }
 
 #[test]
+fn rejects_whitespace_after_attribute_sigils() {
+    assert!(parse_to_ast("table User { email string @ index }").is_err());
+    assert!(parse_to_ast("table User { @@ index }").is_err());
+}
+
+#[test]
 fn emits_json_ast() {
     let json = parse_to_json(
         r#"

@@ -32,20 +32,7 @@
       "members": [
         {
           "type": "STRING",
-          "value": "#"
-        },
-        {
-          "type": "FIELD",
-          "name": "name",
-          "content": {
-            "type": "ALIAS",
-            "content": {
-              "type": "STRING",
-              "value": "surql"
-            },
-            "named": true,
-            "value": "identifier"
-          }
+          "value": "#surql"
         },
         {
           "type": "STRING",
@@ -791,8 +778,16 @@
           "type": "FIELD",
           "name": "name",
           "content": {
-            "type": "SYMBOL",
-            "name": "identifier"
+            "type": "ALIAS",
+            "content": {
+              "type": "IMMEDIATE_TOKEN",
+              "content": {
+                "type": "PATTERN",
+                "value": "[a-zA-Z][a-zA-Z0-9_]*"
+              }
+            },
+            "named": true,
+            "value": "identifier"
           }
         },
         {
@@ -824,8 +819,16 @@
           "type": "FIELD",
           "name": "name",
           "content": {
-            "type": "SYMBOL",
-            "name": "identifier"
+            "type": "ALIAS",
+            "content": {
+              "type": "IMMEDIATE_TOKEN",
+              "content": {
+                "type": "PATTERN",
+                "value": "[a-zA-Z][a-zA-Z0-9_]*"
+              }
+            },
+            "named": true,
+            "value": "identifier"
           }
         },
         {

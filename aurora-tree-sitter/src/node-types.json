@@ -498,18 +498,7 @@
   {
     "type": "surql_block",
     "named": true,
-    "fields": {
-      "name": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "identifier",
-            "named": true
-          }
-        ]
-      }
-    },
+    "fields": {},
     "children": {
       "multiple": true,
       "required": false,
@@ -676,7 +665,7 @@
     }
   },
   {
-    "type": "#",
+    "type": "#surql",
     "named": false
   },
   {

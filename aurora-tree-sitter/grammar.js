@@ -20,7 +20,7 @@ module.exports = grammar({
 
     // === Top-level: raw SurrealQL ===
 
-    surql_block: ($) => seq("#", field("name", alias("surql", $.identifier)), "{", repeat($._surql_chunk), "}"),
+    surql_block: ($) => seq("#surql", "{", repeat($._surql_chunk), "}"),
 
     _surql_chunk: ($) => choice($.surql_nested_block, $.surql_text),
 
@@ -177,14 +177,14 @@ module.exports = grammar({
     attribute: ($) =>
       seq(
         "@",
-        field("name", $.identifier),
+        field("name", alias(token.immediate(/[a-zA-Z][a-zA-Z0-9_]*/), $.identifier)),
         optional(field("args", $.attribute_args)),
       ),
 
     block_attribute: ($) =>
       seq(
         "@@",
-        field("name", $.identifier),
+        field("name", alias(token.immediate(/[a-zA-Z][a-zA-Z0-9_]*/), $.identifier)),
         optional(field("args", $.attribute_args)),
       ),
 

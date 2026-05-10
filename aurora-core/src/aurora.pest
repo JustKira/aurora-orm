@@ -5,7 +5,8 @@ schema      = { SOI ~ EMPTY_LINES* ~ (schema_item ~ EMPTY_LINES*)* ~ EOI }
 schema_item = { doc_comment | surql_block | table_block | analyzer_block }
 
 // Raw SurrealQL escape hatch. Aurora only owns the outer `#surql { ... }`
-// delimiter for now; the inner body is extracted as text and emitted as-is.
+// delimiter for now; the inner body is extracted as text. SurQL emission trims
+// outer whitespace from that body.
 surql_block  = { "#surql" ~ "{" ~ surql_chunk* ~ "}" }
 surql_chunk  = { surql_nested | surql_text }
 surql_nested = { "{" ~ surql_chunk* ~ "}" }
@@ -56,8 +57,10 @@ optional_marker = { "?" }
 // Top-level attribute args are keyword-only — every value has a name. The
 // only carve-out is `attr_tuple` for kv values that mirror SurrealDB's compound
 // literals (currently just BM25(k1, b)).
-attribute       = { "@" ~ !"@" ~ identifier ~ attr_call? }
-block_attribute = { "@@" ~ identifier ~ attr_call? }
+attribute       = { attribute_name ~ attr_call? }
+block_attribute = { block_attribute_name ~ attr_call? }
+attribute_name  = @{ "@" ~ !"@" ~ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+block_attribute_name = @{ "@@" ~ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 attr_call       = { "(" ~ attr_kv_list? ~ ")" }
 attr_kv_list    = { attr_kv ~ ("," ~ attr_kv)* }
 attr_kv         = { identifier ~ ":" ~ attr_value }
