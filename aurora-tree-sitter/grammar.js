@@ -15,7 +15,18 @@ module.exports = grammar({
   rules: {
     source_file: ($) => repeat($._definition),
 
-    _definition: ($) => choice($.table_definition, $.analyzer_definition),
+    _definition: ($) =>
+      choice($.table_definition, $.analyzer_definition, $.surql_block),
+
+    // === Top-level: raw SurrealQL ===
+
+    surql_block: ($) => seq("#", field("name", alias("surql", $.identifier)), "{", repeat($._surql_chunk), "}"),
+
+    _surql_chunk: ($) => choice($.surql_nested_block, $.surql_text),
+
+    surql_nested_block: ($) => seq("{", repeat($._surql_chunk), "}"),
+
+    surql_text: ($) => token.immediate(prec(1, /[^{}]+/)),
 
     // === Top-level: analyzer ===
 

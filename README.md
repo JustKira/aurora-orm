@@ -157,4 +157,4 @@ aurora migrate diff      # show pending changes vs. the live database
 aurora migrate generate  # write a new migration file with checksums
 ```
 
-See [`aurora-tree-sitter/examples/showcase.aurora`](aurora-tree-sitter/examples/showcase.aurora) for every syntax form in one place.
+See [`aurora-tree-sitter/examples`](aurora-tree-sitter/examples) for focused syntax examples.

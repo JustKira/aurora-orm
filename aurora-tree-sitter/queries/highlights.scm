@@ -16,44 +16,47 @@
 "record" @type.builtin
 "geometry" @type.builtin
 
-; Primitive types (bool, int, float, string, datetime, …)
+; Primitive types
 (primitive_type) @type.builtin
 
 ; Optional marker (?)
 (optional_marker) @operator
 
-; Identifiers — context-aware
+; Identifiers
 (table_definition name: (identifier) @type)
 (analyzer_definition name: (identifier) @type)
 (field_definition name: (identifier) @property)
 (record_type table: (identifier) @type)
 (geometry_type feature: (identifier) @attribute)
 
-; Analyzer config — tokenizer names and filter calls
+; Analyzer config
 (analyzer_tokenizers name: (identifier) @constant.builtin)
 (filter_call name: (identifier) @function)
 (filter_arg) @string.special
 
-; Attributes — mirrors the official Prisma Zed extension's choices, since the
-; syntax is structurally identical. `@` / `@@` are operators, attribute names
-; are `@label` (Prisma uses this so the decorator reads as a single colored
-; unit), call names like `bm25(...)` are `@function`, bare-ident values are
-; `@constant`, and kv keys are `@property`.
+; Attributes
+"#" @operator
 "@" @operator
 "@@" @operator
+(surql_block name: (identifier) @label)
 (attribute name: (identifier) @label)
 (block_attribute name: (identifier) @label)
+(attribute (identifier) @label)
+(block_attribute (identifier) @label)
 
 (attribute_kv key: (identifier) @property)
 
 (attribute_string) @string
 (attribute_number) @number
 (attribute_bool) @boolean
-
 (attribute_ident (identifier) @constant)
 
-; Numeric literals in type params (array<T, N>)
+; Numeric literals in type params
 (array_length) @number
+
+; Raw SurrealQL escape hatch. This is intentionally coarse until nested
+; SurrealQL injection is wired up.
+(surql_text) @string.special
 
 ; Comments
 (doc_comment) @comment.documentation

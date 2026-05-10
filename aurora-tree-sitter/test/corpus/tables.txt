@@ -109,3 +109,23 @@ table T { x int? }
         type: (type_expression
           base: (type_node (primitive_type))
           (optional_marker))))))
+
+==================
+Top-level raw SurQL block
+==================
+
+#surql {
+  DEFINE EVENT audit ON TABLE user WHEN $event = "CREATE" THEN {
+    CREATE audit SET user = $after.id, action = $event;
+  };
+}
+
+---
+
+(source_file
+  (surql_block
+    name: (identifier)
+    (surql_text)
+    (surql_nested_block
+      (surql_text))
+    (surql_text)))

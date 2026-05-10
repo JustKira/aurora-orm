@@ -485,7 +485,60 @@
           "named": true
         },
         {
+          "type": "surql_block",
+          "named": true
+        },
+        {
           "type": "table_definition",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "surql_block",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "surql_nested_block",
+          "named": true
+        },
+        {
+          "type": "surql_text",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "surql_nested_block",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "surql_nested_block",
+          "named": true
+        },
+        {
+          "type": "surql_text",
           "named": true
         }
       ]
@@ -621,6 +674,10 @@
         }
       ]
     }
+  },
+  {
+    "type": "#",
+    "named": false
   },
   {
     "type": "(",
@@ -790,6 +847,10 @@
   {
     "type": "string",
     "named": false
+  },
+  {
+    "type": "surql_text",
+    "named": true
   },
   {
     "type": "table",
