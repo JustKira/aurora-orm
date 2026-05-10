@@ -1,0 +1,48 @@
+analyzer todo_search {
+  tokenizers blank, class
+  filters lowercase, snowball(english)
+}
+
+/// Accounts for a small collaborative todo product.
+table user schemafull {
+  email        string @unique
+  display_name string
+  avatar_url   string?
+  created_at   datetime
+  settings     object @flexible
+}
+
+/// Login sessions. The token hash is unique; active sessions are indexed by user.
+table session schemafull {
+  user       record<user> @index
+  token_hash string @unique
+  ip_address string?
+  user_agent string?
+  created_at datetime
+  expires_at datetime @index
+  revoked_at datetime?
+}
+
+/// Todo lists owned by a user.
+table todo_list schemafull {
+  owner      record<user> @index
+  name       string
+  archived   bool
+  created_at datetime
+}
+
+/// Individual todos with fulltext search and common lookup indexes.
+table todo schemafull {
+  list        record<todo_list> @index
+  assignee    record<user>?
+  title       string @fulltext(analyzer: todo_search, bm25: (1.2, 0.75), highlights: true)
+  notes       string?
+  status      string @index
+  priority    int
+  due_at      datetime?
+  completed_at datetime?
+  metadata    object @flexible
+
+  @@index(fields: [list, status], name: "idx_todo_list_status")
+  @@index(fields: [assignee, due_at], name: "idx_todo_assignee_due")
+}
