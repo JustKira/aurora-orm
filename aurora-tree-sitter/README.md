@@ -10,11 +10,11 @@ folding, and outline.
 ## Develop
 
 ```bash
-# from this directory
+# from the repository root
 bun install                # one-time, installs tree-sitter-cli
-bun run generate           # regenerate src/parser.c from grammar.js
-bun run test               # run the corpus tests
-bun run parse ../aurora-examples/schema.aurora   # parse a real schema
+bun run tree-sitter:generate   # regenerate src/parser.c from grammar.js
+bun run tree-sitter:test       # run the corpus tests
+bun run tree-sitter:parse -- aurora-tree-sitter/examples/showcase.aurora
 ```
 
 The generated `src/parser.c` and `src/grammar.json` are committed so

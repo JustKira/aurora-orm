@@ -1,0 +1,16 @@
+{
+  "name": "aurora-orm",
+  "private": true,
+  "packageManager": "bun@1.3.11",
+  "workspaces": [
+    "aurora-tree-sitter"
+  ],
+  "scripts": {
+    "tree-sitter:generate": "bun run --cwd aurora-tree-sitter generate",
+    "tree-sitter:parse": "bun run --cwd aurora-tree-sitter parse",
+    "tree-sitter:test": "bun run --cwd aurora-tree-sitter test"
+  },
+  "dependencies": {
+    "@types/bun": "^1.3.13"
+  }
+}
