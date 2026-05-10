@@ -155,10 +155,7 @@ fn validate_field_attributes(
 }
 
 /// `@unique` / `@index` accept only one optional kw arg: `name: "..."`.
-fn parse_named_only(
-    args: &[AttributeArg],
-    label: &str,
-) -> Result<Option<String>, ValidationError> {
+fn parse_named_only(args: &[AttributeArg], label: &str) -> Result<Option<String>, ValidationError> {
     let mut name = None;
     for arg in args {
         let AttributeArg::Keyword { name: key, value } = arg;
@@ -202,8 +199,7 @@ fn validate_block_attribute(
         "index" => match parse_field_list_block(table, fields, &attr.args, "@@index") {
             Ok((field_names, name_override)) => {
                 indexes.push(Index {
-                    name: name_override
-                        .unwrap_or_else(|| auto_name(table, &field_names, "idx")),
+                    name: name_override.unwrap_or_else(|| auto_name(table, &field_names, "idx")),
                     fields: field_names,
                     kind: IndexKind::Standard,
                 });
@@ -213,8 +209,7 @@ fn validate_block_attribute(
         "unique" => match parse_field_list_block(table, fields, &attr.args, "@@unique") {
             Ok((field_names, name_override)) => {
                 indexes.push(Index {
-                    name: name_override
-                        .unwrap_or_else(|| auto_name(table, &field_names, "unique")),
+                    name: name_override.unwrap_or_else(|| auto_name(table, &field_names, "unique")),
                     fields: field_names,
                     kind: IndexKind::Unique,
                 });
@@ -231,9 +226,7 @@ fn validate_block_attribute(
 // Returns the kind + the optional explicit `name:` so the caller can decide
 // auto-naming.
 
-fn parse_hnsw_args(
-    args: &[AttributeArg],
-) -> Result<(IndexKind, Option<String>), ValidationError> {
+fn parse_hnsw_args(args: &[AttributeArg]) -> Result<(IndexKind, Option<String>), ValidationError> {
     let mut dimension: Option<u32> = None;
     let mut dist: Option<String> = None;
     let mut ty: Option<String> = None;
@@ -319,7 +312,7 @@ fn parse_fulltext_args(
 fn parse_bm25_tuple(value: &AttributeValue) -> Result<Bm25, ValidationError> {
     let AttributeValue::Tuple { values } = value else {
         return Err(err(
-            "`bm25` expects `(k1, b)` — two floats in parens".to_string(),
+            "`bm25` expects `(k1, b)` — two floats in parens".to_string()
         ));
     };
     if values.len() != 2 {
@@ -380,14 +373,11 @@ fn parse_field_list_block(
     })?;
     for fname in &field_names {
         if !fields.iter().any(|f| &f.name == fname) {
-            return Err(err(format!(
-                "{label} on {table}: unknown field `{fname}`"
-            )));
+            return Err(err(format!("{label} on {table}: unknown field `{fname}`")));
         }
     }
     Ok((field_names, name))
 }
-
 
 // === Value extractors ===
 
@@ -486,9 +476,7 @@ fn levenshtein(a: &str, b: &str) -> usize {
         curr[0] = i + 1;
         for (j, bc) in b.iter().enumerate() {
             let cost = if ac == bc { 0 } else { 1 };
-            curr[j + 1] = (curr[j] + 1)
-                .min(prev[j + 1] + 1)
-                .min(prev[j] + cost);
+            curr[j + 1] = (curr[j] + 1).min(prev[j + 1] + 1).min(prev[j] + cost);
         }
         std::mem::swap(&mut prev, &mut curr);
     }

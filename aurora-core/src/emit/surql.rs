@@ -126,7 +126,11 @@ pub fn emit_index(table_name: &str, idx: &Index) -> String {
         } => {
             sql.push_str(&format!(" FULLTEXT ANALYZER {}", analyzer));
             if let Some(b) = bm25 {
-                sql.push_str(&format!(" BM25({}, {})", format_number(b.k1), format_number(b.b)));
+                sql.push_str(&format!(
+                    " BM25({}, {})",
+                    format_number(b.k1),
+                    format_number(b.b)
+                ));
             }
             if *highlights {
                 sql.push_str(" HIGHLIGHTS");

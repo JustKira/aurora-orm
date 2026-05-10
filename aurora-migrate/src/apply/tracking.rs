@@ -58,10 +58,7 @@ pub async fn read_applied(client: &Client) -> Result<Vec<AppliedRecord>, ClientE
 /// The record id is `_aurora_migrations:<idx>` so re-applying the same idx
 /// would conflict (which is the right behavior — caller checks `read_applied`
 /// first).
-pub async fn record_applied(
-    client: &Client,
-    entry: &JournalEntry,
-) -> Result<(), ClientError> {
+pub async fn record_applied(client: &Client, entry: &JournalEntry) -> Result<(), ClientError> {
     let now = Utc::now();
     let sql = "CREATE type::thing('_aurora_migrations', $idx) CONTENT {
         idx: $idx,

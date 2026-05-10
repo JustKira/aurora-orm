@@ -1,6 +1,7 @@
 //! Aurora core: parser, validator, and serializable AST for the Aurora language.
 
 pub mod ast;
+pub mod check;
 mod convert;
 pub mod emit;
 pub mod error;
@@ -8,7 +9,12 @@ pub mod grammar;
 pub mod validate;
 
 pub use ast::*;
-pub use error::{AuroraError, ParseDiagnostic, SourcePosition, SourceRange};
+pub use check::CheckReport;
+pub use check::check;
+pub use check::diagnostics::{
+    Diagnostic, DiagnosticCode, ParseDiagnostic, Severity, SourcePosition, SourceRange,
+};
+pub use error::AuroraError;
 pub use grammar::Rule;
 pub use validate::ValidationError;
 
@@ -25,7 +31,7 @@ pub fn parse(source: &str) -> Result<pest::iterators::Pairs<'_, Rule>, pest::err
 /// (which wants structure even from incomplete input).
 pub fn parse_to_ast(source: &str) -> Result<Schema, AuroraError> {
     let mut pairs = parse(source)
-        .map_err(error::ParseDiagnostic::from_pest)
+        .map_err(check::syntax::parse_diagnostic_from_pest)
         .map_err(AuroraError::Parse)?;
     let parsed = convert::Schema::from_pest(&mut pairs)
         .map_err(|error| AuroraError::Convert(format!("{error:?}")))?;

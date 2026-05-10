@@ -299,7 +299,9 @@ impl SchemaItem {
                 ast::SchemaItem::DocComment { text }
             }
             SchemaItem::TableBlock(table) => ast::SchemaItem::TableDecl(table.into_ast()),
-            SchemaItem::AnalyzerBlock(analyzer) => ast::SchemaItem::AnalyzerDecl(analyzer.into_ast()),
+            SchemaItem::AnalyzerBlock(analyzer) => {
+                ast::SchemaItem::AnalyzerDecl(analyzer.into_ast())
+            }
         }
     }
 }
@@ -431,7 +433,11 @@ impl AttrValueNode {
                     .to_string(),
             },
             AttrValueNode::Array(arr) => ast::AttributeValue::Array {
-                values: arr.values.into_iter().map(AttrValueNode::into_ast).collect(),
+                values: arr
+                    .values
+                    .into_iter()
+                    .map(AttrValueNode::into_ast)
+                    .collect(),
             },
             AttrValueNode::Tuple(t) => ast::AttributeValue::Tuple {
                 values: t.values.into_iter().map(AttrValueNode::into_ast).collect(),

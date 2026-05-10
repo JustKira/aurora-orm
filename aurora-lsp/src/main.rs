@@ -4,7 +4,7 @@
 //! parse diagnostics only. Validation diagnostics, hover, go-to-definition,
 //! completions, and other editor features can layer on after this minimal path.
 
-use aurora_core::{AuroraError, ParseDiagnostic, SourcePosition, SourceRange};
+use aurora_core::{Diagnostic as AuroraDiagnostic, Severity, SourcePosition, SourceRange};
 use tower_lsp_server::jsonrpc::Result;
 use tower_lsp_server::ls_types::{
     Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams, DidOpenTextDocumentParams,
@@ -78,35 +78,32 @@ impl AuroraLsp {
 }
 
 fn parse_diagnostics(source: &str) -> Vec<Diagnostic> {
-    match aurora_core::parse_to_ast(source) {
-        Ok(_) => Vec::new(),
-        Err(AuroraError::Parse(error)) => vec![parse_error_diagnostic(&error)],
-        Err(error) => vec![Diagnostic::new(
-            first_character_range(),
-            Some(DiagnosticSeverity::ERROR),
-            None,
-            Some("aurora".to_string()),
-            error.to_string(),
-            None,
-            None,
-        )],
-    }
+    aurora_core::check(source)
+        .diagnostics
+        .iter()
+        .map(to_lsp_diagnostic)
+        .collect()
 }
 
-fn parse_error_diagnostic(error: &ParseDiagnostic) -> Diagnostic {
+fn to_lsp_diagnostic(diagnostic: &AuroraDiagnostic) -> Diagnostic {
     Diagnostic::new(
-        to_lsp_range(error.range),
-        Some(DiagnosticSeverity::ERROR),
+        to_lsp_range(diagnostic.range),
+        Some(to_lsp_severity(diagnostic.severity)),
         None,
         Some("aurora".to_string()),
-        error.message.clone(),
+        diagnostic.to_string(),
         None,
         None,
     )
 }
 
-fn first_character_range() -> Range {
-    Range::new(Position::new(0, 0), Position::new(0, 1))
+fn to_lsp_severity(severity: Severity) -> DiagnosticSeverity {
+    match severity {
+        Severity::Error => DiagnosticSeverity::ERROR,
+        Severity::Warning => DiagnosticSeverity::WARNING,
+        Severity::Info => DiagnosticSeverity::INFORMATION,
+        Severity::Hint => DiagnosticSeverity::HINT,
+    }
 }
 
 fn to_lsp_range(range: SourceRange) -> Range {

@@ -148,6 +148,18 @@ fn parse_error_for_table_header_without_body_reports_missing_brace() {
 }
 
 #[test]
+fn parse_error_for_analyzer_header_without_body_reports_missing_brace() {
+    let err = parse_to_ast("analyzer edu ").unwrap_err();
+    let AuroraError::Parse(diagnostic) = err else {
+        panic!("expected parse diagnostic");
+    };
+
+    assert_eq!(diagnostic.message, "expected `{` to start analyzer body");
+    assert_eq!(diagnostic.range.start.line, 0);
+    assert_eq!(diagnostic.range.start.character, 13);
+}
+
+#[test]
 fn parse_error_suggests_top_level_declaration_keyword() {
     let err = parse_to_ast("tabl compound_demo schemafull").unwrap_err();
     let AuroraError::Parse(diagnostic) = err else {

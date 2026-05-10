@@ -77,7 +77,9 @@ fn emit_up_op(op: &Op) -> Vec<String> {
         })],
         Op::CreateAnalyzer(a) => vec![emit_analyzer(a)],
         Op::RemoveAnalyzer(name) => vec![emit_remove_analyzer(name)],
-        Op::ChangeAnalyzer { from, to } => vec![emit_remove_analyzer(&from.name), emit_analyzer(to)],
+        Op::ChangeAnalyzer { from, to } => {
+            vec![emit_remove_analyzer(&from.name), emit_analyzer(to)]
+        }
         Op::CreateIndex { table, index } => vec![emit_index(table, index)],
         Op::RemoveIndex { table, name } => vec![emit_remove_index(table, name)],
         Op::ChangeIndex {
@@ -156,7 +158,9 @@ fn emit_down_op(op: &Op) -> Vec<String> {
         Op::RemoveAnalyzer(name) => vec![format!(
             "-- down: RemoveAnalyzer {name} cannot restore the original definition"
         )],
-        Op::ChangeAnalyzer { from, to } => vec![emit_remove_analyzer(&to.name), emit_analyzer(from)],
+        Op::ChangeAnalyzer { from, to } => {
+            vec![emit_remove_analyzer(&to.name), emit_analyzer(from)]
+        }
         Op::CreateIndex { table, index } => vec![emit_remove_index(table, &index.name)],
         Op::RemoveIndex { table, name } => vec![format!(
             "-- down: RemoveIndex {table}.{name} cannot restore the original definition"
