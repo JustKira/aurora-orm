@@ -6,3 +6,8 @@ dist/
 .env
 .env.local
 .moon/cache/
+.tmp/
+.research/
+
+# opensrc - source code for packages
+opensrc/
