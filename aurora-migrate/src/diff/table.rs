@@ -43,7 +43,7 @@ fn tables_by_name(schema: &Schema) -> HashMap<&str, &Table> {
         .iter()
         .filter_map(|item| match item {
             SchemaItem::TableDecl(table) => Some((table.name.as_str(), table)),
-            SchemaItem::DocComment { .. } | SchemaItem::AnalyzerDecl(_) => None,
+            SchemaItem::DocComment { .. } | SchemaItem::SurqlBlock(_) | SchemaItem::AnalyzerDecl(_) => None,
         })
         .collect()
 }

@@ -271,6 +271,36 @@ table T schemafull {
 }
 
 #[test]
+fn parses_top_level_surql_block_as_raw_body() {
+    let source = r#"
+#surql {
+  DEFINE EVENT audit ON TABLE user WHEN $event = "CREATE" THEN {
+    CREATE audit SET user = $after.id, action = $event;
+  };
+}
+"#;
+
+    let schema = parse_to_ast(source).unwrap();
+
+    match &schema.items[0] {
+        SchemaItem::SurqlBlock(block) => {
+            assert!(block.body.contains("DEFINE EVENT audit ON TABLE user"));
+            assert!(block.body.contains("CREATE audit SET user = $after.id"));
+            assert!(block.body.contains("{\n    CREATE audit"));
+        }
+        _ => panic!("expected surql block"),
+    }
+}
+
+#[test]
+fn emits_json_ast_with_surql_block() {
+    let json = parse_to_json("#surql { RETURN 1; }").unwrap();
+
+    assert!(json.contains("\"kind\": \"surql\""));
+    assert!(json.contains("\"body\": \" RETURN 1; \""));
+}
+
+#[test]
 fn parse_schema_matches_parse_to_ast() {
     let source = r#"
 table T schemafull {

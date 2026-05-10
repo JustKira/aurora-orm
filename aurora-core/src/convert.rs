@@ -42,6 +42,7 @@ pub struct SourceFile {
 #[pest_ast(rule(Rule::schema_item))]
 pub enum SchemaItem {
     DocComment(DocComment),
+    SurqlBlock(SurqlBlock),
     TableBlock(TableBlock),
     AnalyzerBlock(AnalyzerBlock),
 }
@@ -50,6 +51,7 @@ pub enum SchemaItem {
 #[pest_ast(rule(Rule::source_items))]
 pub enum SourceItem {
     DocComment(DocComment),
+    SurqlBlock(SurqlBlock),
     TableBlock(TableBlock),
     AnalyzerBlock(AnalyzerBlock),
     InvalidLine(InvalidLine),
@@ -58,6 +60,38 @@ pub enum SourceItem {
 #[derive(FromPest)]
 #[pest_ast(rule(Rule::INVALID_SOURCE_ITEM))]
 pub struct InvalidLine;
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::surql_block))]
+#[allow(dead_code)]
+pub struct SurqlBlock {
+    #[pest_ast(outer(with(span_to_string)))]
+    pub source: String,
+    pub chunks: Vec<SurqlChunk>,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::surql_chunk))]
+#[allow(dead_code)]
+pub enum SurqlChunk {
+    Nested(SurqlNested),
+    Text(SurqlText),
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::surql_nested))]
+#[allow(dead_code)]
+pub struct SurqlNested {
+    pub chunks: Vec<SurqlChunk>,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::surql_text))]
+#[allow(dead_code)]
+pub struct SurqlText {
+    #[pest_ast(outer(with(span_to_string)))]
+    pub text: String,
+}
 
 #[derive(FromPest)]
 #[pest_ast(rule(Rule::doc_comment))]
@@ -365,6 +399,7 @@ impl SchemaItem {
     fn into_ast(self) -> ast::SchemaItem {
         match self {
             SchemaItem::DocComment(doc_comment) => doc_comment.into_ast(),
+            SchemaItem::SurqlBlock(block) => ast::SchemaItem::SurqlBlock(block.into_ast()),
             SchemaItem::TableBlock(table) => ast::SchemaItem::TableDecl(table.into_ast()),
             SchemaItem::AnalyzerBlock(analyzer) => {
                 ast::SchemaItem::AnalyzerDecl(analyzer.into_ast())
@@ -377,11 +412,20 @@ impl SourceItem {
     fn into_ast(self) -> Option<ast::SchemaItem> {
         match self {
             SourceItem::DocComment(doc_comment) => Some(doc_comment.into_ast()),
+            SourceItem::SurqlBlock(block) => Some(ast::SchemaItem::SurqlBlock(block.into_ast())),
             SourceItem::TableBlock(table) => Some(ast::SchemaItem::TableDecl(table.into_ast())),
             SourceItem::AnalyzerBlock(analyzer) => {
                 Some(ast::SchemaItem::AnalyzerDecl(analyzer.into_ast()))
             }
             SourceItem::InvalidLine(_) => None,
+        }
+    }
+}
+
+impl SurqlBlock {
+    fn into_ast(self) -> ast::SurqlBlock {
+        ast::SurqlBlock {
+            body: extract_surql_body(&self.source),
         }
     }
 }
@@ -397,6 +441,12 @@ impl DocComment {
 
         ast::SchemaItem::DocComment { text }
     }
+}
+
+fn extract_surql_body(source: &str) -> String {
+    let body_start = source.find('{').map_or(0, |idx| idx + 1);
+    let body_end = source.rfind('}').unwrap_or(source.len());
+    source[body_start..body_end].to_string()
 }
 
 impl TableBlock {

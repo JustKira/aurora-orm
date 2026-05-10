@@ -12,10 +12,17 @@ pub struct Schema {
 pub enum SchemaItem {
     #[serde(rename = "doc_comment")]
     DocComment { text: String },
+    #[serde(rename = "surql")]
+    SurqlBlock(SurqlBlock),
     #[serde(rename = "table")]
     TableDecl(Table),
     #[serde(rename = "analyzer")]
     AnalyzerDecl(Analyzer),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SurqlBlock {
+    pub body: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

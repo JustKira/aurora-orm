@@ -2,11 +2,18 @@
 
 // Strict parser entry point. Called from Rust with `Rule::schema`.
 schema      = { SOI ~ EMPTY_LINES* ~ (schema_item ~ EMPTY_LINES*)* ~ EOI }
-schema_item = { doc_comment | table_block | analyzer_block }
+schema_item = { doc_comment | surql_block | table_block | analyzer_block }
+
+// Raw SurrealQL escape hatch. Aurora only owns the outer `#surql { ... }`
+// delimiter for now; the inner body is extracted as text and emitted as-is.
+surql_block  = { "#surql" ~ "{" ~ surql_chunk* ~ "}" }
+surql_chunk  = { surql_nested | surql_text }
+surql_nested = { "{" ~ surql_chunk* ~ "}" }
+surql_text   = @{ (!("{" | "}") ~ ANY)+ }
 
 // Tolerant checker/LSP entry point. Called from Rust with `Rule::source_file`.
 source_file  = { SOI ~ EMPTY_LINES* ~ (source_items ~ EMPTY_LINES*)* ~ EOI }
-source_items = { doc_comment | table_block | analyzer_block | #invalid_source_item = INVALID_SOURCE_ITEM }
+source_items = { doc_comment | surql_block | table_block | analyzer_block | #invalid_source_item = INVALID_SOURCE_ITEM }
 
 // Doc comment: triple-slash lines, captured as AST node.
 doc_comment      =  { doc_comment_line+ }
@@ -116,7 +123,7 @@ identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 INVALID_SOURCE_ITEM = @{ !KNOWN_TOP_LEVEL_KEYWORD ~ INVALID_LINE }
 INVALID_LINE        = @{ (!NEWLINE ~ ANY)+ ~ NEWLINE? }
 
-KNOWN_TOP_LEVEL_KEYWORD = _{ ("table" | "analyzer") ~ KEYWORD_BOUNDARY }
+KNOWN_TOP_LEVEL_KEYWORD = _{ ("table" | "analyzer" | "#surql") ~ KEYWORD_BOUNDARY }
 KEYWORD_BOUNDARY        = _{ " " | "\t" | NEWLINE | EOI }
 
 BLOCK_START     = _{ "{" ~ NEWLINE }
