@@ -2,4 +2,3 @@ target/
 extension.wasm
 grammars/
 extension.local.toml
-.local-grammar/

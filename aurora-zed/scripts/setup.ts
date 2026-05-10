@@ -1,5 +1,5 @@
 import { cpSync, mkdirSync, rmSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -7,16 +7,22 @@ const zedDir = resolve(scriptDir, "..");
 const repoRoot = resolve(zedDir, "..");
 const extensionTomlPath = resolve(zedDir, "extension.toml");
 const grammarDir = resolve(repoRoot, "aurora-tree-sitter");
-const localGrammarRepo = resolve(zedDir, ".local-grammar", "aurora");
-const localGrammarRepoUrl = pathToFileURL(localGrammarRepo).href;
+const localGrammarCheckout = resolve(zedDir, "grammars", "aurora");
+const localGrammarRepoUrl = pathToFileURL(repoRoot).href;
 
 const mode = parseMode(Bun.argv.slice(2));
-const manifest = mode === "dev" ? devManifest(await prepareDevEnvironment()) : prodManifest();
+const manifest = mode === "dev" ? devManifest() : prodManifest();
+
+if (mode === "dev") {
+  prepareDevEnvironment();
+} else {
+  prepareProdEnvironment();
+}
 
 await Bun.write(extensionTomlPath, manifest);
 
 if (mode === "dev") {
-  console.log(`aurora-zed uses local grammar: ${localGrammarRepoUrl}`);
+  console.log(`aurora-zed uses local grammar checkout: ${localGrammarCheckout}`);
   console.log("Run `moon run aurora-zed:setup -- --prod` before committing.");
 } else {
   console.log("aurora-zed uses remote grammar: https://github.com/JustKira/aurora-orm.git#main");
@@ -38,39 +44,36 @@ function usage(): void {
   console.error("Usage: bun aurora-zed/scripts/setup.ts (--dev | --prod)");
 }
 
-async function prepareLocalGrammarRepo(): Promise<string> {
-  rmSync(localGrammarRepo, { recursive: true, force: true });
-  mkdirSync(localGrammarRepo, { recursive: true });
-  cpSync(grammarDir, localGrammarRepo, { recursive: true });
-  rmSync(resolve(localGrammarRepo, ".git"), { recursive: true, force: true });
-  run(["git", "init", "-q"], localGrammarRepo);
-  run(["git", "add", "."], localGrammarRepo);
-  run(
-    [
-      "git",
-      "-c",
-      "user.name=Aurora Zed Dev",
-      "-c",
-      "user.email=aurora-zed-dev@example.invalid",
-      "commit",
-      "-q",
-      "-m",
-      "local aurora grammar snapshot",
-    ],
-    localGrammarRepo,
-  );
+function prepareLocalGrammarCheckout(): void {
+  rmSync(localGrammarCheckout, { recursive: true, force: true });
+  mkdirSync(localGrammarCheckout, { recursive: true });
+  run(["git", "init", "-q"], localGrammarCheckout);
+  run(["git", "remote", "add", "origin", localGrammarRepoUrl], localGrammarCheckout);
+  run(["git", "fetch", "--depth", "1", "origin", "HEAD"], localGrammarCheckout);
+  run(["git", "checkout", "-q", "FETCH_HEAD"], localGrammarCheckout);
 
-  return commandOutput(["git", "rev-parse", "HEAD"], localGrammarRepo);
+  const localGrammarPath = resolve(localGrammarCheckout, "aurora-tree-sitter");
+  const nodeModulesPath = resolve(grammarDir, "node_modules");
+  rmSync(localGrammarPath, { recursive: true, force: true });
+  cpSync(grammarDir, localGrammarPath, {
+    recursive: true,
+    filter: (source) =>
+      source !== nodeModulesPath && !source.startsWith(`${nodeModulesPath}${sep}`),
+  });
+  rmSync(resolve(localGrammarPath, ".git"), { recursive: true, force: true });
 }
 
-async function prepareDevEnvironment(): Promise<string> {
+function prepareDevEnvironment(): void {
   clearZedGrammarCaches();
-  return prepareLocalGrammarRepo();
+  prepareLocalGrammarCheckout();
+}
+
+function prepareProdEnvironment(): void {
+  rmSync(resolve(zedDir, "grammars"), { recursive: true, force: true });
 }
 
 function clearZedGrammarCaches(): void {
   const cachePaths = [
-    resolve(zedDir, "grammars"),
     resolve(homeDir(), "Library", "Application Support", "Zed", "extensions", "work", "aurora"),
   ];
 
@@ -101,21 +104,7 @@ function run(cmd: string[], cwd = repoRoot): void {
   }
 }
 
-function commandOutput(cmd: string[], cwd = repoRoot): string {
-  const result = Bun.spawnSync(cmd, {
-    cwd,
-    stdout: "pipe",
-    stderr: "inherit",
-  });
-
-  if (!result.success) {
-    throw new Error(`command failed: ${cmd.join(" ")}`);
-  }
-
-  return result.stdout.toString().trim();
-}
-
-function devManifest(rev: string): string {
+function devManifest(): string {
   return `id = "aurora"
 name = "Aurora"
 description = "Aurora schema language support for Zed"
@@ -125,7 +114,8 @@ authors = ["Aurora"]
 
 [grammars.aurora]
 repository = "${localGrammarRepoUrl}"
-rev = "${rev}"
+rev = "HEAD"
+path = "aurora-tree-sitter"
 
 [language_servers.aurora-lsp]
 name = "Aurora LSP"

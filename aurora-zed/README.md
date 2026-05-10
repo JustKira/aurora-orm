@@ -52,24 +52,31 @@ The committed `extension.toml` intentionally points at the GitHub repo so the
 extension remains publishable. That means Zed will fetch the grammar from
 `rev = "main"` and will not see unpushed local changes.
 
-For local grammar work, switch the manifest to your local grammar:
+For local grammar work, switch the manifest to a local checkout:
 
 ```bash
 moon run aurora-zed:setup -- --dev
 ```
 
+The setup task prepares `aurora-zed/grammars/aurora` as the checkout Zed expects,
+points it at this workspace, and overlays the current `aurora-tree-sitter` files
+as uncommitted changes. This lets Zed rebuild against your working tree without
+creating snapshot commits just to test grammar changes.
+
 Then run **"zed: rebuild dev extension"** or restart Zed. Do not commit the
-local `extension.toml` replacement; restore the remote manifest before commit:
+local `extension.toml` replacement or the ignored grammar checkout; restore the
+remote manifest before commit:
 
 ```bash
 moon run aurora-zed:setup -- --prod
 ```
 
 This workflow is still a workaround. Zed requires grammar repositories to be
-Git revisions, so the dev task snapshots the local grammar into an ignored
-temporary repository. It also clears the known Aurora grammar/work caches before
-rebuilding the local snapshot. We are still looking for a cleaner extension
-development experience; see [issue #79](https://github.com/JustKira/aurora-orm/issues/79).
+Git revisions, so the dev task creates the checkout shape Zed expects and keeps
+the grammar edits as local working-tree changes in that checkout. It also clears
+the known Aurora grammar/work caches before rebuilding. We are still looking for
+a cleaner extension development experience; see
+[issue #79](https://github.com/JustKira/aurora-orm/issues/79).
 
 If you want to keep a hand-edited local manifest instead, copy
 `extension.local.toml.example` to `extension.local.toml`. That file is ignored
