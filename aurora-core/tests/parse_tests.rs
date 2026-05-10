@@ -90,6 +90,118 @@ fn rejects_invalid_schema() {
 }
 
 #[test]
+fn parse_error_highlights_invalid_type_token() {
+    let err = parse_to_ast("table Demo { ttl duratio }").unwrap_err();
+    let AuroraError::Parse(diagnostic) = err else {
+        panic!("expected parse diagnostic");
+    };
+
+    assert_eq!(diagnostic.range.start.line, 0);
+    assert_eq!(diagnostic.range.start.character, 17);
+    assert_eq!(diagnostic.range.end.character, 24);
+    assert!(
+        diagnostic.message.contains("type"),
+        "{}",
+        diagnostic.message
+    );
+    assert!(
+        !diagnostic.message.contains("type_node"),
+        "{}",
+        diagnostic.message
+    );
+}
+
+#[test]
+fn parse_error_uses_friendly_rule_names() {
+    let err = parse_to_ast("table primitives_demo schemaful { }").unwrap_err();
+    let AuroraError::Parse(diagnostic) = err else {
+        panic!("expected parse diagnostic");
+    };
+
+    assert_eq!(diagnostic.range.start.line, 0);
+    assert_eq!(diagnostic.range.start.character, 22);
+    assert_eq!(diagnostic.range.end.character, 31);
+    assert!(
+        diagnostic
+            .message
+            .contains("`schemafull`, `schemaless`, or `drop`"),
+        "{}",
+        diagnostic.message
+    );
+    assert!(
+        !diagnostic.message.contains("table_modifier"),
+        "{}",
+        diagnostic.message
+    );
+}
+
+#[test]
+fn parse_error_for_table_header_without_body_reports_missing_brace() {
+    let err = parse_to_ast("table primitives_demo schemafull ").unwrap_err();
+    let AuroraError::Parse(diagnostic) = err else {
+        panic!("expected parse diagnostic");
+    };
+
+    assert_eq!(diagnostic.message, "expected `{` to start table body");
+    assert_eq!(diagnostic.range.start.line, 0);
+    assert_eq!(diagnostic.range.start.character, 33);
+}
+
+#[test]
+fn parse_error_suggests_top_level_declaration_keyword() {
+    let err = parse_to_ast("tabl compound_demo schemafull").unwrap_err();
+    let AuroraError::Parse(diagnostic) = err else {
+        panic!("expected parse diagnostic");
+    };
+
+    assert_eq!(
+        diagnostic.message,
+        "unknown top-level declaration `tabl`; did you mean `table`?"
+    );
+    assert_eq!(diagnostic.range.start.line, 0);
+    assert_eq!(diagnostic.range.start.character, 0);
+    assert_eq!(diagnostic.range.end.character, 4);
+}
+
+#[test]
+fn parse_error_explains_array_length_syntax() {
+    let err = parse_to_ast("table Demo { tags array<string, > }").unwrap_err();
+    let AuroraError::Parse(diagnostic) = err else {
+        panic!("expected parse diagnostic");
+    };
+
+    assert!(
+        diagnostic.message.contains("array length like `10`"),
+        "{}",
+        diagnostic.message
+    );
+    assert!(
+        diagnostic.message.contains("`array<T>` or `array<T, N>`"),
+        "{}",
+        diagnostic.message
+    );
+}
+
+#[test]
+fn parse_error_explains_geometry_type_syntax() {
+    let err = parse_to_ast("table Demo { shape geometry<> }").unwrap_err();
+    let AuroraError::Parse(diagnostic) = err else {
+        panic!("expected parse diagnostic");
+    };
+
+    assert!(
+        diagnostic.message.contains("geometry feature names"),
+        "{}",
+        diagnostic.message
+    );
+    assert!(
+        diagnostic.message.contains("`geometry<point>`"),
+        "{}",
+        diagnostic.message
+    );
+}
+
+#[test]
 fn emits_json_ast() {
     let json = parse_to_json("table T schemafull { x int }").unwrap();
 
