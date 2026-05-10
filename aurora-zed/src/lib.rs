@@ -14,7 +14,7 @@ impl Extension for AuroraExtension {
     ) -> Result<Command> {
         // Resolve the aurora-lsp binary from $PATH; fall back to the bare
         // name so Zed surfaces a clear error if the binary isn't installed.
-        // Install with `cargo install --path tools/aurora-lsp` from the repo.
+        // Install with `cargo install --path aurora-lsp` from the repo.
         let path = worktree
             .which("aurora-lsp")
             .unwrap_or_else(|| "aurora-lsp".to_string());

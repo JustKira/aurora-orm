@@ -3,8 +3,8 @@
 Zed editor extension for the Aurora schema language.
 
 Provides syntax highlighting, brackets, indentation, and document outline
-backed by `tools/aurora-tree-sitter`. Wires up `aurora-lsp` from
-`tools/aurora-lsp` if it's installed in `PATH`.
+backed by `aurora-tree-sitter`. Wires up `aurora-lsp` from `aurora-lsp`
+if it's installed in `PATH`.
 
 ## Install as a dev extension
 
@@ -20,14 +20,14 @@ backed by `tools/aurora-tree-sitter`. Wires up `aurora-lsp` from
 2. Build the LSP and put it on your `PATH`:
 
    ```bash
-   cargo install --path tools/aurora-lsp
+   cargo install --path aurora-lsp
    # or symlink target/debug/aurora-lsp into ~/.local/bin
    ```
 
 3. Two ways to install the extension:
 
    **UI**: open Zed's command palette (`Cmd+Shift+P`) → **"zed: install
-   dev extension"** → pick `tools/aurora-zed`.
+   dev extension"** → pick `aurora-zed`.
 
    **CLI** (faster for iteration — Zed treats the install dir as a
    symlink target):
@@ -35,21 +35,56 @@ backed by `tools/aurora-tree-sitter`. Wires up `aurora-lsp` from
    ```bash
    ZED_EXT="$HOME/Library/Application Support/Zed/extensions/installed/aurora"
    rm -f "$ZED_EXT"
-   ln -s "$(pwd)/tools/aurora-zed" "$ZED_EXT"
+   ln -s "$(pwd)/aurora-zed" "$ZED_EXT"
    ```
 
    After that, restart Zed (or run **"zed: rebuild dev extension"** from
    the command palette).
 
-4. Open `tools/aurora-examples/schema.aurora`. Highlighting should turn
+4. Open `aurora-tree-sitter/examples/showcase.aurora`. Highlighting should turn
    on, and the language indicator in the status bar should read **Aurora**.
    If `aurora-lsp` resolved on `PATH`, Zed shows it as a running server
    in the language-server panel.
 
+## Testing local grammar changes
+
+The committed `extension.toml` intentionally points at the GitHub repo so the
+extension remains publishable. That means Zed will fetch the grammar from
+`rev = "main"` and will not see unpushed local changes.
+
+For local grammar work, switch the manifest to a local checkout:
+
+```bash
+moon run aurora-zed:setup -- --dev
+```
+
+The setup task prepares `aurora-zed/grammars/aurora` as the checkout Zed expects,
+points it at this workspace, and overlays the current `aurora-tree-sitter` files
+as uncommitted changes. This lets Zed rebuild against your working tree without
+creating snapshot commits just to test grammar changes.
+
+Then run **"zed: rebuild dev extension"** or restart Zed. Do not commit the
+local `extension.toml` replacement or the ignored grammar checkout; restore the
+remote manifest before commit:
+
+```bash
+moon run aurora-zed:setup -- --prod
+```
+
+This workflow is still a workaround. Zed requires grammar repositories to be
+Git revisions, so the dev task creates the checkout shape Zed expects and keeps
+the grammar edits as local working-tree changes in that checkout. It also clears
+the known Aurora grammar/work caches before rebuilding. We are still looking for
+a cleaner extension development experience; see
+[issue #79](https://github.com/JustKira/aurora-orm/issues/79).
+
+If Zed still shows old highlighting after running setup, rebuild the dev
+extension again or fully restart Zed.
+
 ## Grammar reference
 
 The `extension.toml` references the platform repo and points at the
-`tools/aurora-tree-sitter` subdirectory via the `path` field on
+`aurora-tree-sitter` subdirectory via the `path` field on
 `[grammars.aurora]`. (That field is real but undocumented — see
 `zed/crates/extension/src/extension_manifest.rs`.) Update `rev` when the
 grammar changes; pin to a commit SHA for stable versions.

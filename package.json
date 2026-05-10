@@ -1,0 +1,11 @@
+{
+  "name": "aurora-orm",
+  "private": true,
+  "packageManager": "bun@1.3.11",
+  "workspaces": [
+    "aurora-tree-sitter"
+  ],
+  "dependencies": {
+    "@types/bun": "^1.3.13"
+  }
+}
