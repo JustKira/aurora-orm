@@ -1,10 +1,7 @@
-use aurora_core::ast::{Analyzer, Field, Index, Schema, SchemaItem, Table, Type};
-use serde::Deserialize;
+use aurora_core::ast::{Analyzer, Field, Index, Schema, SchemaItem, Table};
 use serde_json::{Value, json};
 
-use crate::error::{Error, Result};
-
-pub const SNAPSHOT_VERSION: u32 = 1;
+use super::SNAPSHOT_VERSION;
 
 pub fn canonicalize(schema: &Schema) -> String {
     let tables: Vec<Value> = sorted_tables(schema)
@@ -92,76 +89,4 @@ fn canonicalize_analyzer(a: &Analyzer) -> Value {
         "tokenizers": a.tokenizers,
         "filters": a.filters,
     })
-}
-
-pub fn parse_snapshot(json_str: &str) -> Result<Schema> {
-    let snapshot = serde_json::from_str::<Snapshot>(json_str)
-        .map_err(|error| Error::SnapshotDecode(error.to_string()))?;
-
-    match snapshot.version {
-        SNAPSHOT_VERSION => snapshot_v1_to_schema(snapshot),
-        version => Err(Error::SnapshotDecode(format!(
-            "unsupported snapshot version {version}"
-        ))),
-    }
-}
-
-fn snapshot_v1_to_schema(snapshot: Snapshot) -> Result<Schema> {
-    let mut items = Vec::new();
-    for a in snapshot.analyzers {
-        items.push(SchemaItem::AnalyzerDecl(a));
-    }
-    for t in snapshot.tables {
-        items.push(SchemaItem::TableDecl(t.into_ast()));
-    }
-    Ok(Schema { items })
-}
-
-#[derive(Deserialize)]
-struct Snapshot {
-    version: u32,
-    #[serde(default)]
-    analyzers: Vec<Analyzer>,
-    tables: Vec<SnapshotTable>,
-}
-
-#[derive(Deserialize)]
-struct SnapshotTable {
-    name: String,
-    modifier: Option<String>,
-    fields: Vec<SnapshotField>,
-    #[serde(default)]
-    indexes: Vec<Index>,
-}
-
-impl SnapshotTable {
-    fn into_ast(self) -> Table {
-        Table {
-            name: self.name,
-            modifier: self.modifier,
-            fields: self
-                .fields
-                .into_iter()
-                .map(|field| Field {
-                    name: field.name,
-                    ty: field.ty,
-                    optional: field.optional,
-                    flexible: field.flexible,
-                    raw_attributes: Vec::new(),
-                })
-                .collect(),
-            indexes: self.indexes,
-            raw_attributes: Vec::new(),
-        }
-    }
-}
-
-#[derive(Deserialize)]
-struct SnapshotField {
-    name: String,
-    #[serde(rename = "type")]
-    ty: Type,
-    optional: bool,
-    #[serde(default)]
-    flexible: bool,
 }
