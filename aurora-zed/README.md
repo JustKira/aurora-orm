@@ -65,6 +65,11 @@ local `extension.toml` replacement; restore the remote manifest before commit:
 moon run aurora-zed:setup -- --prod
 ```
 
+This workflow is still a workaround. Zed requires grammar repositories to be
+Git revisions, so the dev task snapshots the local grammar into an ignored
+temporary repository. We are still looking for a cleaner extension development
+experience; see [issue #79](https://github.com/JustKira/aurora-orm/issues/79).
+
 If you want to keep a hand-edited local manifest instead, copy
 `extension.local.toml.example` to `extension.local.toml`. That file is ignored
 by Git.

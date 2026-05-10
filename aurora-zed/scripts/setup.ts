@@ -1,8 +1,14 @@
-const repoRoot = import.meta.dir.replace(/\/aurora-zed\/scripts$/, "");
-const zedDir = `${repoRoot}/aurora-zed`;
-const extensionTomlPath = `${zedDir}/extension.toml`;
-const grammarDir = `${repoRoot}/aurora-tree-sitter`;
-const localGrammarRepo = `${zedDir}/.local-grammar/aurora`;
+import { cpSync, mkdirSync, rmSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const zedDir = resolve(scriptDir, "..");
+const repoRoot = resolve(zedDir, "..");
+const extensionTomlPath = resolve(zedDir, "extension.toml");
+const grammarDir = resolve(repoRoot, "aurora-tree-sitter");
+const localGrammarRepo = resolve(zedDir, ".local-grammar", "aurora");
+const localGrammarRepoUrl = pathToFileURL(localGrammarRepo).href;
 
 const mode = parseMode(Bun.argv.slice(2));
 const manifest = mode === "dev" ? devManifest(await prepareLocalGrammarRepo()) : prodManifest();
@@ -10,7 +16,8 @@ const manifest = mode === "dev" ? devManifest(await prepareLocalGrammarRepo()) :
 await Bun.write(extensionTomlPath, manifest);
 
 if (mode === "dev") {
-  console.log(`aurora-zed uses local grammar: file://${localGrammarRepo}`);
+  console.log(`aurora-zed uses local grammar: ${localGrammarRepoUrl}`);
+  console.log("Run `moon run aurora-zed:setup -- --prod` before committing.");
 } else {
   console.log("aurora-zed uses remote grammar: https://github.com/JustKira/aurora-orm.git#main");
 }
@@ -32,10 +39,10 @@ function usage(): void {
 }
 
 async function prepareLocalGrammarRepo(): Promise<string> {
-  run(["rm", "-rf", localGrammarRepo]);
-  run(["mkdir", "-p", localGrammarRepo]);
-  run(["cp", "-R", `${grammarDir}/.`, localGrammarRepo]);
-  run(["rm", "-rf", `${localGrammarRepo}/.git`]);
+  rmSync(localGrammarRepo, { recursive: true, force: true });
+  mkdirSync(localGrammarRepo, { recursive: true });
+  cpSync(grammarDir, localGrammarRepo, { recursive: true });
+  rmSync(resolve(localGrammarRepo, ".git"), { recursive: true, force: true });
   run(["git", "init", "-q"], localGrammarRepo);
   run(["git", "add", "."], localGrammarRepo);
   run(
@@ -91,7 +98,7 @@ schema_version = 1
 authors = ["Aurora"]
 
 [grammars.aurora]
-repository = "file://${localGrammarRepo}"
+repository = "${localGrammarRepoUrl}"
 rev = "${rev}"
 
 [language_servers.aurora-lsp]
