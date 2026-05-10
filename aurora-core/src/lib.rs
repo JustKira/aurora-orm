@@ -25,15 +25,36 @@ pub fn parse(source: &str) -> Result<pest::iterators::Pairs<'_, Rule>, pest::err
     grammar::AuroraParser::parse(Rule::schema, source)
 }
 
+pub(crate) fn parse_source_file(
+    source: &str,
+) -> Result<pest::iterators::Pairs<'_, Rule>, pest::error::Error<Rule>> {
+    grammar::AuroraParser::parse(Rule::source_file, source)
+}
+
 /// Parse without running the validator. The returned `Schema` has raw
 /// `@`/`@@` attribute blobs on fields and tables; `Table.indexes` is empty
 /// and `Field.flexible` is false until validation runs. Useful for the LSP
 /// (which wants structure even from incomplete input).
 pub fn parse_to_ast(source: &str) -> Result<Schema, AuroraError> {
-    let mut pairs = parse(source)
+    let pairs = parse(source)
         .map_err(check::syntax::parse_diagnostic_from_pest)
         .map_err(AuroraError::Parse)?;
+    parse_pairs_to_ast(pairs)
+}
+
+pub(crate) fn parse_pairs_to_ast(
+    mut pairs: pest::iterators::Pairs<'_, Rule>,
+) -> Result<Schema, AuroraError> {
     let parsed = convert::Schema::from_pest(&mut pairs)
+        .map_err(|error| AuroraError::Convert(format!("{error:?}")))?;
+
+    Ok(parsed.into_ast())
+}
+
+pub(crate) fn parse_source_file_pairs_to_ast(
+    mut pairs: pest::iterators::Pairs<'_, Rule>,
+) -> Result<Schema, AuroraError> {
+    let parsed = convert::SourceFile::from_pest(&mut pairs)
         .map_err(|error| AuroraError::Convert(format!("{error:?}")))?;
 
     Ok(parsed.into_ast())

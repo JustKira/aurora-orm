@@ -16,12 +16,32 @@ pub struct Schema {
 }
 
 #[derive(FromPest)]
+#[pest_ast(rule(Rule::source_file))]
+pub struct SourceFile {
+    pub items: Vec<SourceItem>,
+    _eoi: Eoi,
+}
+
+#[derive(FromPest)]
 #[pest_ast(rule(Rule::schema_item))]
 pub enum SchemaItem {
     DocComment(DocComment),
     TableBlock(TableBlock),
     AnalyzerBlock(AnalyzerBlock),
 }
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::source_item))]
+pub enum SourceItem {
+    DocComment(DocComment),
+    TableBlock(TableBlock),
+    AnalyzerBlock(AnalyzerBlock),
+    InvalidLine(InvalidLine),
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::INVALID_LINE))]
+pub struct InvalidLine;
 
 #[derive(FromPest)]
 #[pest_ast(rule(Rule::doc_comment))]
@@ -285,24 +305,53 @@ impl Schema {
     }
 }
 
+impl SourceFile {
+    pub fn into_ast(self) -> ast::Schema {
+        ast::Schema {
+            items: self
+                .items
+                .into_iter()
+                .filter_map(SourceItem::into_ast)
+                .collect(),
+        }
+    }
+}
+
 impl SchemaItem {
     fn into_ast(self) -> ast::SchemaItem {
         match self {
-            SchemaItem::DocComment(doc_comment) => {
-                let text = doc_comment
-                    .lines
-                    .iter()
-                    .map(|line| line.content.trim_start_matches("///").trim())
-                    .collect::<Vec<_>>()
-                    .join("\n");
-
-                ast::SchemaItem::DocComment { text }
-            }
+            SchemaItem::DocComment(doc_comment) => doc_comment.into_ast(),
             SchemaItem::TableBlock(table) => ast::SchemaItem::TableDecl(table.into_ast()),
             SchemaItem::AnalyzerBlock(analyzer) => {
                 ast::SchemaItem::AnalyzerDecl(analyzer.into_ast())
             }
         }
+    }
+}
+
+impl SourceItem {
+    fn into_ast(self) -> Option<ast::SchemaItem> {
+        match self {
+            SourceItem::DocComment(doc_comment) => Some(doc_comment.into_ast()),
+            SourceItem::TableBlock(table) => Some(ast::SchemaItem::TableDecl(table.into_ast())),
+            SourceItem::AnalyzerBlock(analyzer) => {
+                Some(ast::SchemaItem::AnalyzerDecl(analyzer.into_ast()))
+            }
+            SourceItem::InvalidLine(_) => None,
+        }
+    }
+}
+
+impl DocComment {
+    fn into_ast(self) -> ast::SchemaItem {
+        let text = self
+            .lines
+            .iter()
+            .map(|line| line.content.trim_start_matches("///").trim())
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        ast::SchemaItem::DocComment { text }
     }
 }
 

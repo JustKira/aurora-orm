@@ -16,11 +16,11 @@ table user {
 }
 
 #[test]
-fn check_returns_parse_diagnostic_without_schema_for_invalid_syntax() {
+fn check_returns_parse_diagnostic_with_partial_schema_for_recovered_top_level_syntax() {
     let report = check("tabl user { name string }");
 
     assert!(report.has_errors());
-    assert!(report.schema.is_none());
+    assert!(report.schema.is_some());
     assert_eq!(report.diagnostics.len(), 1);
     assert_eq!(report.diagnostics[0].code, DiagnosticCode::ParseError);
     assert!(
@@ -29,6 +29,36 @@ fn check_returns_parse_diagnostic_without_schema_for_invalid_syntax() {
             .contains("did you mean `table`"),
         "{}",
         report.diagnostics[0].message
+    );
+}
+
+#[test]
+fn check_preserves_valid_items_around_recovered_top_level_syntax() {
+    let report = check(
+        r#"
+table user {
+  name string
+}
+
+tabl post schemafull
+
+table comment {
+  body string
+}
+"#,
+    );
+
+    assert!(report.has_errors());
+    let schema = report
+        .schema
+        .as_ref()
+        .expect("partial schema should be available");
+    assert_eq!(report.diagnostics.len(), 1);
+    assert_eq!(schema.items.len(), 2);
+    assert!(
+        report.diagnostics[0]
+            .message
+            .contains("did you mean `table`")
     );
 }
 

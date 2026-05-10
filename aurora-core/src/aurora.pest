@@ -3,6 +3,9 @@
 schema      = { SOI ~ schema_item* ~ EOI }
 schema_item = { doc_comment | table_block | analyzer_block }
 
+source_file = { SOI ~ source_item* ~ EOI }
+source_item = { doc_comment | table_block | analyzer_block | #invalid_top_level = INVALID_LINE }
+
 // Doc comment: triple-slash lines, captured as AST node.
 doc_comment      = { doc_comment_line+ }
 doc_comment_line = @{ "///" ~ (!NEWLINE ~ ANY)* }
@@ -95,6 +98,10 @@ primitive_type = {
 }
 
 identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+// Shared recovery primitive. Context-specific tags decide what diagnostic a
+// matched invalid line should produce.
+INVALID_LINE = @{ (!NEWLINE ~ ANY)+ ~ NEWLINE? }
 
 block_start     = _{ "{" }
 block_end       = _{ "}" }

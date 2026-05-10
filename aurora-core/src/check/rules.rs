@@ -42,6 +42,8 @@ fn default_rule_diagnostic(rule: crate::grammar::Rule) -> RuleDiagnostic {
     match rule {
         Rule::schema => simple("schema"),
         Rule::schema_item => simple("top-level declaration"),
+        Rule::source_file => simple("source file"),
+        Rule::source_item => simple("source item"),
         Rule::doc_comment => simple("doc comment"),
         Rule::doc_comment_line => simple("doc comment line"),
         Rule::COMMENT => simple("comment"),
@@ -79,6 +81,7 @@ fn default_rule_diagnostic(rule: crate::grammar::Rule) -> RuleDiagnostic {
         Rule::array_length => with_detail("array length like `10`", ARRAY_LENGTH_DETAIL),
         Rule::primitive_type => simple("primitive type"),
         Rule::identifier => simple("identifier"),
+        Rule::INVALID_LINE => simple("invalid line"),
         Rule::block_start => simple("`{`"),
         Rule::block_end => simple("`}`"),
         Rule::type_args_start => simple("`<`"),
