@@ -1,41 +1,47 @@
 use pest::error::ErrorVariant;
 
-use super::classifiers::{
-    ClassifiedSyntaxDiagnostic, SyntaxDiagnosticInput, classify_syntax_diagnostic,
-};
 use super::context::SyntaxContext;
 use super::diagnostics::{Diagnostic, DiagnosticCode};
 use super::range::pest_error_range;
 use super::rules::rule_diagnostic;
 
+struct SyntaxDiagnostic {
+    message: String,
+    highlight_line_end: bool,
+}
+
 pub(crate) fn parse_diagnostic_from_pest(
     error: pest::error::Error<crate::grammar::Rule>,
 ) -> Diagnostic {
     let context = SyntaxContext::from_error(&error);
-    let input = SyntaxDiagnosticInput {
-        error: &error,
-        context,
-    };
-    let classified = classify_syntax_diagnostic(&input)
+    let diagnostic = missing_block_start_diagnostic(context)
         .unwrap_or_else(|| default_syntax_diagnostic(&error, context));
-    let range = pest_error_range(&error, classified.highlight_line_end);
+    let range = pest_error_range(&error, diagnostic.highlight_line_end);
 
-    Diagnostic::error(DiagnosticCode::ParseError, classified.message, range)
+    Diagnostic::error(DiagnosticCode::ParseError, diagnostic.message, range)
+}
+
+fn missing_block_start_diagnostic(context: SyntaxContext) -> Option<SyntaxDiagnostic> {
+    let block_kind = context.missing_block_start()?;
+    Some(SyntaxDiagnostic {
+        message: format!("expected `{{` to start {} body", block_kind.label()),
+        highlight_line_end: true,
+    })
 }
 
 fn default_syntax_diagnostic(
     error: &pest::error::Error<crate::grammar::Rule>,
     context: SyntaxContext,
-) -> ClassifiedSyntaxDiagnostic {
+) -> SyntaxDiagnostic {
     match &error.variant {
         ErrorVariant::ParsingError {
             positives,
             negatives,
-        } => ClassifiedSyntaxDiagnostic {
+        } => SyntaxDiagnostic {
             message: parse_error_message(positives, negatives, context),
             highlight_line_end: false,
         },
-        ErrorVariant::CustomError { message } => ClassifiedSyntaxDiagnostic {
+        ErrorVariant::CustomError { message } => SyntaxDiagnostic {
             message: message.clone(),
             highlight_line_end: false,
         },

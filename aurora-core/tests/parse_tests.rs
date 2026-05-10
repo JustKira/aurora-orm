@@ -160,16 +160,28 @@ fn parse_error_for_analyzer_header_without_body_reports_missing_brace() {
 }
 
 #[test]
-fn parse_error_suggests_top_level_declaration_keyword() {
+fn check_suggests_top_level_declaration_keyword_from_recovery_node() {
+    let report = aurora_core::check("tabl compound_demo schemafull");
+    let diagnostic = report.diagnostics.first().expect("diagnostic");
+
+    assert!(report.schema.is_some());
+    assert_eq!(
+        diagnostic.message,
+        "unknown top-level declaration `tabl`; did you mean `table`?"
+    );
+    assert_eq!(diagnostic.range.start.line, 0);
+    assert_eq!(diagnostic.range.start.character, 0);
+    assert_eq!(diagnostic.range.end.character, 29);
+}
+
+#[test]
+fn strict_parse_rejects_unknown_top_level_declaration() {
     let err = parse_to_ast("tabl compound_demo schemafull").unwrap_err();
     let AuroraError::Parse(diagnostic) = err else {
         panic!("expected parse diagnostic");
     };
 
-    assert_eq!(
-        diagnostic.message,
-        "unknown top-level declaration `tabl`; did you mean `table`?"
-    );
+    assert!(diagnostic.message.contains("expected"));
     assert_eq!(diagnostic.range.start.line, 0);
     assert_eq!(diagnostic.range.start.character, 0);
     assert_eq!(diagnostic.range.end.character, 4);

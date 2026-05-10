@@ -1,6 +1,5 @@
 pub mod diagnostics;
 
-mod classifiers;
 mod context;
 mod keywords;
 mod range;
