@@ -21,10 +21,10 @@ table doc {
         "{}",
         diagnostic.message
     );
-    assert_eq!(diagnostic.range.start.line, 0);
-    assert_eq!(diagnostic.range.start.character, 0);
-    assert_eq!(diagnostic.range.end.line, 0);
-    assert_eq!(diagnostic.range.end.character, 1);
+    assert_eq!(diagnostic.range.start.line, 2);
+    assert_eq!(diagnostic.range.start.character, 14);
+    assert_eq!(diagnostic.range.end.line, 2);
+    assert_eq!(diagnostic.range.end.character, 23);
 }
 
 #[test]

@@ -14,7 +14,7 @@ fn analyzer_header_without_body_reports_missing_block_open() {
             code: DiagnosticCode::ParseError,
             message: "expected `{` to start analyzer body",
             start: (0, 13),
-            end: (0, 14),
+            end: (0, 13),
         },
     );
 }

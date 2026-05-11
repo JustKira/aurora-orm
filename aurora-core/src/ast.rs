@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::check::diagnostics::SourceRange;
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Schema {
     pub items: Vec<SchemaItem>,
@@ -83,6 +85,8 @@ pub struct Attribute {
     pub name: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub args: Vec<AttributeArg>,
+    #[serde(skip)]
+    pub source_range: Option<SourceRange>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
