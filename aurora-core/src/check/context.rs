@@ -6,6 +6,7 @@ use super::keywords::{ANALYZER, TABLE};
 pub(super) enum SyntaxContext {
     MissingBlockStart(BlockKind),
     MissingAttributeCallEnd,
+    InlineBlockAttribute,
     GeometryType,
     Unknown,
 }
@@ -45,6 +46,10 @@ impl SyntaxContext {
             return Self::MissingAttributeCallEnd;
         }
 
+        if inline_block_attribute(line) {
+            return Self::InlineBlockAttribute;
+        }
+
         if before_error.contains("geometry<") {
             return Self::GeometryType;
         }
@@ -63,6 +68,14 @@ impl SyntaxContext {
 fn before_column(line: &str, column: usize) -> &str {
     let end = column.saturating_sub(1).min(line.len());
     &line[..end]
+}
+
+fn inline_block_attribute(line: &str) -> bool {
+    let Some(block_attr_start) = line.find("@@") else {
+        return false;
+    };
+
+    !line[..block_attr_start].trim().is_empty()
 }
 
 fn missing_attribute_call_end(before_error: &str) -> bool {

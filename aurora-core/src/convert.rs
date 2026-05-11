@@ -74,8 +74,20 @@ pub struct TableModifier {
 #[derive(FromPest)]
 #[pest_ast(rule(Rule::table_member))]
 pub enum TableMember {
-    BlockAttribute(BlockAttribute),
-    Field(FieldNode),
+    BlockAttributeLine(BlockAttributeLine),
+    FieldLine(FieldLine),
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::field_line))]
+pub struct FieldLine {
+    pub field: FieldNode,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::block_attribute_line))]
+pub struct BlockAttributeLine {
+    pub attribute: BlockAttribute,
 }
 
 #[derive(FromPest)]
@@ -246,7 +258,19 @@ pub struct AttrString {
 #[pest_ast(rule(Rule::analyzer_block))]
 pub struct AnalyzerBlock {
     pub name: Identifier,
-    pub clauses: Vec<AnalyzerClause>,
+    pub members: Vec<AnalyzerMember>,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::analyzer_member))]
+pub enum AnalyzerMember {
+    ClauseLine(AnalyzerClauseLine),
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::analyzer_clause_line))]
+pub struct AnalyzerClauseLine {
+    pub clause: AnalyzerClause,
 }
 
 #[derive(FromPest)]
@@ -361,8 +385,10 @@ impl TableBlock {
         let mut raw_attributes = Vec::new();
         for member in self.members {
             match member {
-                TableMember::Field(f) => fields.push(f.into_ast()),
-                TableMember::BlockAttribute(b) => raw_attributes.push(b.into_attribute()),
+                TableMember::FieldLine(line) => fields.push(line.field.into_ast()),
+                TableMember::BlockAttributeLine(line) => {
+                    raw_attributes.push(line.attribute.into_attribute())
+                }
             }
         }
         ast::Table {
@@ -499,14 +525,16 @@ impl AnalyzerBlock {
     fn into_ast(self) -> ast::Analyzer {
         let mut tokenizers = Vec::new();
         let mut filters = Vec::new();
-        for clause in self.clauses {
-            match clause {
-                AnalyzerClause::Tokenizers(t) => {
-                    tokenizers.extend(t.names.into_iter().map(|i| i.value))
-                }
-                AnalyzerClause::Filters(f) => {
-                    filters.extend(f.calls.into_iter().map(FilterCallNode::into_ast))
-                }
+        for member in self.members {
+            match member {
+                AnalyzerMember::ClauseLine(line) => match line.clause {
+                    AnalyzerClause::Tokenizers(t) => {
+                        tokenizers.extend(t.names.into_iter().map(|i| i.value))
+                    }
+                    AnalyzerClause::Filters(f) => {
+                        filters.extend(f.calls.into_iter().map(FilterCallNode::into_ast))
+                    }
+                },
             }
         }
         ast::Analyzer {

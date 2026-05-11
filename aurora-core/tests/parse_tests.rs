@@ -12,7 +12,8 @@ table User schemafull {
   score   float?
 }
 
-table TempLog drop {}
+table TempLog drop {
+}
 "#;
 
     let schema = parse_to_ast(source).unwrap();
@@ -72,7 +73,14 @@ table Config schemaless {
 
 #[test]
 fn parses_table_without_modifier() {
-    let schema = parse_to_ast("table Bare { name string }").unwrap();
+    let schema = parse_to_ast(
+        r#"
+table Bare {
+  name string
+}
+"#,
+    )
+    .unwrap();
 
     match &schema.items[0] {
         SchemaItem::TableDecl(table) => {
@@ -91,14 +99,21 @@ fn rejects_invalid_schema() {
 
 #[test]
 fn parse_error_highlights_invalid_type_token() {
-    let err = parse_to_ast("table Demo { ttl duratio }").unwrap_err();
+    let err = parse_to_ast(
+        r#"
+table Demo {
+  ttl duratio
+}
+"#,
+    )
+    .unwrap_err();
     let AuroraError::Parse(diagnostic) = err else {
         panic!("expected parse diagnostic");
     };
 
-    assert_eq!(diagnostic.range.start.line, 0);
-    assert_eq!(diagnostic.range.start.character, 17);
-    assert_eq!(diagnostic.range.end.character, 24);
+    assert_eq!(diagnostic.range.start.line, 2);
+    assert_eq!(diagnostic.range.start.character, 6);
+    assert_eq!(diagnostic.range.end.character, 13);
     assert!(
         diagnostic.message.contains("type"),
         "{}",
@@ -113,7 +128,7 @@ fn parse_error_highlights_invalid_type_token() {
 
 #[test]
 fn parse_error_uses_friendly_rule_names() {
-    let err = parse_to_ast("table primitives_demo schemaful { }").unwrap_err();
+    let err = parse_to_ast("table primitives_demo schemaful {\n}\n").unwrap_err();
     let AuroraError::Parse(diagnostic) = err else {
         panic!("expected parse diagnostic");
     };
@@ -189,7 +204,14 @@ fn strict_parse_rejects_unknown_source_declaration() {
 
 #[test]
 fn parse_error_explains_array_length_syntax() {
-    let err = parse_to_ast("table Demo { tags array<string, > }").unwrap_err();
+    let err = parse_to_ast(
+        r#"
+table Demo {
+  tags array<string, >
+}
+"#,
+    )
+    .unwrap_err();
     let AuroraError::Parse(diagnostic) = err else {
         panic!("expected parse diagnostic");
     };
@@ -208,7 +230,14 @@ fn parse_error_explains_array_length_syntax() {
 
 #[test]
 fn parse_error_explains_geometry_type_syntax() {
-    let err = parse_to_ast("table Demo { shape geometry<> }").unwrap_err();
+    let err = parse_to_ast(
+        r#"
+table Demo {
+  shape geometry<>
+}
+"#,
+    )
+    .unwrap_err();
     let AuroraError::Parse(diagnostic) = err else {
         panic!("expected parse diagnostic");
     };
@@ -227,7 +256,14 @@ fn parse_error_explains_geometry_type_syntax() {
 
 #[test]
 fn emits_json_ast() {
-    let json = parse_to_json("table T schemafull { x int }").unwrap();
+    let json = parse_to_json(
+        r#"
+table T schemafull {
+  x int
+}
+"#,
+    )
+    .unwrap();
 
     assert!(json.contains("\"name\": \"T\""));
     assert!(json.contains("\"kind\": \"primitive\""));
@@ -236,7 +272,11 @@ fn emits_json_ast() {
 
 #[test]
 fn parse_schema_matches_parse_to_ast() {
-    let source = "table T schemafull { x int }";
+    let source = r#"
+table T schemafull {
+  x int
+}
+"#;
 
     assert_eq!(parse_schema(source).unwrap(), parse_to_ast(source).unwrap());
 }

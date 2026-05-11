@@ -1,11 +1,11 @@
 // Aurora Schema Language Grammar (POC)
 
 // Strict parser entry point. Called from Rust with `Rule::schema`.
-schema      = { SOI ~ schema_item* ~ EOI }
+schema      = { SOI ~ empty_lines* ~ (schema_item ~ empty_lines*)* ~ EOI }
 schema_item = { doc_comment | table_block | analyzer_block }
 
 // Tolerant checker/LSP entry point. Called from Rust with `Rule::source_file`.
-source_file  = { SOI ~ source_items* ~ EOI }
+source_file  = { SOI ~ empty_lines* ~ (source_items ~ empty_lines*)* ~ EOI }
 source_items = { doc_comment | table_block | analyzer_block | #invalid_source_item = INVALID_SOURCE_ITEM }
 
 // Doc comment: triple-slash lines, captured as AST node.
@@ -14,10 +14,15 @@ doc_comment_line = @{ "///" ~ (!NEWLINE ~ ANY)* }
 
 // Line comment: double-slash (NOT triple), silently skipped.
 COMMENT    = _{ !("///") ~ "//" ~ (!NEWLINE ~ ANY)* }
-WHITESPACE = _{ " " | "\t" | NEWLINE }
+WHITESPACE  = _{ " " | "\t" }
+NEWLINE     = _{ "\n" | "\r\n" | "\r" }
+empty_lines = _{ (WHITESPACE* ~ NEWLINE)+ }
+LINE_END    = _{ NEWLINE | EOI }
 
 // Top-level analyzer declaration.
-analyzer_block      =  { "analyzer" ~ identifier ~ block_start ~ analyzer_clause* ~ block_end }
+analyzer_block      =  { "analyzer" ~ identifier ~ block_start ~ empty_lines* ~ (analyzer_member ~ empty_lines*)* ~ block_end }
+analyzer_member     =  { analyzer_clause_line }
+analyzer_clause_line = { analyzer_clause ~ LINE_END }
 analyzer_clause     =  { analyzer_tokenizers | analyzer_filters }
 analyzer_tokenizers =  { "tokenizers" ~ identifier ~ ("," ~ identifier)* }
 analyzer_filters    =  { "filters" ~ filter_call ~ ("," ~ filter_call)* }
@@ -25,10 +30,12 @@ filter_call         =  { identifier ~ ("(" ~ filter_arg ~ ("," ~ filter_arg)* ~ 
 filter_arg          = @{ ASCII_ALPHANUMERIC+ }
 
 // Table: fields and block-attributes (any order). Both can appear repeatedly.
-table_block    = { "table" ~ identifier ~ table_modifier? ~ block_start ~ table_member* ~ block_end }
+table_block    = { "table" ~ identifier ~ table_modifier? ~ block_start ~ empty_lines* ~ (table_member ~ empty_lines*)* ~ block_end }
 table_modifier = { "schemafull" | "schemaless" | "drop" }
 
-table_member = { block_attribute | field }
+table_member          = { field_line | block_attribute_line }
+field_line            = { field ~ LINE_END }
+block_attribute_line  = { block_attribute ~ LINE_END }
 
 field     = { identifier ~ type_expr ~ attribute* }
 type_expr = { type_node ~ optional_marker? }
@@ -112,7 +119,7 @@ INVALID_LINE        = @{ (!NEWLINE ~ ANY)+ ~ NEWLINE? }
 KNOWN_TOP_LEVEL_KEYWORD = _{ ("table" | "analyzer") ~ KEYWORD_BOUNDARY }
 KEYWORD_BOUNDARY        = _{ " " | "\t" | NEWLINE | EOI }
 
-block_start     = _{ "{" }
+block_start     = _{ "{" ~ NEWLINE }
 block_end       = _{ "}" }
 type_args_start = _{ "<" }
 type_args_end   = _{ ">" }

@@ -58,6 +58,8 @@ fn curated_rule_diagnostic(rule: crate::grammar::Rule) -> Option<RuleDiagnostic>
 
     Some(match rule {
         Rule::analyzer_block => simple("analyzer declaration"),
+        Rule::analyzer_member => simple("analyzer clause"),
+        Rule::analyzer_clause_line => simple("analyzer clause"),
         Rule::analyzer_clause => simple("analyzer clause"),
         Rule::analyzer_tokenizers => simple("`tokenizers` clause"),
         Rule::analyzer_filters => simple("`filters` clause"),
@@ -66,6 +68,8 @@ fn curated_rule_diagnostic(rule: crate::grammar::Rule) -> Option<RuleDiagnostic>
         Rule::table_block => simple("table declaration"),
         Rule::table_modifier => simple("`schemafull`, `schemaless`, or `drop`"),
         Rule::table_member => simple("field or block attribute"),
+        Rule::field_line => simple("field"),
+        Rule::block_attribute_line => simple("block attribute"),
         Rule::field => simple("field"),
         Rule::type_expr | Rule::type_node => simple("type"),
         Rule::optional_marker => simple("`?`"),

@@ -16,6 +16,7 @@ pub(crate) fn parse_diagnostic_from_pest(
     let context = SyntaxContext::from_error(&error);
     let diagnostic = missing_block_start_diagnostic(context)
         .or_else(|| missing_attribute_call_end_diagnostic(context))
+        .or_else(|| inline_block_attribute_diagnostic(context))
         .unwrap_or_else(|| default_syntax_diagnostic(&error, context));
     let range = pest_error_range(&error, diagnostic.highlight_line_end);
 
@@ -38,6 +39,17 @@ fn missing_attribute_call_end_diagnostic(context: SyntaxContext) -> Option<Synta
     Some(SyntaxDiagnostic {
         message: "expected `)` to close attribute arguments".to_string(),
         highlight_line_end: true,
+    })
+}
+
+fn inline_block_attribute_diagnostic(context: SyntaxContext) -> Option<SyntaxDiagnostic> {
+    if context != SyntaxContext::InlineBlockAttribute {
+        return None;
+    }
+
+    Some(SyntaxDiagnostic {
+        message: "block attributes like `@@index` must be written on their own table line; use `@index` for a field-level index".to_string(),
+        highlight_line_end: false,
     })
 }
 

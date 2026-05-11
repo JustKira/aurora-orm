@@ -138,7 +138,13 @@ mod tests {
 
     #[test]
     fn parse_diagnostics_clears_for_valid_schema() {
-        let diagnostics = parse_diagnostics("table User { name string }");
+        let diagnostics = parse_diagnostics(
+            r#"
+table User {
+  name string
+}
+"#,
+        );
 
         assert!(diagnostics.is_empty());
     }
