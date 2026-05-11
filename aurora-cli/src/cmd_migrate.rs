@@ -121,7 +121,11 @@ fn print_apply_report(report: &ApplyReport) {
     } else {
         println!("Applied:");
         for entry in &report.applied {
-            let suffix = if entry.destructive { " [DESTRUCTIVE]" } else { "" };
+            let suffix = if entry.destructive {
+                " [DESTRUCTIVE]"
+            } else {
+                ""
+            };
             println!(
                 "  {:04}_{}  ({} statements){}",
                 entry.idx, entry.name, entry.statements, suffix

@@ -11,5 +11,6 @@ name = "aurora-lsp"
 path = "src/main.rs"
 
 [dependencies]
+aurora-core = { path = "../aurora-core" }
 tower-lsp-server = "0.23"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std"] }

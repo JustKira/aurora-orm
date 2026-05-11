@@ -1,9 +1,10 @@
+use crate::check::diagnostics::ParseDiagnostic;
 use crate::validate::ValidationError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AuroraError {
     #[error("failed to parse Aurora schema: {0}")]
-    Parse(Box<pest::error::Error<crate::grammar::Rule>>),
+    Parse(ParseDiagnostic),
     #[error("failed to convert Aurora parse tree: {0}")]
     Convert(String),
     #[error("failed to serialize Aurora AST: {0}")]

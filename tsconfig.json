@@ -4,8 +4,13 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
-    "types": ["bun"],
+    "types": [
+      "bun"
+    ],
     "skipLibCheck": true,
     "noEmit": true
-  }
+  },
+  "exclude": [
+    "opensrc"
+  ]
 }

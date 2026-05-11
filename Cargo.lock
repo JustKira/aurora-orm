@@ -373,6 +373,7 @@ dependencies = [
 name = "aurora-lsp"
 version = "0.0.0"
 dependencies = [
+ "aurora-core",
  "tokio",
  "tower-lsp-server",
 ]

@@ -4,7 +4,13 @@ use aurora_core::parse_to_ast;
 
 /// Helper: parse a single-field table and return the field's AST.
 fn parse_field_type(src: &str) -> (Type, bool) {
-    let source = format!("table T schemafull {{ x {src} }}");
+    let source = format!(
+        r#"
+table T schemafull {{
+  x {src}
+}}
+"#
+    );
     let schema = parse_to_ast(&source).expect("parses");
     match schema.items.into_iter().next().expect("has table") {
         SchemaItem::TableDecl(table) => {

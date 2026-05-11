@@ -205,7 +205,8 @@ table loose schemaless {
 /// DROP: declares a table that's a no-op on writes (the table exists but
 /// silently ignores inserts). Used for log destinations that you want to
 /// turn off without removing references.
-table noop drop {}
+table noop drop {
+}
 
 // Tables can also have NO modifier — defaults to SurrealDB's own default
 // (schemaless in v3 unless changed).
