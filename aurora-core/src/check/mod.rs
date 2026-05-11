@@ -6,6 +6,7 @@ mod range;
 mod recovery;
 mod report;
 mod rules;
+mod source;
 pub(crate) mod syntax;
 
 pub use report::CheckReport;
@@ -25,6 +26,7 @@ pub fn check(source: &str) -> CheckReport {
         }
     };
     let mut diagnostics = recovery_diagnostics(pairs.clone());
+    diagnostics.extend(source::source_shape_diagnostics(source));
     let mut schema = match crate::parse_source_file_pairs_to_ast(pairs) {
         Ok(schema) => schema,
         Err(error) => {

@@ -167,6 +167,27 @@ fn hnsw_missing_closing_paren_reports_attribute_call_end() {
 }
 
 #[test]
+fn inline_block_attribute_reports_field_line_misuse() {
+    let diagnostics = diagnostics_for(
+        r#"
+table Demo {
+  role string @@index(fields: [role])
+}
+"#,
+    );
+
+    assert_single_diagnostic(
+        &diagnostics,
+        ExpectedDiagnostic {
+            code: DiagnosticCode::ParseError,
+            message: "block attributes like `@@index` must be written on their own table line; use `@index` for a field-level index",
+            start: (2, 14),
+            end: (2, 21),
+        },
+    );
+}
+
+#[test]
 fn unknown_source_item_diagnostic_suggests_known_keyword() {
     let diagnostics = diagnostics_for("tabl compound_demo schemafull");
 

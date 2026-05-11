@@ -28,6 +28,28 @@ table user {
 }
 
 #[test]
+fn unique_field_annotation_rejects_fields_arg() {
+    let src = r#"
+table membership {
+  account string
+  user    string
+  account_user string @unique(fields: [account, user])
+}
+"#;
+    let err = parse_validated(src).unwrap_err();
+    let AuroraError::Validation(errs) = err else {
+        panic!("expected validation error");
+    };
+    assert_eq!(errs.len(), 1);
+    assert!(
+        errs[0].message.contains("unknown @unique arg `fields`"),
+        "{}",
+        errs[0].message
+    );
+    assert!(errs[0].message.contains("expected `name`"));
+}
+
+#[test]
 fn index_field_annotation_creates_standard_index() {
     let src = r#"
 table user {
