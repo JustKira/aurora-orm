@@ -94,14 +94,26 @@ pub enum AttributeArg {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum AttributeValue {
-    Number { value: f64 },
-    Bool { value: bool },
+    Number {
+        value: f64,
+    },
+    Bool {
+        value: bool,
+    },
     /// Bare identifier, e.g. `cosine`, `f32`, `edu_analyzer`.
-    Ident { value: String },
-    String { value: String },
-    Array { values: Vec<AttributeValue> },
+    Ident {
+        value: String,
+    },
+    String {
+        value: String,
+    },
+    Array {
+        values: Vec<AttributeValue>,
+    },
     /// Parens-wrapped value list — mirrors SurrealDB's `BM25(1.2, 0.75)`.
-    Tuple { values: Vec<AttributeValue> },
+    Tuple {
+        values: Vec<AttributeValue>,
+    },
 }
 
 /// A SurrealDB index, post-validation. Built from the user's `@`/`@@`

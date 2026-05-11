@@ -28,6 +28,28 @@ table user {
 }
 
 #[test]
+fn unique_field_annotation_rejects_fields_arg() {
+    let src = r#"
+table membership {
+  account string
+  user    string
+  account_user string @unique(fields: [account, user])
+}
+"#;
+    let err = parse_validated(src).unwrap_err();
+    let AuroraError::Validation(errs) = err else {
+        panic!("expected validation error");
+    };
+    assert_eq!(errs.len(), 1);
+    assert!(
+        errs[0].message.contains("unknown @unique arg `fields`"),
+        "{}",
+        errs[0].message
+    );
+    assert!(errs[0].message.contains("expected `name`"));
+}
+
+#[test]
 fn index_field_annotation_creates_standard_index() {
     let src = r#"
 table user {
@@ -66,7 +88,11 @@ table doc {
     };
     assert_eq!(errs.len(), 1);
     assert!(errs[0].message.contains("@flexible"), "{}", errs[0].message);
-    assert!(errs[0].message.contains("requires `object`"), "{}", errs[0].message);
+    assert!(
+        errs[0].message.contains("requires `object`"),
+        "{}",
+        errs[0].message
+    );
 }
 
 #[test]
@@ -107,7 +133,12 @@ table doc {
     let schema = parse_validated(src).unwrap();
     let table = extract_table(&schema, "doc");
     match &table.indexes[0].kind {
-        IndexKind::Hnsw { dimension, dist, ty, .. } => {
+        IndexKind::Hnsw {
+            dimension,
+            dist,
+            ty,
+            ..
+        } => {
             assert_eq!(*dimension, 384);
             assert!(dist.is_none());
             assert!(ty.is_none());
@@ -190,7 +221,11 @@ table article {
     let schema = parse_validated(src).unwrap();
     let table = extract_table(&schema, "article");
     match &table.indexes[0].kind {
-        IndexKind::Fulltext { analyzer, bm25, highlights } => {
+        IndexKind::Fulltext {
+            analyzer,
+            bm25,
+            highlights,
+        } => {
             assert_eq!(analyzer, "simple");
             assert!(bm25.is_none());
             assert!(!*highlights);
@@ -289,7 +324,11 @@ table user {
     let AuroraError::Validation(errs) = err else {
         panic!("expected validation error");
     };
-    assert!(errs[0].message.contains("nonexistent"), "{}", errs[0].message);
+    assert!(
+        errs[0].message.contains("nonexistent"),
+        "{}",
+        errs[0].message
+    );
 }
 
 #[test]
@@ -303,7 +342,11 @@ table user {
 "#;
     let schema = parse_validated(src).unwrap();
     let table = extract_table(&schema, "user");
-    let count_idx = table.indexes.iter().find(|i| matches!(i.kind, IndexKind::Count)).unwrap();
+    let count_idx = table
+        .indexes
+        .iter()
+        .find(|i| matches!(i.kind, IndexKind::Count))
+        .unwrap();
     assert!(count_idx.fields.is_empty());
     assert_eq!(count_idx.name, "user_count");
 }
@@ -370,7 +413,9 @@ table doc {
     let table = extract_table(&schema, "doc");
     assert_eq!(table.indexes[0].name, "emb_v3");
     match &table.indexes[0].kind {
-        IndexKind::Hnsw { dimension, dist, .. } => {
+        IndexKind::Hnsw {
+            dimension, dist, ..
+        } => {
             assert_eq!(*dimension, 768);
             assert_eq!(dist.as_deref(), Some("euclidean"));
         }
@@ -389,7 +434,11 @@ table article {
     let table = extract_table(&schema, "article");
     assert_eq!(table.indexes[0].name, "body_search");
     match &table.indexes[0].kind {
-        IndexKind::Fulltext { analyzer, highlights, .. } => {
+        IndexKind::Fulltext {
+            analyzer,
+            highlights,
+            ..
+        } => {
             assert_eq!(analyzer, "simple");
             assert!(*highlights);
         }

@@ -4,7 +4,9 @@ use aurora_config::DatabaseConfig;
 
 #[derive(Debug, thiserror::Error)]
 pub enum EnvError {
-    #[error("missing required env var: tried {0:?}; configure one of these or override via aurora.toml [database]")]
+    #[error(
+        "missing required env var: tried {0:?}; configure one of these or override via aurora.toml [database]"
+    )]
     Missing(Vec<String>),
     #[error("env var {name} (set in aurora.toml) is not defined in the environment")]
     OverrideMissing { name: String },
@@ -31,10 +33,7 @@ pub struct Connection {
 /// Only one of these is loaded — the first match wins. Then resolves each
 /// connection field using either the override name from aurora.toml or the
 /// default name cascade.
-pub fn resolve_connection(
-    db: &DatabaseConfig,
-    config_dir: &Path,
-) -> Result<Connection, EnvError> {
+pub fn resolve_connection(db: &DatabaseConfig, config_dir: &Path) -> Result<Connection, EnvError> {
     load_dotenv(config_dir, db.env_path.as_deref());
 
     Ok(Connection {
@@ -73,8 +72,7 @@ fn resolve_field(
     _label: &str,
 ) -> Result<String, EnvError> {
     if let Some(name) = override_name {
-        return std::env::var(name)
-            .map_err(|_| EnvError::OverrideMissing { name: name.clone() });
+        return std::env::var(name).map_err(|_| EnvError::OverrideMissing { name: name.clone() });
     }
     for name in defaults {
         if let Ok(value) = std::env::var(name) {
@@ -106,8 +104,8 @@ fn load_dotenv(dir: &Path, override_path: Option<&Path>) {
         let path = dir.join(name);
         if path.exists() {
             // `from_path` (not `from_path_override`) so pre-set process env vars
-        // win over the file. Lets a CLI invocation override an .env value.
-        let _ = dotenvy::from_path(&path);
+            // win over the file. Lets a CLI invocation override an .env value.
+            let _ = dotenvy::from_path(&path);
             return;
         }
     }
