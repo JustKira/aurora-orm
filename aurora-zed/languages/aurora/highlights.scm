@@ -35,10 +35,9 @@
 (filter_arg) @string.special
 
 ; Attributes
-"#" @operator
+"#surql" @keyword.directive
 "@" @operator
 "@@" @operator
-(surql_block name: (identifier) @label)
 (attribute name: (identifier) @label)
 (block_attribute name: (identifier) @label)
 (attribute (identifier) @label)
