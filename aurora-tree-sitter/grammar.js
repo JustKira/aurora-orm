@@ -16,7 +16,7 @@ module.exports = grammar({
     source_file: ($) => repeat($._definition),
 
     _definition: ($) =>
-      choice($.table_definition, $.analyzer_definition, $.surql_block),
+      choice($.table_definition, $.analyzer_definition),
 
     // === Top-level: raw SurrealQL ===
 
@@ -188,21 +188,22 @@ module.exports = grammar({
         optional(field("args", $.attribute_args)),
       ),
 
-    // Top-level attribute args are keyword-only — every value has a name.
-    // Mirrors SurrealDB's DDL where every HNSW/MTREE param is a `KEYWORD value`
-    // pair. The single carve-out is `attribute_tuple` for kv values that mirror
-    // SurrealDB's compound literals (currently just BM25(k1, b)).
+    // Attribute args may be positional (`@allow(select, #surql { ... })`) or
+    // keyword args (`@hnsw(dimension: 1536)`). The validator decides which
+    // shape is valid for each attribute.
     attribute_args: ($) =>
       seq(
         "(",
         optional(
           seq(
-            $.attribute_kv,
-            repeat(seq(",", $.attribute_kv)),
+            $._attribute_arg,
+            repeat(seq(",", $._attribute_arg)),
           ),
         ),
         ")",
       ),
+
+    _attribute_arg: ($) => choice($.attribute_kv, $._attribute_value),
 
     attribute_kv: ($) =>
       seq(
@@ -213,6 +214,7 @@ module.exports = grammar({
 
     _attribute_value: ($) =>
       choice(
+        $.surql_block,
         $.attribute_array,
         $.attribute_tuple,
         $.attribute_number,

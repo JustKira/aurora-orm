@@ -147,7 +147,35 @@
       "required": false,
       "types": [
         {
+          "type": "attribute_array",
+          "named": true
+        },
+        {
+          "type": "attribute_bool",
+          "named": true
+        },
+        {
+          "type": "attribute_ident",
+          "named": true
+        },
+        {
           "type": "attribute_kv",
+          "named": true
+        },
+        {
+          "type": "attribute_number",
+          "named": true
+        },
+        {
+          "type": "attribute_string",
+          "named": true
+        },
+        {
+          "type": "attribute_tuple",
+          "named": true
+        },
+        {
+          "type": "surql_block",
           "named": true
         }
       ]
@@ -183,6 +211,10 @@
         },
         {
           "type": "attribute_tuple",
+          "named": true
+        },
+        {
+          "type": "surql_block",
           "named": true
         }
       ]
@@ -249,6 +281,10 @@
           {
             "type": "attribute_tuple",
             "named": true
+          },
+          {
+            "type": "surql_block",
+            "named": true
           }
         ]
       }
@@ -284,6 +320,10 @@
         },
         {
           "type": "attribute_tuple",
+          "named": true
+        },
+        {
+          "type": "surql_block",
           "named": true
         }
       ]
@@ -482,10 +522,6 @@
       "types": [
         {
           "type": "analyzer_definition",
-          "named": true
-        },
-        {
-          "type": "surql_block",
           "named": true
         },
         {

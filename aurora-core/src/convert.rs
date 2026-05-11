@@ -42,7 +42,6 @@ pub struct SourceFile {
 #[pest_ast(rule(Rule::schema_item))]
 pub enum SchemaItem {
     DocComment(DocComment),
-    SurqlBlock(SurqlBlock),
     TableBlock(TableBlock),
     AnalyzerBlock(AnalyzerBlock),
 }
@@ -51,7 +50,6 @@ pub enum SchemaItem {
 #[pest_ast(rule(Rule::source_items))]
 pub enum SourceItem {
     DocComment(DocComment),
-    SurqlBlock(SurqlBlock),
     TableBlock(TableBlock),
     AnalyzerBlock(AnalyzerBlock),
     InvalidLine(InvalidLine),
@@ -253,13 +251,20 @@ pub struct BlockAttributeName {
 #[derive(FromPest)]
 #[pest_ast(rule(Rule::attr_call))]
 pub struct AttrCall {
-    pub args: Option<AttrKvList>,
+    pub args: Option<AttrArgList>,
 }
 
 #[derive(FromPest)]
-#[pest_ast(rule(Rule::attr_kv_list))]
-pub struct AttrKvList {
-    pub args: Vec<AttrKv>,
+#[pest_ast(rule(Rule::attr_arg_list))]
+pub struct AttrArgList {
+    pub args: Vec<AttrArg>,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::attr_arg))]
+pub enum AttrArg {
+    Kv(AttrKv),
+    Value(AttrValueNode),
 }
 
 #[derive(FromPest)]
@@ -272,6 +277,7 @@ pub struct AttrKv {
 #[derive(FromPest)]
 #[pest_ast(rule(Rule::attr_value))]
 pub enum AttrValueNode {
+    Surql(SurqlBlock),
     Array(AttrArray),
     Tuple(AttrTuple),
     Number(AttrNumber),
@@ -413,7 +419,6 @@ impl SchemaItem {
     fn into_ast(self) -> ast::SchemaItem {
         match self {
             SchemaItem::DocComment(doc_comment) => doc_comment.into_ast(),
-            SchemaItem::SurqlBlock(block) => ast::SchemaItem::SurqlBlock(block.into_ast()),
             SchemaItem::TableBlock(table) => ast::SchemaItem::TableDecl(table.into_ast()),
             SchemaItem::AnalyzerBlock(analyzer) => {
                 ast::SchemaItem::AnalyzerDecl(analyzer.into_ast())
@@ -426,7 +431,6 @@ impl SourceItem {
     fn into_ast(self) -> Option<ast::SchemaItem> {
         match self {
             SourceItem::DocComment(doc_comment) => Some(doc_comment.into_ast()),
-            SourceItem::SurqlBlock(block) => Some(ast::SchemaItem::SurqlBlock(block.into_ast())),
             SourceItem::TableBlock(table) => Some(ast::SchemaItem::TableDecl(table.into_ast())),
             SourceItem::AnalyzerBlock(analyzer) => {
                 Some(ast::SchemaItem::AnalyzerDecl(analyzer.into_ast()))
@@ -560,8 +564,19 @@ impl BlockAttribute {
 impl AttrCall {
     fn into_args(self) -> Vec<ast::AttributeArg> {
         self.args
-            .map(|list| list.args.into_iter().map(AttrKv::into_ast).collect())
+            .map(|list| list.args.into_iter().map(AttrArg::into_ast).collect())
             .unwrap_or_default()
+    }
+}
+
+impl AttrArg {
+    fn into_ast(self) -> ast::AttributeArg {
+        match self {
+            AttrArg::Kv(kv) => kv.into_ast(),
+            AttrArg::Value(value) => ast::AttributeArg::Positional {
+                value: value.into_ast(),
+            },
+        }
     }
 }
 
@@ -577,6 +592,9 @@ impl AttrKv {
 impl AttrValueNode {
     fn into_ast(self) -> ast::AttributeValue {
         match self {
+            AttrValueNode::Surql(surql) => ast::AttributeValue::Surql {
+                body: surql.into_ast().body,
+            },
             AttrValueNode::Number(n) => ast::AttributeValue::Number {
                 value: n.value.parse().unwrap_or(0.0),
             },

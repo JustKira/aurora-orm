@@ -142,6 +142,31 @@ table doc {
             (attribute_kv key: (identifier) value: (attribute_ident (identifier)))))))))
 
 ==================
+Field-level @allow with positional SurQL
+==================
+
+table user {
+  email string @allow(select, #surql { WHERE $auth.id = id })
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (primitive_type)))
+        attribute: (attribute
+          name: (identifier)
+          args: (attribute_args
+            (attribute_ident (identifier))
+            (surql_block
+              (surql_text))))))))
+
+==================
 Block-level @@unique with composite fields keyword
 ==================
 

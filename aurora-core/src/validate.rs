@@ -67,7 +67,7 @@ fn validate_table(table: &mut Table, errors: &mut Vec<ValidationError>) {
     table.indexes = indexes;
 }
 
-const FIELD_ATTRS: &[&str] = &["unique", "index", "flexible", "hnsw", "fulltext"];
+const FIELD_ATTRS: &[&str] = &["unique", "index", "flexible", "hnsw", "fulltext", "assert"];
 
 fn validate_field_attributes(
     table: &str,
@@ -97,18 +97,24 @@ fn validate_field_attributes(
             },
             "flexible" => {
                 if !attr.args.is_empty() {
-                    errors.push(err_at(attr, format!(
-                        "@flexible on {table}.{f} takes no arguments",
-                        f = field.name
-                    )));
+                    errors.push(err_at(
+                        attr,
+                        format!(
+                            "@flexible on {table}.{f} takes no arguments",
+                            f = field.name
+                        ),
+                    ));
                     continue;
                 }
                 if !is_object(&field.ty) {
-                    errors.push(err_at(attr, format!(
-                        "@flexible on {table}.{f} requires `object`, got `{ty}`",
-                        f = field.name,
-                        ty = type_label(&field.ty),
-                    )));
+                    errors.push(err_at(
+                        attr,
+                        format!(
+                            "@flexible on {table}.{f} requires `object`, got `{ty}`",
+                            f = field.name,
+                            ty = type_label(&field.ty),
+                        ),
+                    ));
                     continue;
                 }
                 field.flexible = true;
@@ -116,11 +122,14 @@ fn validate_field_attributes(
             "hnsw" => match parse_hnsw_args(&attr.args).map_err(|e| e.at(attr)) {
                 Ok((kind, name_override)) => {
                     if !is_array_of_float(&field.ty) {
-                        errors.push(err_at(attr, format!(
-                            "@hnsw on {table}.{f} requires `array<float>`, got `{ty}`",
-                            f = field.name,
-                            ty = type_label(&field.ty),
-                        )));
+                        errors.push(err_at(
+                            attr,
+                            format!(
+                                "@hnsw on {table}.{f} requires `array<float>`, got `{ty}`",
+                                f = field.name,
+                                ty = type_label(&field.ty),
+                            ),
+                        ));
                         continue;
                     }
                     indexes.push(Index {
@@ -135,11 +144,14 @@ fn validate_field_attributes(
             "fulltext" => match parse_fulltext_args(&attr.args).map_err(|e| e.at(attr)) {
                 Ok((kind, name_override)) => {
                     if !is_string(&field.ty) {
-                        errors.push(err_at(attr, format!(
-                            "@fulltext on {table}.{f} requires `string`, got `{ty}`",
-                            f = field.name,
-                            ty = type_label(&field.ty),
-                        )));
+                        errors.push(err_at(
+                            attr,
+                            format!(
+                                "@fulltext on {table}.{f} requires `string`, got `{ty}`",
+                                f = field.name,
+                                ty = type_label(&field.ty),
+                            ),
+                        ));
                         continue;
                     }
                     indexes.push(Index {
@@ -151,6 +163,19 @@ fn validate_field_attributes(
                 }
                 Err(e) => errors.push(e),
             },
+            "assert" => {
+                if !matches!(
+                    attr.args.as_slice(),
+                    [AttributeArg::Positional {
+                        value: AttributeValue::Surql { .. },
+                    }]
+                ) {
+                    errors.push(err_at(
+                        attr,
+                        "@assert expects exactly one `#surql { ... }` block".to_string(),
+                    ));
+                }
+            }
             unknown => errors.push(unknown_attribute(unknown, FIELD_ATTRS, "field").at(attr)),
         }
     }
@@ -160,13 +185,17 @@ fn validate_field_attributes(
 fn parse_named_only(args: &[AttributeArg], label: &str) -> Result<Option<String>, ValidationError> {
     let mut name = None;
     for arg in args {
-        let AttributeArg::Keyword { name: key, value } = arg;
-        match key.as_str() {
-            "name" => name = Some(name_value(value, &format!("{label} name"))?),
-            other => {
-                return Err(err(format!(
-                    "unknown {label} arg `{other}`; expected `name`"
-                )));
+        match arg {
+            AttributeArg::Keyword { name: key, value } => match key.as_str() {
+                "name" => name = Some(name_value(value, &format!("{label} name"))?),
+                other => {
+                    return Err(err(format!(
+                        "unknown {label} arg `{other}`; expected `name`"
+                    )));
+                }
+            },
+            AttributeArg::Positional { .. } => {
+                return Err(err(format!("{label} does not accept positional arguments")));
             }
         }
     }
@@ -189,7 +218,10 @@ fn validate_block_attribute(
     match attr.name.as_str() {
         "count" => {
             if !attr.args.is_empty() {
-                errors.push(err_at(attr, format!("@@count on {table} takes no arguments")));
+                errors.push(err_at(
+                    attr,
+                    format!("@@count on {table} takes no arguments"),
+                ));
                 return;
             }
             indexes.push(Index {
@@ -241,7 +273,9 @@ fn parse_hnsw_args(args: &[AttributeArg]) -> Result<(IndexKind, Option<String>),
     let mut name: Option<String> = None;
 
     for arg in args {
-        let AttributeArg::Keyword { name: key, value } = arg;
+        let AttributeArg::Keyword { name: key, value } = arg else {
+            return Err(err("@hnsw does not accept positional arguments".to_string()));
+        };
         match key.as_str() {
             "dimension" => dimension = Some(uint_value(value, "@hnsw dimension")?),
             "dist" => dist = Some(ident_value(value, "@hnsw dist")?),
@@ -286,7 +320,11 @@ fn parse_fulltext_args(
     let mut name: Option<String> = None;
 
     for arg in args {
-        let AttributeArg::Keyword { name: key, value } = arg;
+        let AttributeArg::Keyword { name: key, value } = arg else {
+            return Err(err(
+                "@fulltext does not accept positional arguments".to_string()
+            ));
+        };
         match key.as_str() {
             "analyzer" => analyzer = Some(ident_value(value, "@fulltext analyzer")?),
             "bm25" => bm25 = Some(parse_bm25_tuple(value)?),
@@ -343,7 +381,9 @@ fn parse_field_list_block(
     let mut field_names: Option<Vec<String>> = None;
     let mut name: Option<String> = None;
     for arg in args {
-        let AttributeArg::Keyword { name: key, value } = arg;
+        let AttributeArg::Keyword { name: key, value } = arg else {
+            return Err(err(format!("{label} does not accept positional arguments")));
+        };
         match key.as_str() {
             "fields" => {
                 let AttributeValue::Array { values } = value else {

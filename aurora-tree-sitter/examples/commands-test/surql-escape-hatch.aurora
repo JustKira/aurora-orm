@@ -1,21 +1,6 @@
-// Temporary raw SurrealQL escape hatch.
-//
-// This top-level form exists so we can test parsing, JSON AST extraction, and
-// raw emission before Aurora has first-class syntax for the features that need
-// embedded SurrealQL.
-//
-// Revisit this when these features land:
-// - events: action bodies
-// - functions: function bodies
-// - access: signup/signin expressions
-// - field/table permissions: WHERE-style expressions
-// - field assertions: boolean expressions
-// - computed tables/views: SELECT bodies
-//
-// The final design should allow `#surql` only in those specific contexts, not
-// anywhere in the schema.
-#surql {
-  DEFINE EVENT audit_user ON TABLE user WHEN $event = "CREATE" THEN {
-    CREATE audit SET user = $after.id, action = $event;
-  };
+// Raw SurrealQL escape hatch in a field assertion.
+table user {
+  email string @assert(#surql {
+    $value != NONE AND string::is::email($value)
+  })
 }

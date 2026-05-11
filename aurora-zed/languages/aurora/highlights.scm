@@ -40,8 +40,6 @@
 "@@" @operator
 (attribute name: (identifier) @label)
 (block_attribute name: (identifier) @label)
-(attribute (identifier) @label)
-(block_attribute (identifier) @label)
 
 (attribute_kv key: (identifier) @property)
 

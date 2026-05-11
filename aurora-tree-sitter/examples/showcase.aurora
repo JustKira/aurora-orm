@@ -12,14 +12,10 @@
 
 /// Minimal table for a quick parser smoke test.
 table showcase_user schemafull {
-  email string @unique
+  email string @unique @assert(#surql {
+    $value != NONE AND string::is::email($value)
+  })
   meta  object @flexible
 }
 
-// `#surql` is accepted at top level only as a temporary parser/emitter
-// test fixture. When Aurora gains events, functions, permissions, assertions,
-// and computed tables, the escape hatch should move into those specific AST
-// locations instead of being treated as a global free-form schema item.
-#surql {
-  RETURN "temporary raw SurrealQL passthrough";
-}
+// `#surql` is only accepted in explicit escape-hatch slots like `@assert`.

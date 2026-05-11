@@ -111,23 +111,30 @@ table T { x int? }
           (optional_marker))))))
 
 ==================
-Top-level raw SurQL block
+Field assert SurQL block
 ==================
 
-#surql {
-  DEFINE EVENT audit ON TABLE user WHEN $event = "CREATE" THEN {
-    CREATE audit SET user = $after.id, action = $event;
-  };
+table user {
+  email string @assert(#surql {
+    $value != NONE AND string::is::email($value)
+  })
 }
 
 ---
 
 (source_file
-  (surql_block
-    (surql_text)
-    (surql_nested_block
-      (surql_text))
-    (surql_text)))
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (primitive_type)))
+        attribute: (attribute
+          name: (identifier)
+          args: (attribute_args
+            (surql_block
+              (surql_text))))))))
 
 ==================
 Reject spaced SurQL marker

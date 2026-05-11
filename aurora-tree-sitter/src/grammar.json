@@ -20,10 +20,6 @@
         {
           "type": "SYMBOL",
           "name": "analyzer_definition"
-        },
-        {
-          "type": "SYMBOL",
-          "name": "surql_block"
         }
       ]
     },
@@ -864,7 +860,7 @@
               "members": [
                 {
                   "type": "SYMBOL",
-                  "name": "attribute_kv"
+                  "name": "_attribute_arg"
                 },
                 {
                   "type": "REPEAT",
@@ -877,7 +873,7 @@
                       },
                       {
                         "type": "SYMBOL",
-                        "name": "attribute_kv"
+                        "name": "_attribute_arg"
                       }
                     ]
                   }
@@ -892,6 +888,19 @@
         {
           "type": "STRING",
           "value": ")"
+        }
+      ]
+    },
+    "_attribute_arg": {
+      "type": "CHOICE",
+      "members": [
+        {
+          "type": "SYMBOL",
+          "name": "attribute_kv"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "_attribute_value"
         }
       ]
     },
@@ -923,6 +932,10 @@
     "_attribute_value": {
       "type": "CHOICE",
       "members": [
+        {
+          "type": "SYMBOL",
+          "name": "surql_block"
+        },
         {
           "type": "SYMBOL",
           "name": "attribute_array"

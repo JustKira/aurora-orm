@@ -100,6 +100,7 @@ pub struct Attribute {
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum AttributeArg {
     Keyword { name: String, value: AttributeValue },
+    Positional { value: AttributeValue },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -117,6 +118,9 @@ pub enum AttributeValue {
     },
     String {
         value: String,
+    },
+    Surql {
+        body: String,
     },
     Array {
         values: Vec<AttributeValue>,
