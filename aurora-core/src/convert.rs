@@ -31,7 +31,7 @@ pub enum SchemaItem {
 }
 
 #[derive(FromPest)]
-#[pest_ast(rule(Rule::source_item))]
+#[pest_ast(rule(Rule::source_items))]
 pub enum SourceItem {
     DocComment(DocComment),
     TableBlock(TableBlock),
@@ -40,7 +40,7 @@ pub enum SourceItem {
 }
 
 #[derive(FromPest)]
-#[pest_ast(rule(Rule::INVALID_LINE))]
+#[pest_ast(rule(Rule::INVALID_SOURCE_ITEM))]
 pub struct InvalidLine;
 
 #[derive(FromPest)]

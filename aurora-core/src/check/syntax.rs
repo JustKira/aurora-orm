@@ -86,14 +86,14 @@ fn expected_unexpected_message(
 fn enumerate_rules(rules: &[crate::grammar::Rule], context: SyntaxContext) -> String {
     let labels = rules
         .iter()
-        .map(|rule| rule_diagnostic(*rule, context).label)
+        .map(|rule| rule_diagnostic(*rule, context).label.to_string())
         .collect::<Vec<_>>();
     match labels.as_slice() {
         [] => String::new(),
-        [one] => (*one).to_string(),
+        [one] => one.clone(),
         [first, second] => format!("{first} or {second}"),
         many => {
-            let last = many[many.len() - 1];
+            let last = &many[many.len() - 1];
             let rest = many[..many.len() - 1].join(", ");
             format!("{rest}, or {last}")
         }

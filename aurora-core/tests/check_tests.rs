@@ -16,7 +16,7 @@ table user {
 }
 
 #[test]
-fn check_returns_parse_diagnostic_with_partial_schema_for_recovered_top_level_syntax() {
+fn check_returns_parse_diagnostic_with_partial_schema_for_recovered_source_item_syntax() {
     let report = check("tabl user { name string }");
 
     assert!(report.has_errors());
@@ -33,7 +33,7 @@ fn check_returns_parse_diagnostic_with_partial_schema_for_recovered_top_level_sy
 }
 
 #[test]
-fn check_preserves_valid_items_around_recovered_top_level_syntax() {
+fn check_preserves_valid_items_around_recovered_source_item_syntax() {
     let report = check(
         r#"
 table user {
@@ -57,6 +57,33 @@ table comment {
     assert_eq!(schema.items.len(), 2);
     assert!(
         report.diagnostics[0]
+            .message
+            .contains("did you mean `table`")
+    );
+}
+
+#[test]
+fn check_does_not_recover_malformed_known_source_declarations() {
+    let report = check("table primitives_demo schemafull ");
+
+    assert!(report.has_errors());
+    assert!(report.schema.is_none());
+    assert_eq!(report.diagnostics.len(), 1);
+    assert_eq!(
+        report.diagnostics[0].message,
+        "expected `{` to start table body"
+    );
+}
+
+#[test]
+fn check_does_not_suggest_identical_source_keyword() {
+    let report = check("table");
+
+    assert!(report.has_errors());
+    assert!(report.schema.is_none());
+    assert_eq!(report.diagnostics.len(), 1);
+    assert!(
+        !report.diagnostics[0]
             .message
             .contains("did you mean `table`")
     );

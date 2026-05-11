@@ -1,9 +1,24 @@
 use super::context::SyntaxContext;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub(super) struct RuleDiagnostic {
-    pub label: &'static str,
+    pub label: RuleLabel,
     pub detail: Option<&'static str>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) enum RuleLabel {
+    Static(&'static str),
+    Unhandled(String),
+}
+
+impl std::fmt::Display for RuleLabel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Static(label) => write!(f, "{label}"),
+            Self::Unhandled(rule) => write!(f, "unhandled parser rule `{rule}`"),
+        }
+    }
 }
 
 const OPTION_DETAIL: &str = "option types look like `option<T>`, for example `option<string>`";
@@ -19,7 +34,9 @@ pub(super) fn rule_diagnostic(
     rule: crate::grammar::Rule,
     context: SyntaxContext,
 ) -> RuleDiagnostic {
-    contextual_rule_diagnostic(rule, context).unwrap_or_else(|| default_rule_diagnostic(rule))
+    contextual_rule_diagnostic(rule, context)
+        .or_else(|| curated_rule_diagnostic(rule))
+        .unwrap_or_else(|| fallback_rule_diagnostic(rule))
 }
 
 fn contextual_rule_diagnostic(
@@ -36,18 +53,10 @@ fn contextual_rule_diagnostic(
     }
 }
 
-fn default_rule_diagnostic(rule: crate::grammar::Rule) -> RuleDiagnostic {
+fn curated_rule_diagnostic(rule: crate::grammar::Rule) -> Option<RuleDiagnostic> {
     use crate::grammar::Rule;
 
-    match rule {
-        Rule::schema => simple("schema"),
-        Rule::schema_item => simple("top-level declaration"),
-        Rule::source_file => simple("source file"),
-        Rule::source_item => simple("source item"),
-        Rule::doc_comment => simple("doc comment"),
-        Rule::doc_comment_line => simple("doc comment line"),
-        Rule::COMMENT => simple("comment"),
-        Rule::WHITESPACE => simple("whitespace"),
+    Some(match rule {
         Rule::analyzer_block => simple("analyzer declaration"),
         Rule::analyzer_clause => simple("analyzer clause"),
         Rule::analyzer_tokenizers => simple("`tokenizers` clause"),
@@ -58,8 +67,7 @@ fn default_rule_diagnostic(rule: crate::grammar::Rule) -> RuleDiagnostic {
         Rule::table_modifier => simple("`schemafull`, `schemaless`, or `drop`"),
         Rule::table_member => simple("field or block attribute"),
         Rule::field => simple("field"),
-        Rule::type_expr => simple("type"),
-        Rule::type_node => simple("type"),
+        Rule::type_expr | Rule::type_node => simple("type"),
         Rule::optional_marker => simple("`?`"),
         Rule::attribute => simple("field attribute"),
         Rule::block_attribute => simple("block attribute"),
@@ -71,7 +79,7 @@ fn default_rule_diagnostic(rule: crate::grammar::Rule) -> RuleDiagnostic {
         Rule::attr_array => simple("array"),
         Rule::attr_number => simple("number"),
         Rule::attr_bool => simple("boolean"),
-        Rule::attr_ident => simple("identifier"),
+        Rule::attr_ident | Rule::identifier => simple("identifier"),
         Rule::attr_string => simple("string"),
         Rule::option_type => with_detail("`option<T>`", OPTION_DETAIL),
         Rule::array_type => with_detail("`array<T>`", ARRAY_DETAIL),
@@ -80,26 +88,36 @@ fn default_rule_diagnostic(rule: crate::grammar::Rule) -> RuleDiagnostic {
         Rule::geometry_type => with_detail("`geometry<T>`", GEOMETRY_DETAIL),
         Rule::array_length => with_detail("array length like `10`", ARRAY_LENGTH_DETAIL),
         Rule::primitive_type => simple("primitive type"),
-        Rule::identifier => simple("identifier"),
-        Rule::INVALID_LINE => simple("invalid line"),
         Rule::block_start => simple("`{`"),
         Rule::block_end => simple("`}`"),
         Rule::type_args_start => simple("`<`"),
         Rule::type_args_end => simple("`>`"),
+        Rule::INVALID_SOURCE_ITEM => simple("invalid source item"),
+        Rule::INVALID_LINE => simple("invalid line"),
+        Rule::KNOWN_TOP_LEVEL_KEYWORD => simple("known top-level keyword"),
+        Rule::KEYWORD_BOUNDARY => simple("keyword boundary"),
         Rule::EOI => simple("end of file"),
+        _ => return None,
+    })
+}
+
+fn fallback_rule_diagnostic(rule: crate::grammar::Rule) -> RuleDiagnostic {
+    RuleDiagnostic {
+        label: RuleLabel::Unhandled(format!("{rule:?}")),
+        detail: None,
     }
 }
 
 fn simple(label: &'static str) -> RuleDiagnostic {
     RuleDiagnostic {
-        label,
+        label: RuleLabel::Static(label),
         detail: None,
     }
 }
 
 fn with_detail(label: &'static str, detail: &'static str) -> RuleDiagnostic {
     RuleDiagnostic {
-        label,
+        label: RuleLabel::Static(label),
         detail: Some(detail),
     }
 }

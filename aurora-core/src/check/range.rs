@@ -2,110 +2,174 @@ use pest::error::LineColLocation;
 
 use super::diagnostics::{SourcePosition, SourceRange};
 
-// Convert pest's location shape into the SourceRange we expose to the CLI/LSP.
-// Pest sometimes gives a full span, but most syntax failures are a single
-// point, so this also decides how much source text should be highlighted.
+// Pest reports hard parser errors as either:
+// - a point: "the parser got stuck at line/column X"
+// - a span: "this exact source span is invalid"
+//
+// Our diagnostics expose LSP-style line/character ranges, but it is easier to
+// reason about point errors in two steps:
+// 1. turn the Pest point into a byte span on the current line
+// 2. convert that byte span into a SourceRange
+#[derive(Debug, Clone, Copy)]
+struct LineColumn {
+    // Pest line/column values are 1-based.
+    line: usize,
+    column: usize,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct LineByteSpan {
+    // `line` is still Pest's 1-based line number.
+    line: usize,
+    // `start` and `end` are byte offsets within that one line.
+    start: usize,
+    end: usize,
+}
+
+// Main entry point for hard Pest parse errors.
+//
+// `highlight_line_end` is used for missing block openers. In that case the
+// useful diagnostic location is the insertion point at end-of-line, not the
+// previous token Pest happened to stop near.
 pub(super) fn pest_error_range(
     error: &pest::error::Error<crate::grammar::Rule>,
     highlight_line_end: bool,
 ) -> SourceRange {
-    match error.line_col {
-        LineColLocation::Pos(pos) => {
-            if highlight_line_end {
-                end_of_line_range(error.line(), pos.0)
-            } else {
-                token_or_single_character_range(error.line(), pos)
-            }
+    let span = match error.line_col {
+        LineColLocation::Pos(pos) => point_error_span(error.line(), pos.into(), highlight_line_end),
+        LineColLocation::Span(start, end) => {
+            return SourceRange {
+                start: pest_position_to_source_position(start.into()),
+                end: pest_position_to_source_position(end.into()),
+            };
         }
-        LineColLocation::Span(start, end) => SourceRange {
-            start: to_position(start),
-            end: to_position(end),
-        },
+    };
+
+    line_byte_span_to_source_range(span)
+}
+
+// Point errors are zero-width from Pest's perspective. We choose a visible
+// highlight range for editor/CLI ergonomics:
+// - missing `{`: end of line insertion point
+// - identifier-like token: the full token
+// - punctuation/whitespace: one character
+fn point_error_span(
+    line_text: &str,
+    position: LineColumn,
+    highlight_line_end: bool,
+) -> LineByteSpan {
+    if highlight_line_end {
+        return end_of_line_span(line_text, position.line);
     }
+
+    token_span_at_position(line_text, position).unwrap_or_else(|| one_character_span(position))
 }
 
-// For point errors, prefer highlighting the whole token under the cursor. If
-// the cursor is on punctuation/whitespace, fall back to a one-character range.
-fn token_or_single_character_range(line: &str, pos: (usize, usize)) -> SourceRange {
-    expand_token_range(line, pos).unwrap_or_else(|| single_character_range(pos))
-}
+// If Pest points inside `duratio`, highlight the whole `duratio` token instead
+// of just one character. This is intentionally ASCII-only today because Aurora
+// identifiers are ASCII in the grammar.
+fn token_span_at_position(line_text: &str, position: LineColumn) -> Option<LineByteSpan> {
+    let column = pest_column_to_byte_index(position.column);
+    let bytes = line_text.as_bytes();
 
-// Expand a 1-based pest position to the full ASCII identifier-like token around
-// it. This is what turns `duratio` from a one-character underline into a full
-// word highlight.
-// In simpler terms just walks to the Left and Right to capture the Token.
-fn expand_token_range(line: &str, pos: (usize, usize)) -> Option<SourceRange> {
-    let column = pos.1.saturating_sub(1);
-    let bytes = line.as_bytes();
-
-    // If the error column is outside the line, or if the character under the cursor is not word-like, give up.
-    // So if pest points at `{`, `<`, `>`, space, etc., this function returns `None`.
+    // If Pest points at whitespace/punctuation, there is no word token to
+    // expand. The caller will fall back to a one-character span.
     if column >= bytes.len() || !is_token_byte(bytes[column]) {
         return None;
     }
 
+    Some(LineByteSpan {
+        line: position.line,
+        start: token_start(bytes, column),
+        end: token_end(bytes, column),
+    })
+}
+
+// Walk left from the Pest error byte until the token boundary.
+fn token_start(bytes: &[u8], column: usize) -> usize {
     let mut start = column;
     while start > 0 && is_token_byte(bytes[start - 1]) {
         start -= 1;
     }
+    start
+}
 
+// Walk right from the Pest error byte until the token boundary.
+fn token_end(bytes: &[u8], column: usize) -> usize {
     let mut end = column;
     while end < bytes.len() && is_token_byte(bytes[end]) {
         end += 1;
     }
-
-    Some(SourceRange {
-        start: SourcePosition {
-            line: pos.0.saturating_sub(1) as u32,
-            character: start as u32,
-        },
-        end: SourcePosition {
-            line: pos.0.saturating_sub(1) as u32,
-            character: end as u32,
-        },
-    })
+    end
 }
 
-// Token expansion is intentionally conservative for now: identifiers and
-// keyword-like values are ASCII words plus `_`; punctuation is not included.
+// "Token" here means the simple word-like pieces Aurora currently parses:
+// identifiers and keywords made from ASCII letters/digits/underscore.
 fn is_token_byte(byte: u8) -> bool {
     byte.is_ascii_alphanumeric() || byte == b'_'
 }
 
-// Editors render empty diagnostics inconsistently, so a point error always
-// becomes at least a one-character range.
-fn single_character_range(pos: (usize, usize)) -> SourceRange {
-    let start = to_position(pos);
-    SourceRange {
+// LSP clients can render zero-width diagnostics inconsistently. If we cannot
+// identify a word token, highlight one character at the Pest point.
+fn one_character_span(position: LineColumn) -> LineByteSpan {
+    let start = pest_column_to_byte_index(position.column);
+    LineByteSpan {
+        line: position.line,
         start,
-        end: SourcePosition {
-            line: start.line,
-            character: start.character.saturating_add(1),
-        },
+        end: start.saturating_add(1),
     }
 }
 
-// Missing block openers are best shown at the insertion point: the end of the
-// current line, not on the previous valid token.
-fn end_of_line_range(line: &str, line_number: usize) -> SourceRange {
-    let character = line.chars().count() as u32;
+// Missing `{` is clearer as "insert here" at the end of the header line.
+fn end_of_line_span(line_text: &str, line: usize) -> LineByteSpan {
+    let end = line_text.len();
+    LineByteSpan {
+        line,
+        start: end,
+        end: end.saturating_add(1),
+    }
+}
+
+// Final conversion from our local line-byte span to the public diagnostic
+// range. This is currently byte == character for the ASCII grammar pieces we
+// highlight. If Aurora identifiers become Unicode, this is the boundary that
+// should change.
+fn line_byte_span_to_source_range(span: LineByteSpan) -> SourceRange {
     SourceRange {
         start: SourcePosition {
-            line: line_number.saturating_sub(1) as u32,
-            character,
+            line: pest_line_to_source_line(span.line),
+            character: span.start as u32,
         },
         end: SourcePosition {
-            line: line_number.saturating_sub(1) as u32,
-            character: character.saturating_add(1),
+            line: pest_line_to_source_line(span.line),
+            character: span.end as u32,
         },
     }
 }
 
-// Pest uses 1-based line/column positions; SourceRange follows LSP-style
-// 0-based line/character positions.
-fn to_position((line, column): (usize, usize)) -> SourcePosition {
+// Pest spans already carry start/end line-column positions. Convert those
+// directly without token expansion.
+fn pest_position_to_source_position(position: LineColumn) -> SourcePosition {
     SourcePosition {
-        line: line.saturating_sub(1) as u32,
-        character: column.saturating_sub(1) as u32,
+        line: pest_line_to_source_line(position.line),
+        character: pest_column_to_byte_index(position.column) as u32,
+    }
+}
+
+// Pest is 1-based; LSP-style diagnostics are 0-based.
+fn pest_line_to_source_line(line: usize) -> u32 {
+    line.saturating_sub(1) as u32
+}
+
+// Pest columns are 1-based. For our current ASCII grammar, the 0-based column
+// is also the byte index in `line_text.as_bytes()`.
+fn pest_column_to_byte_index(column: usize) -> usize {
+    column.saturating_sub(1)
+}
+
+// Makes `LineColLocation` tuples readable at call sites.
+impl From<(usize, usize)> for LineColumn {
+    fn from((line, column): (usize, usize)) -> Self {
+        Self { line, column }
     }
 }

@@ -1,13 +1,15 @@
 // Aurora Schema Language Grammar (POC)
 
+// Strict parser entry point. Called from Rust with `Rule::schema`.
 schema      = { SOI ~ schema_item* ~ EOI }
 schema_item = { doc_comment | table_block | analyzer_block }
 
-source_file = { SOI ~ source_item* ~ EOI }
-source_item = { doc_comment | table_block | analyzer_block | #invalid_top_level = INVALID_LINE }
+// Tolerant checker/LSP entry point. Called from Rust with `Rule::source_file`.
+source_file  = { SOI ~ source_items* ~ EOI }
+source_items = { doc_comment | table_block | analyzer_block | #invalid_source_item = INVALID_SOURCE_ITEM }
 
 // Doc comment: triple-slash lines, captured as AST node.
-doc_comment      = { doc_comment_line+ }
+doc_comment      =  { doc_comment_line+ }
 doc_comment_line = @{ "///" ~ (!NEWLINE ~ ANY)* }
 
 // Line comment: double-slash (NOT triple), silently skipped.
@@ -15,11 +17,11 @@ COMMENT    = _{ !("///") ~ "//" ~ (!NEWLINE ~ ANY)* }
 WHITESPACE = _{ " " | "\t" | NEWLINE }
 
 // Top-level analyzer declaration.
-analyzer_block      = { "analyzer" ~ identifier ~ block_start ~ analyzer_clause* ~ block_end }
-analyzer_clause     = { analyzer_tokenizers | analyzer_filters }
-analyzer_tokenizers = { "tokenizers" ~ identifier ~ ("," ~ identifier)* }
-analyzer_filters    = { "filters" ~ filter_call ~ ("," ~ filter_call)* }
-filter_call         = { identifier ~ ("(" ~ filter_arg ~ ("," ~ filter_arg)* ~ ")")? }
+analyzer_block      =  { "analyzer" ~ identifier ~ block_start ~ analyzer_clause* ~ block_end }
+analyzer_clause     =  { analyzer_tokenizers | analyzer_filters }
+analyzer_tokenizers =  { "tokenizers" ~ identifier ~ ("," ~ identifier)* }
+analyzer_filters    =  { "filters" ~ filter_call ~ ("," ~ filter_call)* }
+filter_call         =  { identifier ~ ("(" ~ filter_arg ~ ("," ~ filter_arg)* ~ ")")? }
 filter_arg          = @{ ASCII_ALPHANUMERIC+ }
 
 // Table: fields and block-attributes (any order). Both can appear repeatedly.
@@ -46,62 +48,69 @@ attr_call       = { "(" ~ attr_kv_list? ~ ")" }
 attr_kv_list    = { attr_kv ~ ("," ~ attr_kv)* }
 attr_kv         = { identifier ~ ":" ~ attr_value }
 attr_value      = {
-      attr_array
-    | attr_tuple
-    | attr_number
-    | attr_bool
-    | attr_string
-    | attr_ident
+    attr_array
+  | attr_tuple
+  | attr_number
+  | attr_bool
+  | attr_string
+  | attr_ident
 }
 // Parens-wrapped value list — mirrors SurrealDB's `BM25(1.2, 0.75)`.
-attr_tuple      = { "(" ~ (attr_value ~ ("," ~ attr_value)*)? ~ ")" }
-attr_array      = { "[" ~ (attr_value ~ ("," ~ attr_value)*)? ~ "]" }
-attr_number     = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
-attr_bool       = { "true" | "false" }
-attr_ident      = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
-attr_string     = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+attr_tuple  =  { "(" ~ (attr_value ~ ("," ~ attr_value)*)? ~ ")" }
+attr_array  =  { "[" ~ (attr_value ~ ("," ~ attr_value)*)? ~ "]" }
+attr_number = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+attr_bool   =  { "true" | "false" }
+attr_ident  = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+attr_string = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
 
 // Recursive type. Compound forms come first because their keywords (option,
 // array, set, record, geometry) would otherwise be matched by primitive_type's
 // catch-all keyword list — pest's ordered choice gives compounds priority.
 type_node = {
-      option_type
-    | array_type
-    | set_type
-    | record_type
-    | geometry_type
-    | primitive_type
+    option_type
+  | array_type
+  | set_type
+  | record_type
+  | geometry_type
+  | primitive_type
 }
 
-option_type   = { "option" ~ type_args_start ~ type_node ~ type_args_end }
-array_type    = { "array" ~ type_args_start ~ type_node ~ ("," ~ array_length)? ~ type_args_end }
-set_type      = { "set" ~ type_args_start ~ type_node ~ ("," ~ array_length)? ~ type_args_end }
-record_type   = { "record" ~ (type_args_start ~ identifier ~ type_args_end)? }
-geometry_type = { "geometry" ~ type_args_start ~ identifier ~ ("|" ~ identifier)* ~ type_args_end }
+option_type   =  { "option" ~ type_args_start ~ type_node ~ type_args_end }
+array_type    =  { "array" ~ type_args_start ~ type_node ~ ("," ~ array_length)? ~ type_args_end }
+set_type      =  { "set" ~ type_args_start ~ type_node ~ ("," ~ array_length)? ~ type_args_end }
+record_type   =  { "record" ~ (type_args_start ~ identifier ~ type_args_end)? }
+geometry_type =  { "geometry" ~ type_args_start ~ identifier ~ ("|" ~ identifier)* ~ type_args_end }
 array_length  = @{ ASCII_DIGIT+ }
 
 primitive_type = {
-      "bool"
-    | "int"
-    | "float"
-    | "decimal"
-    | "number"
-    | "string"
-    | "datetime"
-    | "duration"
-    | "uuid"
-    | "bytes"
-    | "any"
-    | "regex"
-    | "object"
-    | "range"
+    "bool"
+  | "int"
+  | "float"
+  | "decimal"
+  | "number"
+  | "string"
+  | "datetime"
+  | "duration"
+  | "uuid"
+  | "bytes"
+  | "any"
+  | "regex"
+  | "object"
+  | "range"
 }
 
 identifier = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
 
-// Shared recovery primitive. Context-specific tags decide what diagnostic a
-// matched invalid line should produce.
-INVALID_LINE = @{ (!NEWLINE ~ ANY)+ ~ NEWLINE? }
+// Recovery rules are intentionally narrow hacks for LSP/check ergonomics. They
+// keep one bad line from killing the whole source-file parse, but they must not
+// hide malformed declarations that start with real keywords. For example,
+// `table user schemafull` should still hard-fail so the missing-`{` diagnostic
+// can point at the insertion position.
+INVALID_SOURCE_ITEM = @{ !KNOWN_TOP_LEVEL_KEYWORD ~ INVALID_LINE }
+INVALID_LINE        = @{ (!NEWLINE ~ ANY)+ ~ NEWLINE? }
+
+KNOWN_TOP_LEVEL_KEYWORD = _{ ("table" | "analyzer") ~ KEYWORD_BOUNDARY }
+KEYWORD_BOUNDARY        = _{ " " | "\t" | NEWLINE | EOI }
 
 block_start     = _{ "{" }
 block_end       = _{ "}" }

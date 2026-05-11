@@ -3,7 +3,7 @@ use pest::iterators::{Pair, Pairs};
 use super::diagnostics::{Diagnostic, DiagnosticCode, SourcePosition, SourceRange};
 use super::keywords::TOP_LEVEL_DECLARATIONS;
 
-const INVALID_TOP_LEVEL_TAG: &str = "invalid_top_level";
+const INVALID_SOURCE_ITEM_TAG: &str = "invalid_source_item";
 
 pub(super) fn recovery_diagnostics(pairs: Pairs<'_, crate::grammar::Rule>) -> Vec<Diagnostic> {
     let mut diagnostics = Vec::new();
@@ -17,8 +17,8 @@ fn collect_recovery_diagnostics(
     pair: Pair<'_, crate::grammar::Rule>,
     diagnostics: &mut Vec<Diagnostic>,
 ) {
-    if pair.as_node_tag() == Some(INVALID_TOP_LEVEL_TAG) {
-        diagnostics.push(invalid_top_level_diagnostic(&pair));
+    if pair.as_node_tag() == Some(INVALID_SOURCE_ITEM_TAG) {
+        diagnostics.push(invalid_source_item_diagnostic(&pair));
     }
 
     for child in pair.into_inner() {
@@ -26,30 +26,33 @@ fn collect_recovery_diagnostics(
     }
 }
 
-fn invalid_top_level_diagnostic(pair: &Pair<'_, crate::grammar::Rule>) -> Diagnostic {
+fn invalid_source_item_diagnostic(pair: &Pair<'_, crate::grammar::Rule>) -> Diagnostic {
     Diagnostic::error(
         DiagnosticCode::ParseError,
-        invalid_top_level_message(pair.as_str()),
+        invalid_source_item_message(pair.as_str()),
         pair_range(pair),
     )
 }
 
-fn invalid_top_level_message(source: &str) -> String {
+fn invalid_source_item_message(source: &str) -> String {
     let token = source.trim_start().split_whitespace().next().unwrap_or("");
-    if let Some(keyword) = closest_top_level_keyword(token) {
-        return format!("unknown top-level declaration `{token}`; did you mean `{keyword}`?");
+    if let Some(keyword) = closest_source_item_keyword(token) {
+        return format!("unknown source item `{token}`; did you mean `{keyword}`?");
     }
 
-    "invalid top-level declaration".to_string()
+    "invalid source item".to_string()
 }
 
-fn closest_top_level_keyword(token: &str) -> Option<&'static str> {
+fn closest_source_item_keyword(token: &str) -> Option<&'static str> {
+    // This recovery path is only for lines that did not start with a known
+    // declaration. Keep this guard anyway so a grammar regression cannot emit
+    // nonsense like `table`; did you mean `table`?
     TOP_LEVEL_DECLARATIONS
         .iter()
         .copied()
         .filter_map(|keyword| {
             let distance = levenshtein(token, keyword);
-            (distance <= 2).then_some((keyword, distance))
+            (distance > 0 && distance <= 2).then_some((keyword, distance))
         })
         .min_by_key(|(_, distance)| *distance)
         .map(|(keyword, _)| keyword)
