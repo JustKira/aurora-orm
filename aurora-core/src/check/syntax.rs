@@ -15,6 +15,7 @@ pub(crate) fn parse_diagnostic_from_pest(
 ) -> Diagnostic {
     let context = SyntaxContext::from_error(&error);
     let diagnostic = missing_block_start_diagnostic(context)
+        .or_else(|| missing_attribute_call_end_diagnostic(context))
         .unwrap_or_else(|| default_syntax_diagnostic(&error, context));
     let range = pest_error_range(&error, diagnostic.highlight_line_end);
 
@@ -25,6 +26,17 @@ fn missing_block_start_diagnostic(context: SyntaxContext) -> Option<SyntaxDiagno
     let block_kind = context.missing_block_start()?;
     Some(SyntaxDiagnostic {
         message: format!("expected `{{` to start {} body", block_kind.label()),
+        highlight_line_end: true,
+    })
+}
+
+fn missing_attribute_call_end_diagnostic(context: SyntaxContext) -> Option<SyntaxDiagnostic> {
+    if context != SyntaxContext::MissingAttributeCallEnd {
+        return None;
+    }
+
+    Some(SyntaxDiagnostic {
+        message: "expected `)` to close attribute arguments".to_string(),
         highlight_line_end: true,
     })
 }

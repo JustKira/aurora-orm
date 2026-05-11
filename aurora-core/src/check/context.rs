@@ -5,6 +5,7 @@ use super::keywords::{ANALYZER, TABLE};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum SyntaxContext {
     MissingBlockStart(BlockKind),
+    MissingAttributeCallEnd,
     GeometryType,
     Unknown,
 }
@@ -40,6 +41,10 @@ impl SyntaxContext {
             return Self::MissingBlockStart(block_kind);
         }
 
+        if missing_attribute_call_end(before_error) {
+            return Self::MissingAttributeCallEnd;
+        }
+
         if before_error.contains("geometry<") {
             return Self::GeometryType;
         }
@@ -58,6 +63,20 @@ impl SyntaxContext {
 fn before_column(line: &str, column: usize) -> &str {
     let end = column.saturating_sub(1).min(line.len());
     &line[..end]
+}
+
+fn missing_attribute_call_end(before_error: &str) -> bool {
+    let Some(attribute_start) = before_error.rfind('@') else {
+        return false;
+    };
+    let attribute_text = &before_error[attribute_start..];
+    let Some(call_start) = attribute_text.find('(') else {
+        return false;
+    };
+
+    let call_text = &attribute_text[call_start..];
+    call_text.chars().filter(|char| *char == '(').count()
+        > call_text.chars().filter(|char| *char == ')').count()
 }
 
 fn missing_block_start(before_error: &str) -> Option<BlockKind> {
