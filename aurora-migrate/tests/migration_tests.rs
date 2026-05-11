@@ -201,7 +201,7 @@ fn generate_creates_files_and_uses_previous_snapshot() {
     let dir = temp_dir("generate");
     let schema_path = dir.join("schema.aurora");
     let migrations_dir = dir.join("migrations");
-    fs::write(&schema_path, "table User schemafull { email string }\n").unwrap();
+    fs::write(&schema_path, "table User schemafull {\n  email string\n}\n").unwrap();
 
     let report = generate(GenerateOpts {
         config: config(schema_path.clone(), migrations_dir.clone()),
@@ -234,7 +234,7 @@ fn generate_creates_files_and_uses_previous_snapshot() {
 
     fs::write(
         &schema_path,
-        "table User schemafull { email string score float? }\n",
+        "table User schemafull {\n  email string\n  score float?\n}\n",
     )
     .unwrap();
     let second = generate(GenerateOpts {
@@ -253,7 +253,7 @@ fn generate_accepts_matching_lockfile() {
     let schema_path = dir.join("schema.aurora");
     let migrations_dir = dir.join("migrations");
     fs::create_dir_all(&migrations_dir).unwrap();
-    fs::write(&schema_path, "table User { email string }\n").unwrap();
+    fs::write(&schema_path, "table User {\n  email string\n}\n").unwrap();
     fs::write(
         migrations_dir.join("migration_lock.toml"),
         "provider = \"surrealdb\"\nsnapshot_version = 1\n",
@@ -274,7 +274,7 @@ fn generate_rejects_incompatible_lockfile() {
     let schema_path = dir.join("schema.aurora");
     let migrations_dir = dir.join("migrations");
     fs::create_dir_all(&migrations_dir).unwrap();
-    fs::write(&schema_path, "table User { email string }\n").unwrap();
+    fs::write(&schema_path, "table User {\n  email string\n}\n").unwrap();
     fs::write(
         migrations_dir.join("migration_lock.toml"),
         "provider = \"postgres\"\nsnapshot_version = 1\n",
@@ -295,7 +295,7 @@ fn generate_rejects_unsupported_lockfile_snapshot_version() {
     let schema_path = dir.join("schema.aurora");
     let migrations_dir = dir.join("migrations");
     fs::create_dir_all(&migrations_dir).unwrap();
-    fs::write(&schema_path, "table User { email string }\n").unwrap();
+    fs::write(&schema_path, "table User {\n  email string\n}\n").unwrap();
     fs::write(
         migrations_dir.join("migration_lock.toml"),
         "provider = \"surrealdb\"\nsnapshot_version = 2\n",
@@ -316,7 +316,7 @@ fn generate_rejects_malformed_lockfile() {
     let schema_path = dir.join("schema.aurora");
     let migrations_dir = dir.join("migrations");
     fs::create_dir_all(&migrations_dir).unwrap();
-    fs::write(&schema_path, "table User { email string }\n").unwrap();
+    fs::write(&schema_path, "table User {\n  email string\n}\n").unwrap();
     fs::write(migrations_dir.join("migration_lock.toml"), "not = [valid").unwrap();
 
     let result = generate(GenerateOpts {
@@ -333,7 +333,7 @@ fn fs_io_reads_schema_and_latest_snapshot() {
     let schema_path = dir.join("schema.aurora");
     let meta_dir = dir.join("migrations/meta");
     fs::create_dir_all(&meta_dir).unwrap();
-    fs::write(&schema_path, "table User { email string }\n").unwrap();
+    fs::write(&schema_path, "table User {\n  email string\n}\n").unwrap();
     let parsed = read_schema(&schema_path).unwrap();
     fs::write(meta_dir.join("0000_snapshot.json"), canonicalize(&parsed)).unwrap();
     let journal = Journal {
