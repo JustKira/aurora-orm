@@ -87,6 +87,25 @@ table Demo {
 }
 
 #[test]
+fn non_ascii_text_before_parse_error_does_not_panic() {
+    let diagnostics = diagnostics_for(
+        r#"
+/// مرحبا
+table Demo {
+  name string @default("x"
+}
+"#,
+    );
+    let diagnostic = only_diagnostic(&diagnostics);
+
+    assert_eq!(diagnostic.code, DiagnosticCode::ParseError);
+    assert_eq!(
+        diagnostic.message,
+        "expected `)` to close attribute arguments"
+    );
+}
+
+#[test]
 fn record_missing_type_close_documents_current_field_context_error() {
     let diagnostics = diagnostics_for(
         r#"

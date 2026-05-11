@@ -66,8 +66,16 @@ impl SyntaxContext {
 }
 
 fn before_column(line: &str, column: usize) -> &str {
-    let end = column.saturating_sub(1).min(line.len());
+    let end = column_to_byte_index(line, column);
     &line[..end]
+}
+
+fn column_to_byte_index(line: &str, column: usize) -> usize {
+    let target_character = column.saturating_sub(1);
+    line.char_indices()
+        .map(|(byte_index, _)| byte_index)
+        .nth(target_character)
+        .unwrap_or(line.len())
 }
 
 fn inline_block_attribute(line: &str) -> bool {
