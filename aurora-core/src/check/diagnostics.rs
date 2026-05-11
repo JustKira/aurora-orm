@@ -1,5 +1,7 @@
 use std::fmt;
 
+use serde::Serialize;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Diagnostic {
     pub severity: Severity,
@@ -59,7 +61,17 @@ pub enum DiagnosticCode {
     ConvertError,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+impl DiagnosticCode {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::ParseError => "parse_error",
+            Self::ValidationError => "validation_error",
+            Self::ConvertError => "convert_error",
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub enum DiagnosticData {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -70,6 +82,9 @@ pub struct SourceRange {
 
 impl SourceRange {
     pub fn first_character() -> Self {
+        // Fallback diagnostics do not know the source text, so prefer a safe
+        // zero-width origin range. Using `0..1` can be out-of-bounds for empty
+        // documents, and some LSP clients reject ranges past the line length.
         Self {
             start: SourcePosition {
                 line: 0,
@@ -77,7 +92,7 @@ impl SourceRange {
             },
             end: SourcePosition {
                 line: 0,
-                character: 1,
+                character: 0,
             },
         }
     }

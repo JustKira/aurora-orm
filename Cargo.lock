@@ -374,6 +374,7 @@ name = "aurora-lsp"
 version = "0.0.0"
 dependencies = [
  "aurora-core",
+ "serde_json",
  "tokio",
  "tower-lsp-server",
 ]

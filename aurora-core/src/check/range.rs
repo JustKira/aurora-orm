@@ -62,7 +62,8 @@ fn point_error_span(
         return end_of_line_span(line_text, position.line);
     }
 
-    token_span_at_position(line_text, position).unwrap_or_else(|| one_character_span(position))
+    token_span_at_position(line_text, position)
+        .unwrap_or_else(|| one_character_span(line_text, position))
 }
 
 // If Pest points inside `duratio`, highlight the whole `duratio` token instead
@@ -109,24 +110,33 @@ fn is_token_byte(byte: u8) -> bool {
     byte.is_ascii_alphanumeric() || byte == b'_'
 }
 
-// LSP clients can render zero-width diagnostics inconsistently. If we cannot
-// identify a word token, highlight one character at the Pest point.
-fn one_character_span(position: LineColumn) -> LineByteSpan {
-    let start = pest_column_to_byte_index(position.column);
+// If we cannot identify a word token, highlight one character at the Pest
+// point, but never beyond the line. Some LSP clients drop or misrender
+// diagnostics whose range extends past the line length, so end-of-line point
+// errors become zero-width insertion ranges instead of `len..len + 1`.
+fn one_character_span(line_text: &str, position: LineColumn) -> LineByteSpan {
+    let start = pest_column_to_byte_index(position.column).min(line_text.len());
+    let end = if start < line_text.len() {
+        start + 1
+    } else {
+        start
+    };
     LineByteSpan {
         line: position.line,
         start,
-        end: start.saturating_add(1),
+        end,
     }
 }
 
-// Missing `{` is clearer as "insert here" at the end of the header line.
+// Missing `{` is clearer as "insert here" at the end of the header line. This
+// is intentionally zero-width: LSP ranges may point at `line.len()`, but should
+// not extend beyond it.
 fn end_of_line_span(line_text: &str, line: usize) -> LineByteSpan {
     let end = line_text.len();
     LineByteSpan {
         line,
         start: end,
-        end: end.saturating_add(1),
+        end,
     }
 }
 

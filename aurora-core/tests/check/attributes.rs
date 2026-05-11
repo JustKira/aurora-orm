@@ -18,7 +18,7 @@ table Demo {
             code: DiagnosticCode::ParseError,
             message: "expected `)` to close attribute arguments",
             start: (2, 31),
-            end: (2, 32),
+            end: (2, 31),
         },
     );
 }
@@ -39,7 +39,7 @@ table Demo {
             code: DiagnosticCode::ParseError,
             message: "expected `)` to close attribute arguments",
             start: (2, 24),
-            end: (2, 25),
+            end: (2, 24),
         },
     );
 }
@@ -60,7 +60,7 @@ table Demo {
             code: DiagnosticCode::ParseError,
             message: "expected `)` to close attribute arguments",
             start: (2, 45),
-            end: (2, 46),
+            end: (2, 45),
         },
     );
 }

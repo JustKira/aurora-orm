@@ -7,9 +7,10 @@
 use aurora_core::{Diagnostic as AuroraDiagnostic, Severity, SourcePosition, SourceRange};
 use tower_lsp_server::jsonrpc::Result;
 use tower_lsp_server::ls_types::{
-    Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams, DidOpenTextDocumentParams,
-    InitializeParams, InitializeResult, InitializedParams, Position, Range, ServerCapabilities,
-    ServerInfo, TextDocumentSyncCapability, TextDocumentSyncKind,
+    Diagnostic, DiagnosticSeverity, DidChangeTextDocumentParams, DidCloseTextDocumentParams,
+    DidOpenTextDocumentParams, InitializeParams, InitializeResult, InitializedParams,
+    NumberOrString, Position, Range, ServerCapabilities, ServerInfo, TextDocumentSyncCapability,
+    TextDocumentSyncKind,
 };
 use tower_lsp_server::{Client, LanguageServer, LspService, Server};
 
@@ -58,6 +59,10 @@ impl LanguageServer for AuroraLsp {
         .await;
     }
 
+    async fn did_close(&self, params: DidCloseTextDocumentParams) {
+        self.publish_clear_diagnostics(params.text_document.uri).await;
+    }
+
     async fn shutdown(&self) -> Result<()> {
         Ok(())
     }
@@ -75,6 +80,16 @@ impl AuroraLsp {
             .publish_diagnostics(uri, diagnostics, Some(version))
             .await;
     }
+
+    async fn publish_clear_diagnostics(&self, uri: tower_lsp_server::ls_types::Uri) {
+        self.client
+            .publish_diagnostics(uri, close_diagnostics(), None)
+            .await;
+    }
+}
+
+fn close_diagnostics() -> Vec<Diagnostic> {
+    Vec::new()
 }
 
 fn parse_diagnostics(source: &str) -> Vec<Diagnostic> {
@@ -86,15 +101,25 @@ fn parse_diagnostics(source: &str) -> Vec<Diagnostic> {
 }
 
 fn to_lsp_diagnostic(diagnostic: &AuroraDiagnostic) -> Diagnostic {
-    Diagnostic::new(
+    let mut lsp_diagnostic = Diagnostic::new(
         to_lsp_range(diagnostic.range),
         Some(to_lsp_severity(diagnostic.severity)),
-        None,
+        Some(NumberOrString::String(diagnostic.code.as_str().to_string())),
         Some("aurora".to_string()),
         diagnostic.to_string(),
         None,
         None,
-    )
+    );
+    lsp_diagnostic.data = Some(to_lsp_diagnostic_data(diagnostic));
+    lsp_diagnostic
+}
+
+fn to_lsp_diagnostic_data(diagnostic: &AuroraDiagnostic) -> serde_json::Value {
+    serde_json::json!({
+        "code": diagnostic.code.as_str(),
+        "help": diagnostic.help,
+        "data": diagnostic.data,
+    })
 }
 
 fn to_lsp_severity(severity: Severity) -> DiagnosticSeverity {
@@ -132,8 +157,16 @@ mod tests {
 
         assert_eq!(diagnostics.len(), 1);
         assert_eq!(diagnostics[0].severity, Some(DiagnosticSeverity::ERROR));
+        assert_eq!(
+            diagnostics[0].code,
+            Some(NumberOrString::String("parse_error".to_string()))
+        );
         assert_eq!(diagnostics[0].source.as_deref(), Some("aurora"));
         assert!(!diagnostics[0].message.is_empty());
+        assert_eq!(
+            diagnostics[0].data.as_ref().and_then(|data| data.get("code")),
+            Some(&serde_json::json!("parse_error"))
+        );
     }
 
     #[test]
@@ -147,5 +180,10 @@ table User {
         );
 
         assert!(diagnostics.is_empty());
+    }
+
+    #[test]
+    fn close_diagnostics_clears_editor_diagnostics() {
+        assert!(close_diagnostics().is_empty());
     }
 }

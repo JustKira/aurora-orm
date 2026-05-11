@@ -2,10 +2,26 @@ use pest::Span;
 use pest_ast::FromPest;
 
 use crate::ast;
+use crate::check::diagnostics::{SourcePosition, SourceRange};
 use crate::grammar::Rule;
 
 fn span_to_string(span: Span<'_>) -> String {
     span.as_str().to_string()
+}
+
+fn span_to_source_range(span: Span<'_>) -> SourceRange {
+    let (start_line, start_column) = span.start_pos().line_col();
+    let (end_line, end_column) = span.end_pos().line_col();
+    SourceRange {
+        start: SourcePosition {
+            line: start_line.saturating_sub(1) as u32,
+            character: start_column.saturating_sub(1) as u32,
+        },
+        end: SourcePosition {
+            line: end_line.saturating_sub(1) as u32,
+            character: end_column.saturating_sub(1) as u32,
+        },
+    }
 }
 
 #[derive(FromPest)]
@@ -171,6 +187,8 @@ pub struct OptionalMarker;
 #[derive(FromPest)]
 #[pest_ast(rule(Rule::attribute))]
 pub struct AttributeNode {
+    #[pest_ast(outer(with(span_to_source_range)))]
+    pub source_range: SourceRange,
     pub name: Identifier,
     pub call: Option<AttrCall>,
 }
@@ -178,6 +196,8 @@ pub struct AttributeNode {
 #[derive(FromPest)]
 #[pest_ast(rule(Rule::block_attribute))]
 pub struct BlockAttribute {
+    #[pest_ast(outer(with(span_to_source_range)))]
+    pub source_range: SourceRange,
     pub name: Identifier,
     pub call: Option<AttrCall>,
 }
@@ -458,6 +478,7 @@ impl AttributeNode {
         ast::Attribute {
             name: self.name.value,
             args: self.call.map(AttrCall::into_args).unwrap_or_default(),
+            source_range: Some(self.source_range),
         }
     }
 }
@@ -467,6 +488,7 @@ impl BlockAttribute {
         ast::Attribute {
             name: self.name.value,
             args: self.call.map(AttrCall::into_args).unwrap_or_default(),
+            source_range: Some(self.source_range),
         }
     }
 }

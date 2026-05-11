@@ -11,12 +11,14 @@ use crate::ast::{
     Attribute, AttributeArg, AttributeValue, Bm25, Field, Index, IndexKind, Schema, SchemaItem,
     Table, Type,
 };
+use crate::check::diagnostics::SourceRange;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ValidationError {
     pub message: String,
     /// Human-readable hint, e.g. "did you mean `@hnsw`?"
     pub hint: Option<String>,
+    pub range: Option<SourceRange>,
 }
 
 impl fmt::Display for ValidationError {
@@ -75,7 +77,7 @@ fn validate_field_attributes(
 ) {
     for attr in &field.raw_attributes {
         match attr.name.as_str() {
-            "unique" => match parse_named_only(&attr.args, "@unique") {
+            "unique" => match parse_named_only(&attr.args, "@unique").map_err(|e| e.at(attr)) {
                 Ok(name_override) => indexes.push(Index {
                     name: name_override
                         .unwrap_or_else(|| auto_name(table, &[field.name.clone()], "unique")),
@@ -84,7 +86,7 @@ fn validate_field_attributes(
                 }),
                 Err(e) => errors.push(e),
             },
-            "index" => match parse_named_only(&attr.args, "@index") {
+            "index" => match parse_named_only(&attr.args, "@index").map_err(|e| e.at(attr)) {
                 Ok(name_override) => indexes.push(Index {
                     name: name_override
                         .unwrap_or_else(|| auto_name(table, &[field.name.clone()], "idx")),
@@ -95,14 +97,14 @@ fn validate_field_attributes(
             },
             "flexible" => {
                 if !attr.args.is_empty() {
-                    errors.push(err(format!(
+                    errors.push(err_at(attr, format!(
                         "@flexible on {table}.{f} takes no arguments",
                         f = field.name
                     )));
                     continue;
                 }
                 if !is_object(&field.ty) {
-                    errors.push(err(format!(
+                    errors.push(err_at(attr, format!(
                         "@flexible on {table}.{f} requires `object`, got `{ty}`",
                         f = field.name,
                         ty = type_label(&field.ty),
@@ -111,10 +113,10 @@ fn validate_field_attributes(
                 }
                 field.flexible = true;
             }
-            "hnsw" => match parse_hnsw_args(&attr.args) {
+            "hnsw" => match parse_hnsw_args(&attr.args).map_err(|e| e.at(attr)) {
                 Ok((kind, name_override)) => {
                     if !is_array_of_float(&field.ty) {
-                        errors.push(err(format!(
+                        errors.push(err_at(attr, format!(
                             "@hnsw on {table}.{f} requires `array<float>`, got `{ty}`",
                             f = field.name,
                             ty = type_label(&field.ty),
@@ -130,10 +132,10 @@ fn validate_field_attributes(
                 }
                 Err(e) => errors.push(e),
             },
-            "fulltext" => match parse_fulltext_args(&attr.args) {
+            "fulltext" => match parse_fulltext_args(&attr.args).map_err(|e| e.at(attr)) {
                 Ok((kind, name_override)) => {
                     if !is_string(&field.ty) {
-                        errors.push(err(format!(
+                        errors.push(err_at(attr, format!(
                             "@fulltext on {table}.{f} requires `string`, got `{ty}`",
                             f = field.name,
                             ty = type_label(&field.ty),
@@ -149,7 +151,7 @@ fn validate_field_attributes(
                 }
                 Err(e) => errors.push(e),
             },
-            unknown => errors.push(unknown_attribute(unknown, FIELD_ATTRS, "field")),
+            unknown => errors.push(unknown_attribute(unknown, FIELD_ATTRS, "field").at(attr)),
         }
     }
 }
@@ -187,7 +189,7 @@ fn validate_block_attribute(
     match attr.name.as_str() {
         "count" => {
             if !attr.args.is_empty() {
-                errors.push(err(format!("@@count on {table} takes no arguments")));
+                errors.push(err_at(attr, format!("@@count on {table} takes no arguments")));
                 return;
             }
             indexes.push(Index {
@@ -196,7 +198,9 @@ fn validate_block_attribute(
                 kind: IndexKind::Count,
             });
         }
-        "index" => match parse_field_list_block(table, fields, &attr.args, "@@index") {
+        "index" => match parse_field_list_block(table, fields, &attr.args, "@@index")
+            .map_err(|e| e.at(attr))
+        {
             Ok((field_names, name_override)) => {
                 indexes.push(Index {
                     name: name_override.unwrap_or_else(|| auto_name(table, &field_names, "idx")),
@@ -206,7 +210,9 @@ fn validate_block_attribute(
             }
             Err(e) => errors.push(e),
         },
-        "unique" => match parse_field_list_block(table, fields, &attr.args, "@@unique") {
+        "unique" => match parse_field_list_block(table, fields, &attr.args, "@@unique")
+            .map_err(|e| e.at(attr))
+        {
             Ok((field_names, name_override)) => {
                 indexes.push(Index {
                     name: name_override.unwrap_or_else(|| auto_name(table, &field_names, "unique")),
@@ -216,7 +222,7 @@ fn validate_block_attribute(
             }
             Err(e) => errors.push(e),
         },
-        unknown => errors.push(unknown_attribute(unknown, BLOCK_ATTRS, "block")),
+        unknown => errors.push(unknown_attribute(unknown, BLOCK_ATTRS, "block").at(attr)),
     }
 }
 
@@ -442,7 +448,12 @@ fn err(message: String) -> ValidationError {
     ValidationError {
         message,
         hint: None,
+        range: None,
     }
+}
+
+fn err_at(attr: &Attribute, message: String) -> ValidationError {
+    err(message).at(attr)
 }
 
 fn unknown_attribute(name: &str, valid: &[&str], scope: &str) -> ValidationError {
@@ -451,6 +462,14 @@ fn unknown_attribute(name: &str, valid: &[&str], scope: &str) -> ValidationError
     ValidationError {
         message: format!("unknown {scope} attribute `{prefix}{name}`"),
         hint: suggestion.map(|s| format!("did you mean `{prefix}{s}`?")),
+        range: None,
+    }
+}
+
+impl ValidationError {
+    fn at(mut self, attr: &Attribute) -> Self {
+        self.range = attr.source_range;
+        self
     }
 }
 

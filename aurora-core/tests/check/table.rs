@@ -14,7 +14,7 @@ fn table_header_without_body_reports_missing_block_open() {
             code: DiagnosticCode::ParseError,
             message: "expected `{` to start table body",
             start: (0, 33),
-            end: (0, 34),
+            end: (0, 33),
         },
     );
 }

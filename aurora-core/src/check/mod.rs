@@ -50,7 +50,7 @@ pub fn check(source: &str) -> CheckReport {
                 let mut diagnostic = Diagnostic::error(
                     DiagnosticCode::ValidationError,
                     error.message,
-                    SourceRange::first_character(),
+                    error.range.unwrap_or_else(SourceRange::first_character),
                 );
                 if let Some(hint) = error.hint {
                     diagnostic = diagnostic.with_help(hint);
