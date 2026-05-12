@@ -1,0 +1,18 @@
+$schema: 'https://moonrepo.dev/schemas/project.json'
+
+id: docs
+language: typescript
+project:
+  type: application
+
+tasks:
+  dev:
+    command: bun
+    args: ['run', 'dev']
+    preset: server
+  build:
+    command: bun
+    args: ['run', 'build']
+  typecheck:
+    command: bun
+    args: ['run', 'types:check']
