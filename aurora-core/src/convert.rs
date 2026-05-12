@@ -63,6 +63,8 @@ pub struct InvalidLine;
 #[pest_ast(rule(Rule::surql_block))]
 #[allow(dead_code)]
 pub struct SurqlBlock {
+    #[pest_ast(outer(with(span_to_source_range)))]
+    pub source_range: SourceRange,
     #[pest_ast(outer(with(span_to_string)))]
     pub source: String,
     pub chunks: Vec<SurqlChunk>,
@@ -133,6 +135,18 @@ pub struct FieldLine {
 }
 
 #[derive(FromPest)]
+#[pest_ast(rule(Rule::field_attribute_line))]
+pub struct FieldAttributeLine {
+    pub attribute: AttributeNode,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::field_attribute_block))]
+pub struct FieldAttributeBlock {
+    pub attributes: Vec<FieldAttributeLine>,
+}
+
+#[derive(FromPest)]
 #[pest_ast(rule(Rule::block_attribute_line))]
 pub struct BlockAttributeLine {
     pub attribute: BlockAttribute,
@@ -144,6 +158,7 @@ pub struct FieldNode {
     pub name: Identifier,
     pub type_expr: TypeExpr,
     pub attributes: Vec<AttributeNode>,
+    pub attribute_block: Option<FieldAttributeBlock>,
 }
 
 #[derive(FromPest)]
@@ -440,14 +455,6 @@ impl SourceItem {
     }
 }
 
-impl SurqlBlock {
-    fn into_ast(self) -> ast::SurqlBlock {
-        ast::SurqlBlock {
-            body: extract_surql_body(&self.source),
-        }
-    }
-}
-
 impl DocComment {
     fn into_ast(self) -> ast::SchemaItem {
         let text = self
@@ -473,7 +480,7 @@ impl TableBlock {
         let mut raw_attributes = Vec::new();
         for member in self.members {
             match member {
-                TableMember::FieldLine(line) => fields.push(line.field.into_ast()),
+                TableMember::FieldLine(line) => fields.push(line.into_ast()),
                 TableMember::BlockAttributeLine(line) => {
                     raw_attributes.push(line.attribute.into_attribute())
                 }
@@ -489,6 +496,12 @@ impl TableBlock {
     }
 }
 
+impl FieldLine {
+    fn into_ast(self) -> ast::Field {
+        self.field.into_ast()
+    }
+}
+
 impl FieldNode {
     fn into_ast(self) -> ast::Field {
         let optional_from_marker = self.type_expr.optional.is_some();
@@ -501,11 +514,19 @@ impl FieldNode {
             ast::Type::Option { inner } => (*inner, true),
             other => (other, false),
         };
-        let raw_attributes = self
+        let mut raw_attributes: Vec<_> = self
             .attributes
             .into_iter()
             .map(AttributeNode::into_attribute)
             .collect();
+        if let Some(block) = self.attribute_block {
+            raw_attributes.extend(
+                block
+                    .attributes
+                    .into_iter()
+                    .map(|line| line.attribute.into_attribute()),
+            );
+        }
         ast::Field {
             name: self.name.value,
             ty,
@@ -593,7 +614,8 @@ impl AttrValueNode {
     fn into_ast(self) -> ast::AttributeValue {
         match self {
             AttrValueNode::Surql(surql) => ast::AttributeValue::Surql {
-                body: surql.into_ast().body,
+                body: extract_surql_body(&surql.source),
+                source_range: Some(surql.source_range),
             },
             AttrValueNode::Number(n) => ast::AttributeValue::Number {
                 value: n.value.parse().unwrap_or(0.0),

@@ -117,6 +117,10 @@ repository = "${localGrammarRepoUrl}"
 rev = "HEAD"
 path = "aurora-tree-sitter"
 
+[grammars.surrealql]
+repository = "https://github.com/surrealdb/surrealql-tree-sitter"
+commit = "bf420b6dbe1f31da5d6609ce090d19d2a549f538"
+
 [language_servers.aurora-lsp]
 name = "Aurora LSP"
 languages = ["Aurora"]
@@ -140,6 +144,10 @@ authors = ["Aurora"]
 repository = "https://github.com/JustKira/aurora-orm.git"
 rev = "main"
 path = "aurora-tree-sitter"
+
+[grammars.surrealql]
+repository = "https://github.com/surrealdb/surrealql-tree-sitter"
+commit = "bf420b6dbe1f31da5d6609ce090d19d2a549f538"
 
 [language_servers.aurora-lsp]
 name = "Aurora LSP"

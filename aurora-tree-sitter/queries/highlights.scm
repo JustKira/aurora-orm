@@ -53,10 +53,6 @@
 ; Numeric literals in type params
 (array_length) @number
 
-; Raw SurrealQL escape hatch. This is intentionally coarse until nested
-; SurrealQL injection is wired up.
-(surql_text) @string.special
-
 ; Comments
 (doc_comment) @comment.documentation
 (line_comment) @comment

@@ -119,7 +119,7 @@ table Demo {
         &diagnostics,
         ExpectedDiagnostic {
             code: DiagnosticCode::ParseError,
-            message: "expected end of file, `?`, or field attribute",
+            message: "expected end of file, field attribute block, `?`, or field attribute",
             start: (2, 14),
             end: (2, 15),
         },

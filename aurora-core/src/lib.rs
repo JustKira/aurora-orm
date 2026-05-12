@@ -6,6 +6,7 @@ mod convert;
 pub mod emit;
 pub mod error;
 pub mod grammar;
+pub mod surql;
 pub mod validate;
 
 pub use ast::*;

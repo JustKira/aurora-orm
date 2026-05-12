@@ -142,11 +142,11 @@ table doc {
             (attribute_kv key: (identifier) value: (attribute_ident (identifier)))))))))
 
 ==================
-Field-level @allow with positional SurQL
+Field-level @allow with op keyword and positional SurQL
 ==================
 
 table user {
-  email string @allow(select, #surql { WHERE $auth.id = id })
+  email string @allow(op: "SELECT", #surql { WHERE $auth.id = id })
 }
 
 ---
@@ -162,9 +162,50 @@ table user {
         attribute: (attribute
           name: (identifier)
           args: (attribute_args
-            (attribute_ident (identifier))
+            (attribute_kv
+              key: (identifier)
+              value: (attribute_string))
             (surql_block
               (surql_text))))))))
+
+==================
+Field attribute block
+==================
+
+table user {
+  id string {
+    @allow(op: "SELECT", #surql { WHERE $value != NONE })
+    @allow(op: "UPDATE",#surql { WHERE $value != NONE })
+  }
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (primitive_type)))
+        attribute_block: (field_attribute_block
+          attribute: (attribute
+            name: (identifier)
+            args: (attribute_args
+              (attribute_kv
+                key: (identifier)
+                value: (attribute_string))
+              (surql_block
+                (surql_text))))
+          attribute: (attribute
+            name: (identifier)
+            args: (attribute_args
+              (attribute_kv
+                key: (identifier)
+                value: (attribute_string))
+              (surql_block
+                (surql_text)))))))))
 
 ==================
 Block-level @@unique with composite fields keyword

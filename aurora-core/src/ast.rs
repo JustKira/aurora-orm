@@ -121,6 +121,8 @@ pub enum AttributeValue {
     },
     Surql {
         body: String,
+        #[serde(skip)]
+        source_range: Option<SourceRange>,
     },
     Array {
         values: Vec<AttributeValue>,

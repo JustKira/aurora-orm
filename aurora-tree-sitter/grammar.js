@@ -94,7 +94,11 @@ module.exports = grammar({
         field("name", $.identifier),
         field("type", $.type_expression),
         repeat(field("attribute", $.attribute)),
+        optional(field("attribute_block", $.field_attribute_block)),
       ),
+
+    field_attribute_block: ($) =>
+      seq("{", repeat(field("attribute", $.attribute)), "}"),
 
     type_expression: ($) =>
       seq(field("base", $.type_node), optional($.optional_marker)),
@@ -188,9 +192,9 @@ module.exports = grammar({
         optional(field("args", $.attribute_args)),
       ),
 
-    // Attribute args may be positional (`@allow(select, #surql { ... })`) or
-    // keyword args (`@hnsw(dimension: 1536)`). The validator decides which
-    // shape is valid for each attribute.
+    // Attribute args may be keyword args (`@hnsw(dimension: 1536)`) or raw
+    // values for escape hatches (`#surql { ... }`). The validator decides
+    // which shape is valid for each attribute.
     attribute_args: ($) =>
       seq(
         "(",

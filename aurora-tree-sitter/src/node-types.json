@@ -371,6 +371,22 @@
     }
   },
   {
+    "type": "field_attribute_block",
+    "named": true,
+    "fields": {
+      "attribute": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "attribute",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "field_definition",
     "named": true,
     "fields": {
@@ -380,6 +396,16 @@
         "types": [
           {
             "type": "attribute",
+            "named": true
+          }
+        ]
+      },
+      "attribute_block": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "field_attribute_block",
             "named": true
           }
         ]

@@ -42,9 +42,11 @@ table_modifier = { "schemafull" | "schemaless" | "drop" }
 
 table_member          = { field_line | block_attribute_line }
 field_line            = { field ~ LINE_END }
+field_attribute_line  = { attribute ~ LINE_END }
 block_attribute_line  = { block_attribute ~ LINE_END }
 
-field     = { identifier ~ type_expr ~ attribute* }
+field     = { identifier ~ type_expr ~ attribute* ~ field_attribute_block? }
+field_attribute_block = { BLOCK_START ~ EMPTY_LINES* ~ (field_attribute_line ~ EMPTY_LINES*)* ~ BLOCK_END }
 type_expr = { type_node ~ optional_marker? }
 
 optional_marker = { "?" }
@@ -53,8 +55,8 @@ optional_marker = { "?" }
 // parser doesn't know which attributes are valid where; that's the validator's
 // job. This keeps the grammar tiny and gives the LSP useful structure even
 // for unknown attributes.
-// Attribute args may be positional (`@allow(select, #surql { ... })`) or
-// keyword args (`@hnsw(dimension: 1536)`). The validator decides which shape is
+// Attribute args may be keyword args (`@hnsw(dimension: 1536)`) or raw values
+// for escape hatches (`#surql { ... }`). The validator decides which shape is
 // valid for each attribute.
 attribute       = { attribute_name ~ attr_call? }
 block_attribute = { block_attribute_name ~ attr_call? }

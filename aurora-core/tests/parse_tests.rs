@@ -299,7 +299,7 @@ table User {
             assert_eq!(attr.name, "assert");
             match &attr.args[0] {
                 aurora_core::ast::AttributeArg::Positional {
-                    value: aurora_core::ast::AttributeValue::Surql { body },
+                    value: aurora_core::ast::AttributeValue::Surql { body, .. },
                 } => {
                     assert!(body.contains("$value != NONE"));
                     assert!(body.contains("string::is::email"));
@@ -312,10 +312,10 @@ table User {
 }
 
 #[test]
-fn parses_mixed_positional_attribute_args() {
+fn parses_keyword_args_with_surql_escape_hatch() {
     let source = r#"
 table User {
-  email string @allow(select, #surql { WHERE $auth.id = id })
+  email string @allow(op: "SELECT", #surql { WHERE $auth.id = id })
 }
 "#;
 
@@ -328,16 +328,41 @@ table User {
             assert_eq!(attr.args.len(), 2);
             assert!(matches!(
                 &attr.args[0],
-                aurora_core::ast::AttributeArg::Positional {
-                    value: aurora_core::ast::AttributeValue::Ident { value },
-                } if value == "select"
+                aurora_core::ast::AttributeArg::Keyword {
+                    name,
+                    value: aurora_core::ast::AttributeValue::String { value },
+                } if name == "op" && value == "SELECT"
             ));
             assert!(matches!(
                 &attr.args[1],
                 aurora_core::ast::AttributeArg::Positional {
-                    value: aurora_core::ast::AttributeValue::Surql { body },
+                    value: aurora_core::ast::AttributeValue::Surql { body, .. },
                 } if body.contains("WHERE $auth.id = id")
             ));
+        }
+        _ => panic!("expected table"),
+    }
+}
+
+#[test]
+fn parses_field_attribute_blocks() {
+    let source = r#"
+table User {
+  id string {
+    @allow(op: "SELECT", #surql { WHERE $value != NONE })
+    @allow(op: "UPDATE",#surql { WHERE $value != NONE })
+  }
+}
+"#;
+
+    let schema = parse_validated(source).unwrap();
+
+    match &schema.items[0] {
+        SchemaItem::TableDecl(table) => {
+            assert_eq!(table.fields.len(), 1);
+            assert_eq!(table.fields[0].raw_attributes.len(), 2);
+            assert_eq!(table.fields[0].raw_attributes[0].name, "allow");
+            assert_eq!(table.fields[0].raw_attributes[1].name, "allow");
         }
         _ => panic!("expected table"),
     }

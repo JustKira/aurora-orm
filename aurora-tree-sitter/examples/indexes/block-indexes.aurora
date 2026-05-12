@@ -26,7 +26,8 @@ table loose schemaless {
   id string
 }
 
-table noop drop {}
+table noop drop {
+}
 
 table default_mode {
   id string

@@ -64,6 +64,7 @@ fn curated_rule_diagnostic(rule: crate::grammar::Rule) -> Option<RuleDiagnostic>
         Rule::table_modifier => simple("`schemafull`, `schemaless`, or `drop`"),
         Rule::table_member => simple("field or block attribute"),
         Rule::field => simple("field"),
+        Rule::field_attribute_block => simple("field attribute block"),
         Rule::type_expr | Rule::type_node => simple("type"),
         Rule::optional_marker => simple("`?`"),
         Rule::attribute | Rule::attribute_name => simple("field attribute"),
