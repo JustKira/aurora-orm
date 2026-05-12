@@ -38,6 +38,7 @@
 "@" @operator
 "@@" @operator
 "#surql" @keyword
+"#s" @keyword
 (attribute name: (identifier) @label)
 (block_attribute name: (identifier) @label)
 (attribute (identifier) @label)
@@ -69,3 +70,4 @@
 "," @punctuation.delimiter
 "|" @punctuation.delimiter
 ":" @punctuation.delimiter
+"`" @punctuation.delimiter

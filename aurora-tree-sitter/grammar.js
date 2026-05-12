@@ -18,7 +18,7 @@ module.exports = grammar({
     _definition: ($) =>
       choice($.table_definition, $.analyzer_definition),
 
-    // === Top-level: raw SurrealQL ===
+    // === Raw SurrealQL escape hatches ===
 
     surql_block: ($) => seq("#surql", "{", repeat($._surql_chunk), "}"),
 
@@ -27,6 +27,16 @@ module.exports = grammar({
     surql_nested_block: ($) => seq("{", repeat($._surql_chunk), "}"),
 
     surql_text: ($) => token.immediate(prec(1, /[^{}]+/)),
+
+    surql_inline: ($) =>
+      seq(
+        "#s",
+        token.immediate("`"),
+        optional($.surql_inline_text),
+        token.immediate("`"),
+      ),
+
+    surql_inline_text: ($) => token.immediate(prec(1, /[^`\r\n]+/)),
 
     // === Top-level: analyzer ===
 
@@ -193,7 +203,7 @@ module.exports = grammar({
       ),
 
     // Attribute args may be keyword args (`@hnsw(dimension: 1536)`) or raw
-    // values for escape hatches (`#surql { ... }`). The validator decides
+    // values for escape hatches (`#surql { ... }`, `#s`...``). The validator decides
     // which shape is valid for each attribute.
     attribute_args: ($) =>
       seq(
@@ -219,6 +229,7 @@ module.exports = grammar({
     _attribute_value: ($) =>
       choice(
         $.surql_block,
+        $.surql_inline,
         $.attribute_array,
         $.attribute_tuple,
         $.attribute_number,

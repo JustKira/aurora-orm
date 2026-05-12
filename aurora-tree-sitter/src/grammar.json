@@ -91,6 +91,52 @@
         }
       }
     },
+    "surql_inline": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "#s"
+        },
+        {
+          "type": "IMMEDIATE_TOKEN",
+          "content": {
+            "type": "STRING",
+            "value": "`"
+          }
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SYMBOL",
+              "name": "surql_inline_text"
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        },
+        {
+          "type": "IMMEDIATE_TOKEN",
+          "content": {
+            "type": "STRING",
+            "value": "`"
+          }
+        }
+      ]
+    },
+    "surql_inline_text": {
+      "type": "IMMEDIATE_TOKEN",
+      "content": {
+        "type": "PREC",
+        "value": 1,
+        "content": {
+          "type": "PATTERN",
+          "value": "[^`\\r\\n]+"
+        }
+      }
+    },
     "analyzer_definition": {
       "type": "SEQ",
       "members": [
@@ -975,6 +1021,10 @@
         {
           "type": "SYMBOL",
           "name": "surql_block"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "surql_inline"
         },
         {
           "type": "SYMBOL",

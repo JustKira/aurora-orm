@@ -177,6 +177,10 @@
         {
           "type": "surql_block",
           "named": true
+        },
+        {
+          "type": "surql_inline",
+          "named": true
         }
       ]
     }
@@ -215,6 +219,10 @@
         },
         {
           "type": "surql_block",
+          "named": true
+        },
+        {
+          "type": "surql_inline",
           "named": true
         }
       ]
@@ -285,6 +293,10 @@
           {
             "type": "surql_block",
             "named": true
+          },
+          {
+            "type": "surql_inline",
+            "named": true
           }
         ]
       }
@@ -324,6 +336,10 @@
         },
         {
           "type": "surql_block",
+          "named": true
+        },
+        {
+          "type": "surql_inline",
           "named": true
         }
       ]
@@ -577,6 +593,21 @@
     }
   },
   {
+    "type": "surql_inline",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "surql_inline_text",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "surql_nested_block",
     "named": true,
     "fields": {},
@@ -727,6 +758,10 @@
     }
   },
   {
+    "type": "#s",
+    "named": false
+  },
+  {
     "type": "#surql",
     "named": false
   },
@@ -768,6 +803,10 @@
   },
   {
     "type": "]",
+    "named": false
+  },
+  {
+    "type": "`",
     "named": false
   },
   {
@@ -898,6 +937,10 @@
   {
     "type": "string",
     "named": false
+  },
+  {
+    "type": "surql_inline_text",
+    "named": true
   },
   {
     "type": "surql_text",

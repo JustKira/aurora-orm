@@ -169,6 +169,43 @@ table user {
               (surql_text))))))))
 
 ==================
+Inline SurQL shorthand
+==================
+
+table user {
+  email string @assert(#s`$value != NONE`)
+  id string @allow(op: "SELECT", #s`WHERE $auth.id = id`)
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (primitive_type)))
+        attribute: (attribute
+          name: (identifier)
+          args: (attribute_args
+            (surql_inline
+              (surql_inline_text)))))
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (primitive_type)))
+        attribute: (attribute
+          name: (identifier)
+          args: (attribute_args
+            (attribute_kv
+              key: (identifier)
+              value: (attribute_string))
+            (surql_inline
+              (surql_inline_text))))))))
+
+==================
 Field attribute block
 ==================
 

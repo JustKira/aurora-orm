@@ -345,6 +345,52 @@ table User {
 }
 
 #[test]
+fn parses_inline_surql_shorthand_as_surql_attribute_value() {
+    let source = r#"
+table User {
+  email string @assert(#s`$value != NONE`)
+  id string @allow(op: "SELECT", #s`WHERE $auth.id = id`)
+}
+"#;
+
+    let schema = parse_validated(source).unwrap();
+
+    match &schema.items[0] {
+        SchemaItem::TableDecl(table) => {
+            let assert_attr = &table.fields[0].raw_attributes[0];
+            assert_eq!(assert_attr.name, "assert");
+            assert!(matches!(
+                &assert_attr.args[0],
+                aurora_core::ast::AttributeArg::Positional {
+                    value: aurora_core::ast::AttributeValue::Surql { body, .. },
+                } if body == "$value != NONE"
+            ));
+
+            let allow_attr = &table.fields[1].raw_attributes[0];
+            assert_eq!(allow_attr.name, "allow");
+            assert!(matches!(
+                &allow_attr.args[1],
+                aurora_core::ast::AttributeArg::Positional {
+                    value: aurora_core::ast::AttributeValue::Surql { body, .. },
+                } if body == "WHERE $auth.id = id"
+            ));
+        }
+        _ => panic!("expected table"),
+    }
+}
+
+#[test]
+fn rejects_gap_before_inline_surql_backtick() {
+    let source = r#"
+table User {
+  email string @assert(#s `$value != NONE`)
+}
+"#;
+
+    assert!(parse_to_ast(source).is_err());
+}
+
+#[test]
 fn parses_field_attribute_blocks() {
     let source = r#"
 table User {

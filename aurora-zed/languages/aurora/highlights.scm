@@ -36,6 +36,7 @@
 
 ; Attributes
 "#surql" @keyword.directive
+"#s" @keyword.directive
 "@" @operator
 "@@" @operator
 (attribute name: (identifier) @label)
@@ -67,3 +68,4 @@
 "," @punctuation.delimiter
 "|" @punctuation.delimiter
 ":" @punctuation.delimiter
+"`" @punctuation.delimiter

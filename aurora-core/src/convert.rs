@@ -71,6 +71,15 @@ pub struct SurqlBlock {
 }
 
 #[derive(FromPest)]
+#[pest_ast(rule(Rule::surql_inline))]
+pub struct SurqlInline {
+    #[pest_ast(outer(with(span_to_source_range)))]
+    pub source_range: SourceRange,
+    #[pest_ast(outer(with(span_to_string)))]
+    pub source: String,
+}
+
+#[derive(FromPest)]
 #[pest_ast(rule(Rule::surql_chunk))]
 #[allow(dead_code)]
 pub enum SurqlChunk {
@@ -293,6 +302,7 @@ pub struct AttrKv {
 #[pest_ast(rule(Rule::attr_value))]
 pub enum AttrValueNode {
     Surql(SurqlBlock),
+    SurqlInline(SurqlInline),
     Array(AttrArray),
     Tuple(AttrTuple),
     Number(AttrNumber),
@@ -474,6 +484,12 @@ fn extract_surql_body(source: &str) -> String {
     source[body_start..body_end].to_string()
 }
 
+fn extract_surql_inline_body(source: &str) -> String {
+    let body_start = source.find('`').map_or(0, |idx| idx + 1);
+    let body_end = source.rfind('`').unwrap_or(source.len());
+    source[body_start..body_end].to_string()
+}
+
 impl TableBlock {
     fn into_ast(self) -> ast::Table {
         let mut fields = Vec::new();
@@ -615,6 +631,10 @@ impl AttrValueNode {
         match self {
             AttrValueNode::Surql(surql) => ast::AttributeValue::Surql {
                 body: extract_surql_body(&surql.source),
+                source_range: Some(surql.source_range),
+            },
+            AttrValueNode::SurqlInline(surql) => ast::AttributeValue::Surql {
+                body: extract_surql_inline_body(&surql.source),
                 source_range: Some(surql.source_range),
             },
             AttrValueNode::Number(n) => ast::AttributeValue::Number {

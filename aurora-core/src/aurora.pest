@@ -4,12 +4,15 @@
 schema      = { SOI ~ EMPTY_LINES* ~ (schema_item ~ EMPTY_LINES*)* ~ EOI }
 schema_item = { doc_comment | table_block | analyzer_block }
 
-// Raw SurrealQL escape hatch. Aurora only owns the outer `#surql { ... }`
-// delimiter in explicit escape slots; the inner body is extracted as text.
+// Raw SurrealQL escape hatches. Aurora only owns the outer delimiters in
+// explicit escape slots; the inner body is extracted as text.
 surql_block  = { "#surql" ~ "{" ~ surql_chunk* ~ "}" }
 surql_chunk  = { surql_nested | surql_text }
 surql_nested = { "{" ~ surql_chunk* ~ "}" }
 surql_text   = @{ (!("{" | "}") ~ ANY)+ }
+// Inline shorthand for one-line SurQL. Atomic so `#s` and the opening backtick
+// must be adjacent, and newlines are not accepted inside the shorthand.
+surql_inline = @{ "#s`" ~ (!("`" | NEWLINE) ~ ANY)* ~ "`" }
 
 // Tolerant checker/LSP entry point. Called from Rust with `Rule::source_file`.
 source_file  = { SOI ~ EMPTY_LINES* ~ (source_items ~ EMPTY_LINES*)* ~ EOI }
@@ -56,8 +59,8 @@ optional_marker = { "?" }
 // job. This keeps the grammar tiny and gives the LSP useful structure even
 // for unknown attributes.
 // Attribute args may be keyword args (`@hnsw(dimension: 1536)`) or raw values
-// for escape hatches (`#surql { ... }`). The validator decides which shape is
-// valid for each attribute.
+// for escape hatches (`#surql { ... }`, `#s`...``). The validator decides which
+// shape is valid for each attribute.
 attribute       = { attribute_name ~ attr_call? }
 block_attribute = { block_attribute_name ~ attr_call? }
 attribute_name  = @{ "@" ~ !"@" ~ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
@@ -68,6 +71,7 @@ attr_arg        = { attr_kv | attr_value }
 attr_kv         = { identifier ~ ":" ~ attr_value }
 attr_value      = {
     surql_block
+  | surql_inline
   | attr_array
   | attr_tuple
   | attr_number
