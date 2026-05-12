@@ -2,6 +2,12 @@
 
 Instructions for AI coding agents working with this codebase.
 
+## GitHub Issue Hygiene
+
+When creating or updating GitHub issues/comments, tag or reference related
+issues directly in the comment body so scope changes and follow-up work stay
+linked.
+
 <!-- opensrc:start -->
 
 ## Source Code Reference

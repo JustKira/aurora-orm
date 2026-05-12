@@ -8,6 +8,7 @@ dist/
 .moon/cache/
 .tmp/
 .research/
+/schema.aurora
 
 # opensrc - source code for packages
 opensrc/
