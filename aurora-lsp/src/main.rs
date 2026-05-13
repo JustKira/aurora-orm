@@ -60,7 +60,8 @@ impl LanguageServer for AuroraLsp {
     }
 
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
-        self.publish_clear_diagnostics(params.text_document.uri).await;
+        self.publish_clear_diagnostics(params.text_document.uri)
+            .await;
     }
 
     async fn shutdown(&self) -> Result<()> {
@@ -164,7 +165,10 @@ mod tests {
         assert_eq!(diagnostics[0].source.as_deref(), Some("aurora"));
         assert!(!diagnostics[0].message.is_empty());
         assert_eq!(
-            diagnostics[0].data.as_ref().and_then(|data| data.get("code")),
+            diagnostics[0]
+                .data
+                .as_ref()
+                .and_then(|data| data.get("code")),
             Some(&serde_json::json!("parse_error"))
         );
     }

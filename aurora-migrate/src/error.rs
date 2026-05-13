@@ -31,6 +31,9 @@ pub enum Error {
 
     #[error("invalid migration name '{name}': {reason}")]
     InvalidName { name: String, reason: String },
+
+    #[error("unsupported schema item in {path}: {message}")]
+    UnsupportedSchemaItem { path: String, message: String },
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

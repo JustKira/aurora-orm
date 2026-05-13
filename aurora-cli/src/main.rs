@@ -4,8 +4,10 @@ use std::path::PathBuf;
 
 use anyhow::{Context, Result, bail};
 use aurora_core::{check, parse_schema};
+use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
 
 mod cmd_migrate;
+mod diagnostics;
 
 fn main() -> Result<()> {
     let mut args = env::args().skip(1);
@@ -20,16 +22,18 @@ fn main() -> Result<()> {
             println!("{schema:#?}");
         }
         "check" => {
-            let path = required_path(args.next())?;
+            let path = check_path(args.next());
             let input = fs::read_to_string(&path)
                 .with_context(|| format!("failed to read {}", path.display()))?;
             let report = check(&input);
+            let mut writer = StandardStream::stderr(ColorChoice::Auto);
             for diagnostic in &report.diagnostics {
-                eprintln!("{diagnostic}");
+                diagnostics::emit_diagnostic(&mut writer, &path, &input, diagnostic)?;
             }
             if report.has_errors() {
                 std::process::exit(1);
             }
+            println!("OK: {} passed Aurora checks.", path.display());
         }
         "migrate" => cmd_migrate::run(args.collect())?,
         "help" | "--help" | "-h" => print_help(),
@@ -45,10 +49,16 @@ fn required_path(value: Option<String>) -> Result<PathBuf> {
         .context("missing schema path; pass tools/aurora-examples/schema.aurora")
 }
 
+fn check_path(value: Option<String>) -> PathBuf {
+    value
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("schema.aurora"))
+}
+
 fn print_help() {
     print!("{}", help_text());
 }
 
 fn help_text() -> &'static str {
-    "aurora internal language proof of concept\n\nCommands:\n  aurora parse <schema.aurora>\n  aurora check <schema.aurora>\n  aurora migrate generate --name <slug> [--config <path>] [--allow-empty]\n  aurora migrate diff [--config <path>]\n"
+    "aurora internal language proof of concept\n\nCommands:\n  aurora parse <schema.aurora>\n  aurora check [schema.aurora]\n  aurora migrate generate --name <slug> [--config <path>] [--allow-empty]\n  aurora migrate diff [--config <path>]\n"
 }

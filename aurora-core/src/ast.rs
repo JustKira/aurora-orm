@@ -12,10 +12,17 @@ pub struct Schema {
 pub enum SchemaItem {
     #[serde(rename = "doc_comment")]
     DocComment { text: String },
+    #[serde(rename = "surql")]
+    SurqlBlock(SurqlBlock),
     #[serde(rename = "table")]
     TableDecl(Table),
     #[serde(rename = "analyzer")]
     AnalyzerDecl(Analyzer),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SurqlBlock {
+    pub body: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -93,6 +100,7 @@ pub struct Attribute {
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum AttributeArg {
     Keyword { name: String, value: AttributeValue },
+    Positional { value: AttributeValue },
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -110,6 +118,11 @@ pub enum AttributeValue {
     },
     String {
         value: String,
+    },
+    Surql {
+        body: String,
+        #[serde(skip)]
+        source_range: Option<SourceRange>,
     },
     Array {
         values: Vec<AttributeValue>,

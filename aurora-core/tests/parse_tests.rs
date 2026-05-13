@@ -255,6 +255,12 @@ table Demo {
 }
 
 #[test]
+fn rejects_whitespace_after_attribute_sigils() {
+    assert!(parse_to_ast("table User { email string @ index }").is_err());
+    assert!(parse_to_ast("table User { @@ index }").is_err());
+}
+
+#[test]
 fn emits_json_ast() {
     let json = parse_to_json(
         r#"
@@ -268,6 +274,160 @@ table T schemafull {
     assert!(json.contains("\"name\": \"T\""));
     assert!(json.contains("\"kind\": \"primitive\""));
     assert!(json.contains("\"name\": \"int\""));
+}
+
+#[test]
+fn rejects_top_level_surql_block() {
+    assert!(parse_to_ast("#surql { RETURN 1; }").is_err());
+}
+
+#[test]
+fn parses_assert_surql_block_as_raw_attribute() {
+    let source = r#"
+table User {
+  email string @assert(#surql {
+    $value != NONE AND string::is::email($value)
+  })
+}
+"#;
+
+    let schema = parse_to_ast(source).unwrap();
+
+    match &schema.items[0] {
+        SchemaItem::TableDecl(table) => {
+            let attr = &table.fields[0].raw_attributes[0];
+            assert_eq!(attr.name, "assert");
+            match &attr.args[0] {
+                aurora_core::ast::AttributeArg::Positional {
+                    value: aurora_core::ast::AttributeValue::Surql { body, .. },
+                } => {
+                    assert!(body.contains("$value != NONE"));
+                    assert!(body.contains("string::is::email"));
+                }
+                other => panic!("expected SurQL assert arg, got {other:?}"),
+            }
+        }
+        _ => panic!("expected table"),
+    }
+}
+
+#[test]
+fn parses_keyword_args_with_surql_escape_hatch() {
+    let source = r#"
+table User {
+  email string @allow(op: "SELECT", #surql { WHERE $auth.id = id })
+}
+"#;
+
+    let schema = parse_to_ast(source).unwrap();
+
+    match &schema.items[0] {
+        SchemaItem::TableDecl(table) => {
+            let attr = &table.fields[0].raw_attributes[0];
+            assert_eq!(attr.name, "allow");
+            assert_eq!(attr.args.len(), 2);
+            assert!(matches!(
+                &attr.args[0],
+                aurora_core::ast::AttributeArg::Keyword {
+                    name,
+                    value: aurora_core::ast::AttributeValue::String { value },
+                } if name == "op" && value == "SELECT"
+            ));
+            assert!(matches!(
+                &attr.args[1],
+                aurora_core::ast::AttributeArg::Positional {
+                    value: aurora_core::ast::AttributeValue::Surql { body, .. },
+                } if body.contains("WHERE $auth.id = id")
+            ));
+        }
+        _ => panic!("expected table"),
+    }
+}
+
+#[test]
+fn parses_inline_surql_shorthand_as_surql_attribute_value() {
+    let source = r#"
+table User {
+  email string @assert(#s`$value != NONE`)
+  id string @allow(op: "SELECT", #s`WHERE $auth.id = id`)
+}
+"#;
+
+    let schema = parse_validated(source).unwrap();
+
+    match &schema.items[0] {
+        SchemaItem::TableDecl(table) => {
+            let assert_attr = &table.fields[0].raw_attributes[0];
+            assert_eq!(assert_attr.name, "assert");
+            assert!(matches!(
+                &assert_attr.args[0],
+                aurora_core::ast::AttributeArg::Positional {
+                    value: aurora_core::ast::AttributeValue::Surql { body, .. },
+                } if body == "$value != NONE"
+            ));
+
+            let allow_attr = &table.fields[1].raw_attributes[0];
+            assert_eq!(allow_attr.name, "allow");
+            assert!(matches!(
+                &allow_attr.args[1],
+                aurora_core::ast::AttributeArg::Positional {
+                    value: aurora_core::ast::AttributeValue::Surql { body, .. },
+                } if body == "WHERE $auth.id = id"
+            ));
+        }
+        _ => panic!("expected table"),
+    }
+}
+
+#[test]
+fn rejects_gap_before_inline_surql_backtick() {
+    let source = r#"
+table User {
+  email string @assert(#s `$value != NONE`)
+}
+"#;
+
+    assert!(parse_to_ast(source).is_err());
+}
+
+#[test]
+fn parses_field_attribute_blocks() {
+    let source = r#"
+table User {
+  id string {
+    @allow(op: "SELECT", #surql { WHERE $value != NONE })
+    @allow(op: "UPDATE",#surql { WHERE $value != NONE })
+  }
+}
+"#;
+
+    let schema = parse_validated(source).unwrap();
+
+    match &schema.items[0] {
+        SchemaItem::TableDecl(table) => {
+            assert_eq!(table.fields.len(), 1);
+            assert_eq!(table.fields[0].raw_attributes.len(), 2);
+            assert_eq!(table.fields[0].raw_attributes[0].name, "allow");
+            assert_eq!(table.fields[0].raw_attributes[1].name, "allow");
+        }
+        _ => panic!("expected table"),
+    }
+}
+
+#[test]
+fn emits_json_ast_with_assert_surql_block() {
+    let json = parse_to_json(
+        r#"
+table User {
+  email string @assert(#surql { $value != NONE })
+}
+"#,
+    )
+    .unwrap();
+
+    assert!(json.contains("\"name\": \"assert\""));
+    assert!(json.contains("\"kind\": \"surql\""));
+    assert!(json.contains("$value != NONE"));
 }
 
 #[test]

@@ -1,0 +1,6 @@
+// Raw SurrealQL escape hatch in a field assertion.
+table user {
+  email string @assert(#surql {
+    $value != NONE AND string::is::email($value)
+  })
+}

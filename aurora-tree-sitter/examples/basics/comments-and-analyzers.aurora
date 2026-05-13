@@ -1,0 +1,14 @@
+// Line comments are skipped by the parser.
+
+/// Doc comments attach to the next definition and travel through the AST.
+/// Multi-line doc comments are supported.
+analyzer edu_analyzer {
+  tokenizers blank, class
+  filters    lowercase, snowball(english)
+}
+
+/// Filter calls can include simple positional arguments.
+analyzer autocomplete {
+  tokenizers blank
+  filters    lowercase, edgengram(1, 3)
+}

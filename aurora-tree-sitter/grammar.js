@@ -15,7 +15,28 @@ module.exports = grammar({
   rules: {
     source_file: ($) => repeat($._definition),
 
-    _definition: ($) => choice($.table_definition, $.analyzer_definition),
+    _definition: ($) =>
+      choice($.table_definition, $.analyzer_definition),
+
+    // === Raw SurrealQL escape hatches ===
+
+    surql_block: ($) => seq("#surql", "{", repeat($._surql_chunk), "}"),
+
+    _surql_chunk: ($) => choice($.surql_nested_block, $.surql_text),
+
+    surql_nested_block: ($) => seq("{", repeat($._surql_chunk), "}"),
+
+    surql_text: ($) => token.immediate(prec(1, /[^{}]+/)),
+
+    surql_inline: ($) =>
+      seq(
+        "#s",
+        token.immediate("`"),
+        optional($.surql_inline_text),
+        token.immediate("`"),
+      ),
+
+    surql_inline_text: ($) => token.immediate(prec(1, /[^`\r\n]+/)),
 
     // === Top-level: analyzer ===
 
@@ -83,7 +104,11 @@ module.exports = grammar({
         field("name", $.identifier),
         field("type", $.type_expression),
         repeat(field("attribute", $.attribute)),
+        optional(field("attribute_block", $.field_attribute_block)),
       ),
+
+    field_attribute_block: ($) =>
+      seq("{", repeat(field("attribute", $.attribute)), "}"),
 
     type_expression: ($) =>
       seq(field("base", $.type_node), optional($.optional_marker)),
@@ -166,32 +191,33 @@ module.exports = grammar({
     attribute: ($) =>
       seq(
         "@",
-        field("name", $.identifier),
+        field("name", alias(token.immediate(/[a-zA-Z][a-zA-Z0-9_]*/), $.identifier)),
         optional(field("args", $.attribute_args)),
       ),
 
     block_attribute: ($) =>
       seq(
         "@@",
-        field("name", $.identifier),
+        field("name", alias(token.immediate(/[a-zA-Z][a-zA-Z0-9_]*/), $.identifier)),
         optional(field("args", $.attribute_args)),
       ),
 
-    // Top-level attribute args are keyword-only — every value has a name.
-    // Mirrors SurrealDB's DDL where every HNSW/MTREE param is a `KEYWORD value`
-    // pair. The single carve-out is `attribute_tuple` for kv values that mirror
-    // SurrealDB's compound literals (currently just BM25(k1, b)).
+    // Attribute args may be keyword args (`@hnsw(dimension: 1536)`) or raw
+    // values for escape hatches (`#surql { ... }`, `#s`...``). The validator decides
+    // which shape is valid for each attribute.
     attribute_args: ($) =>
       seq(
         "(",
         optional(
           seq(
-            $.attribute_kv,
-            repeat(seq(",", $.attribute_kv)),
+            $._attribute_arg,
+            repeat(seq(",", $._attribute_arg)),
           ),
         ),
         ")",
       ),
+
+    _attribute_arg: ($) => choice($.attribute_kv, $._attribute_value),
 
     attribute_kv: ($) =>
       seq(
@@ -202,6 +228,8 @@ module.exports = grammar({
 
     _attribute_value: ($) =>
       choice(
+        $.surql_block,
+        $.surql_inline,
         $.attribute_array,
         $.attribute_tuple,
         $.attribute_number,

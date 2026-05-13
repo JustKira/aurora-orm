@@ -14,4 +14,5 @@ path = "src/main.rs"
 anyhow = "1"
 aurora-core = { path = "../aurora-core" }
 aurora-migrate = { path = "../aurora-migrate" }
+codespan-reporting = "0.12"
 tokio = { version = "1", features = ["macros", "rt"] }

@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use aurora_core::ast::Schema;
+use aurora_core::ast::{Schema, SchemaItem};
 
 use crate::error::{Error, Result, io};
 use crate::journal::Journal;
@@ -20,10 +20,27 @@ pub(crate) fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
 
 pub fn read_schema(path: &Path) -> Result<Schema> {
     let source = fs::read_to_string(path).map_err(|error| io(path, error))?;
-    aurora_core::parse_validated(&source).map_err(|source| Error::Parse {
+    let schema = aurora_core::parse_validated(&source).map_err(|source| Error::Parse {
         path: path.display().to_string(),
         source,
-    })
+    })?;
+    reject_unsupported_schema_items(path, &schema)?;
+    Ok(schema)
+}
+
+fn reject_unsupported_schema_items(path: &Path, schema: &Schema) -> Result<()> {
+    if schema
+        .items
+        .iter()
+        .any(|item| matches!(item, SchemaItem::SurqlBlock(_)))
+    {
+        return Err(Error::UnsupportedSchemaItem {
+            path: path.display().to_string(),
+            message: "#surql blocks are not yet supported by the migration engine".to_string(),
+        });
+    }
+
+    Ok(())
 }
 
 pub fn read_previous_schema(meta_dir: &Path, journal: &Journal) -> Result<Schema> {

@@ -5,3 +5,7 @@ line_comments = ["// "]
 documentation_comments = ["/// "]
 tab_size = 2
 hard_tabs = false
+word_characters = ["@", "#"]
+
+[overrides.string]
+word_characters = ["@", "#"]

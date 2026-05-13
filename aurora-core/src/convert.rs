@@ -60,6 +60,49 @@ pub enum SourceItem {
 pub struct InvalidLine;
 
 #[derive(FromPest)]
+#[pest_ast(rule(Rule::surql_block))]
+#[allow(dead_code)]
+pub struct SurqlBlock {
+    #[pest_ast(outer(with(span_to_source_range)))]
+    pub source_range: SourceRange,
+    #[pest_ast(outer(with(span_to_string)))]
+    pub source: String,
+    pub chunks: Vec<SurqlChunk>,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::surql_inline))]
+pub struct SurqlInline {
+    #[pest_ast(outer(with(span_to_source_range)))]
+    pub source_range: SourceRange,
+    #[pest_ast(outer(with(span_to_string)))]
+    pub source: String,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::surql_chunk))]
+#[allow(dead_code)]
+pub enum SurqlChunk {
+    Nested(SurqlNested),
+    Text(SurqlText),
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::surql_nested))]
+#[allow(dead_code)]
+pub struct SurqlNested {
+    pub chunks: Vec<SurqlChunk>,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::surql_text))]
+#[allow(dead_code)]
+pub struct SurqlText {
+    #[pest_ast(outer(with(span_to_string)))]
+    pub text: String,
+}
+
+#[derive(FromPest)]
 #[pest_ast(rule(Rule::doc_comment))]
 pub struct DocComment {
     pub lines: Vec<DocCommentLine>,
@@ -101,6 +144,18 @@ pub struct FieldLine {
 }
 
 #[derive(FromPest)]
+#[pest_ast(rule(Rule::field_attribute_line))]
+pub struct FieldAttributeLine {
+    pub attribute: AttributeNode,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::field_attribute_block))]
+pub struct FieldAttributeBlock {
+    pub attributes: Vec<FieldAttributeLine>,
+}
+
+#[derive(FromPest)]
 #[pest_ast(rule(Rule::block_attribute_line))]
 pub struct BlockAttributeLine {
     pub attribute: BlockAttribute,
@@ -112,6 +167,7 @@ pub struct FieldNode {
     pub name: Identifier,
     pub type_expr: TypeExpr,
     pub attributes: Vec<AttributeNode>,
+    pub attribute_block: Option<FieldAttributeBlock>,
 }
 
 #[derive(FromPest)]
@@ -189,7 +245,7 @@ pub struct OptionalMarker;
 pub struct AttributeNode {
     #[pest_ast(outer(with(span_to_source_range)))]
     pub source_range: SourceRange,
-    pub name: Identifier,
+    pub name: AttributeName,
     pub call: Option<AttrCall>,
 }
 
@@ -198,20 +254,41 @@ pub struct AttributeNode {
 pub struct BlockAttribute {
     #[pest_ast(outer(with(span_to_source_range)))]
     pub source_range: SourceRange,
-    pub name: Identifier,
+    pub name: BlockAttributeName,
     pub call: Option<AttrCall>,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::attribute_name))]
+pub struct AttributeName {
+    #[pest_ast(outer(with(span_to_string)))]
+    pub value: String,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::block_attribute_name))]
+pub struct BlockAttributeName {
+    #[pest_ast(outer(with(span_to_string)))]
+    pub value: String,
 }
 
 #[derive(FromPest)]
 #[pest_ast(rule(Rule::attr_call))]
 pub struct AttrCall {
-    pub args: Option<AttrKvList>,
+    pub args: Option<AttrArgList>,
 }
 
 #[derive(FromPest)]
-#[pest_ast(rule(Rule::attr_kv_list))]
-pub struct AttrKvList {
-    pub args: Vec<AttrKv>,
+#[pest_ast(rule(Rule::attr_arg_list))]
+pub struct AttrArgList {
+    pub args: Vec<AttrArg>,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::attr_arg))]
+pub enum AttrArg {
+    Kv(AttrKv),
+    Value(AttrValueNode),
 }
 
 #[derive(FromPest)]
@@ -224,6 +301,8 @@ pub struct AttrKv {
 #[derive(FromPest)]
 #[pest_ast(rule(Rule::attr_value))]
 pub enum AttrValueNode {
+    Surql(SurqlBlock),
+    SurqlInline(SurqlInline),
     Array(AttrArray),
     Tuple(AttrTuple),
     Number(AttrNumber),
@@ -399,13 +478,25 @@ impl DocComment {
     }
 }
 
+fn extract_surql_body(source: &str) -> String {
+    let body_start = source.find('{').map_or(0, |idx| idx + 1);
+    let body_end = source.rfind('}').unwrap_or(source.len());
+    source[body_start..body_end].to_string()
+}
+
+fn extract_surql_inline_body(source: &str) -> String {
+    let body_start = source.find('`').map_or(0, |idx| idx + 1);
+    let body_end = source.rfind('`').unwrap_or(source.len());
+    source[body_start..body_end].to_string()
+}
+
 impl TableBlock {
     fn into_ast(self) -> ast::Table {
         let mut fields = Vec::new();
         let mut raw_attributes = Vec::new();
         for member in self.members {
             match member {
-                TableMember::FieldLine(line) => fields.push(line.field.into_ast()),
+                TableMember::FieldLine(line) => fields.push(line.into_ast()),
                 TableMember::BlockAttributeLine(line) => {
                     raw_attributes.push(line.attribute.into_attribute())
                 }
@@ -421,6 +512,12 @@ impl TableBlock {
     }
 }
 
+impl FieldLine {
+    fn into_ast(self) -> ast::Field {
+        self.field.into_ast()
+    }
+}
+
 impl FieldNode {
     fn into_ast(self) -> ast::Field {
         let optional_from_marker = self.type_expr.optional.is_some();
@@ -433,11 +530,19 @@ impl FieldNode {
             ast::Type::Option { inner } => (*inner, true),
             other => (other, false),
         };
-        let raw_attributes = self
+        let mut raw_attributes: Vec<_> = self
             .attributes
             .into_iter()
             .map(AttributeNode::into_attribute)
             .collect();
+        if let Some(block) = self.attribute_block {
+            raw_attributes.extend(
+                block
+                    .attributes
+                    .into_iter()
+                    .map(|line| line.attribute.into_attribute()),
+            );
+        }
         ast::Field {
             name: self.name.value,
             ty,
@@ -476,7 +581,7 @@ impl TypeNode {
 impl AttributeNode {
     fn into_attribute(self) -> ast::Attribute {
         ast::Attribute {
-            name: self.name.value,
+            name: self.name.value.strip_prefix('@').unwrap().to_string(),
             args: self.call.map(AttrCall::into_args).unwrap_or_default(),
             source_range: Some(self.source_range),
         }
@@ -486,7 +591,7 @@ impl AttributeNode {
 impl BlockAttribute {
     fn into_attribute(self) -> ast::Attribute {
         ast::Attribute {
-            name: self.name.value,
+            name: self.name.value.strip_prefix("@@").unwrap().to_string(),
             args: self.call.map(AttrCall::into_args).unwrap_or_default(),
             source_range: Some(self.source_range),
         }
@@ -496,8 +601,19 @@ impl BlockAttribute {
 impl AttrCall {
     fn into_args(self) -> Vec<ast::AttributeArg> {
         self.args
-            .map(|list| list.args.into_iter().map(AttrKv::into_ast).collect())
+            .map(|list| list.args.into_iter().map(AttrArg::into_ast).collect())
             .unwrap_or_default()
+    }
+}
+
+impl AttrArg {
+    fn into_ast(self) -> ast::AttributeArg {
+        match self {
+            AttrArg::Kv(kv) => kv.into_ast(),
+            AttrArg::Value(value) => ast::AttributeArg::Positional {
+                value: value.into_ast(),
+            },
+        }
     }
 }
 
@@ -513,6 +629,14 @@ impl AttrKv {
 impl AttrValueNode {
     fn into_ast(self) -> ast::AttributeValue {
         match self {
+            AttrValueNode::Surql(surql) => ast::AttributeValue::Surql {
+                body: extract_surql_body(&surql.source),
+                source_range: Some(surql.source_range),
+            },
+            AttrValueNode::SurqlInline(surql) => ast::AttributeValue::Surql {
+                body: extract_surql_inline_body(&surql.source),
+                source_range: Some(surql.source_range),
+            },
             AttrValueNode::Number(n) => ast::AttributeValue::Number {
                 value: n.value.parse().unwrap_or(0.0),
             },

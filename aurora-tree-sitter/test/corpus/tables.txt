@@ -109,3 +109,42 @@ table T { x int? }
         type: (type_expression
           base: (type_node (primitive_type))
           (optional_marker))))))
+
+==================
+Field assert SurQL block
+==================
+
+table user {
+  email string @assert(#surql {
+    $value != NONE AND string::is::email($value)
+  })
+}
+
+---
+
+(source_file
+  (table_definition
+    name: (identifier)
+    body: (table_body
+      (field_definition
+        name: (identifier)
+        type: (type_expression
+          base: (type_node (primitive_type)))
+        attribute: (attribute
+          name: (identifier)
+          args: (attribute_args
+            (surql_block
+              (surql_text))))))))
+
+==================
+Reject spaced SurQL marker
+==================
+
+# surql {}
+
+---
+
+(source_file
+  (ERROR
+    (UNEXPECTED ' ')
+    (identifier)))

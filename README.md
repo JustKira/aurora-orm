@@ -9,6 +9,7 @@ A schema language for SurrealDB.
 
 - [Prisma](https://www.prisma.io) — schema syntax, the `@field` / `@@table` annotation style, the "schema is the source of truth" philosophy.
 - [Drizzle](https://orm.drizzle.team) — the future typed client API: fluent, schema-driven, statically checked end-to-end.
+- [surrealql-tree-sitter](https://github.com/surrealdb/surrealql-tree-sitter) — SurrealQL grammar work used by Aurora editor integrations for highlighting/injection support.
 
 ## Schema
 
@@ -157,4 +158,4 @@ aurora migrate diff      # show pending changes vs. the live database
 aurora migrate generate  # write a new migration file with checksums
 ```
 
-See [`aurora-tree-sitter/examples/showcase.aurora`](aurora-tree-sitter/examples/showcase.aurora) for every syntax form in one place.
+See [`aurora-tree-sitter/examples`](aurora-tree-sitter/examples) for focused syntax examples.

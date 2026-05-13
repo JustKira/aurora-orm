@@ -29,7 +29,9 @@ fn analyzers_by_name(schema: &Schema) -> HashMap<&str, &Analyzer> {
         .iter()
         .filter_map(|item| match item {
             SchemaItem::AnalyzerDecl(a) => Some((a.name.as_str(), a)),
-            SchemaItem::DocComment { .. } | SchemaItem::TableDecl(_) => None,
+            SchemaItem::DocComment { .. }
+            | SchemaItem::SurqlBlock(_)
+            | SchemaItem::TableDecl(_) => None,
         })
         .collect()
 }

@@ -89,6 +89,10 @@ The `extension.toml` references the platform repo and points at the
 `zed/crates/extension/src/extension_manifest.rs`.) Update `rev` when the
 grammar changes; pin to a commit SHA for stable versions.
 
+Shoutout to
+[`surrealql-tree-sitter`](https://github.com/surrealdb/surrealql-tree-sitter),
+which the extension references for SurrealQL highlighting/injection support.
+
 ## Layout
 
 - `Cargo.toml` — WASM cdylib that gets compiled by Zed.

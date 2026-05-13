@@ -2,8 +2,6 @@ $schema: 'https://moonrepo.dev/schemas/project.json'
 
 id: aurora-tree-sitter
 language: javascript
-project:
-  type: library
 
 tasks:
   # Regenerate src/parser.c + src/grammar.json from grammar.js.

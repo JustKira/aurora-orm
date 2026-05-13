@@ -1,0 +1,24 @@
+analyzer edu_analyzer {
+  tokenizers blank, class
+  filters lowercase, snowball(english)
+}
+
+/// Field-level annotations create single-field indexes and flags.
+table user schemafull {
+  email    string @unique
+  username string @unique(name: "user_username_idx")
+  status   string @index
+  country  string @index(name: "idx_user_country")
+  tagline  string @index @fulltext(analyzer: edu_analyzer, highlights: true)
+  meta     object @flexible
+  created  datetime
+}
+
+/// Vector and fulltext index examples.
+table document schemafull {
+  v_minimal array<float> @hnsw(dimension: 384)
+  v_dist    array<float> @hnsw(dimension: 768, dist: cosine)
+  v_tuned   array<float> @hnsw(dimension: 1536, dist: euclidean, type: f32, efc: 200, m: 16)
+  title     string @fulltext(analyzer: edu_analyzer)
+  body      string @fulltext(analyzer: edu_analyzer, bm25: (1.2, 0.75), highlights: true)
+}
