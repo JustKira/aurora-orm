@@ -99,8 +99,10 @@ fn emits_raw_surql_blocks() {
 }
 
 #[test]
-fn parser_rejects_schema_with_top_level_raw_surql_block() {
-    assert!(aurora_core::parse_to_ast("#surql { RETURN 1; }").is_err());
+fn parser_accepts_schema_with_top_level_raw_surql_block() {
+    let schema = aurora_core::parse_to_ast("#surql { RETURN 1; }").unwrap();
+
+    assert_eq!(emit_schema(&schema), "RETURN 1;\n");
 }
 
 fn table(name: &str, modifier: Option<&str>, fields: Vec<Field>) -> Table {
