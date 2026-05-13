@@ -21,6 +21,46 @@ Hello World!
 console.log('Hello World');
 ```
 
+```aurora
+/// User accounts persisted in SurrealDB.
+table user schemafull {
+  name string @assert(#s`$value != ""`)
+  email option<string> @unique
+  tags array<string, 8>
+  location geometry<point|polygon>?
+  owner record<user>
+
+  permissions bool @allow(#surql {
+    LET $viewer = (
+      SELECT id, roles, org
+      FROM type::thing("user", $auth.id)
+      FETCH org
+      LIMIT 1
+    )[0];
+
+    RETURN $auth.id = owner
+      OR "admin" IN $viewer.roles
+      OR (
+        $viewer.org = org
+        AND (
+          SELECT count()
+          FROM membership
+          WHERE user = $viewer.id
+            AND org = $viewer.org
+            AND role IN ["owner", "maintainer"]
+        )[0].count > 0
+      );
+  })
+
+  @@index(email)
+}
+
+analyzer search_text {
+  tokenizers blank, class
+  filters lowercase, snowball(english)
+}
+```
+
 #### Table
 
 | Head                            | Description                         |
