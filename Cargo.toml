@@ -13,7 +13,7 @@ exclude = ["aureline-zed"]
 [workspace.package]
 version = "0.1.0-dev.2"
 edition = "2024"
-license = "UNLICENSED"
+license = "MIT"
 publish = true
 repository = "https://github.com/pixelscortex/aureline-orm"
 

@@ -4,7 +4,7 @@ description = "Zed editor extension for the Aureline schema language."
 version = "0.1.0"
 edition = "2021"
 publish = false
-license = "UNLICENSED"
+license = "MIT"
 
 [lib]
 crate-type = ["cdylib"]
