@@ -1,6 +1,6 @@
 {
   "name": "aureline",
-  "version": "0.1.0-dev.1",
+  "version": "0.1.0-dev.2",
   "private": true,
   "packageManager": "bun@1.3.11",
   "workspaces": [
