@@ -4,7 +4,7 @@ FROM oven/bun:1.3.11 AS base
 WORKDIR /app
 
 RUN apt-get update -y \
-  && apt-get install -y --no-install-recommends ca-certificates curl git \
+  && apt-get install -y --no-install-recommends ca-certificates curl git xz-utils \
   && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://moonrepo.dev/install/moon.sh | bash
