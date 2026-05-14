@@ -20,10 +20,13 @@ RUN moon docker scaffold docs
 #### BUILD STAGE ####
 FROM base AS build
 
-COPY --from=skeleton /app/.moon/docker/workspace .
-RUN moon docker setup
+COPY --from=skeleton /app/.moon/docker/configs .
+RUN printf "ignore-scripts=true\n" > aureline-docs/.npmrc \
+  && moon docker setup \
+  && rm aureline-docs/.npmrc
 
 COPY --from=skeleton /app/.moon/docker/sources .
+RUN cd aureline-docs && bun run postinstall
 RUN moon run docs:build
 RUN moon docker prune
 
