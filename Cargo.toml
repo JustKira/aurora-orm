@@ -14,7 +14,7 @@ exclude = ["aureline-zed"]
 version = "0.1.0-dev.2"
 edition = "2024"
 license = "UNLICENSED"
-publish = false
+publish = true
 repository = "https://github.com/pixelscortex/aureline-orm"
 
 [workspace.dependencies]
