@@ -1,7 +1,7 @@
 [package]
 name = "aureline-core"
 description = "Internal Aureline language parser and serializable AST."
-version.workspace = true
+version = "0.1.0-dev.1"
 edition.workspace = true
 license.workspace = true
 publish = false
