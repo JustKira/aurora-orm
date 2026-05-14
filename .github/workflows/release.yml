@@ -112,9 +112,19 @@ jobs:
             fi
 
             for attempt in 1 2 3 4 5; do
-              if cargo publish --package "$crate" --locked; then
+              publish_log="$(mktemp)"
+              if cargo publish --package "$crate" --locked 2>&1 | tee "$publish_log"; then
+                rm -f "$publish_log"
                 return
               fi
+
+              if grep -Fq "already exists on crates.io index" "$publish_log"; then
+                echo "${crate} ${version} already exists on crates.io; skipping."
+                rm -f "$publish_log"
+                return
+              fi
+
+              rm -f "$publish_log"
 
               if crate_exists "$crate"; then
                 echo "${crate} ${version} was published by a previous attempt."
