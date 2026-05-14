@@ -1,4 +1,5 @@
 pub mod apply;
+pub mod change;
 pub mod checksum;
 pub mod diff;
 pub mod error;
@@ -6,7 +7,9 @@ pub mod fs_io;
 mod generate;
 pub mod journal;
 pub mod ops;
+pub mod plan;
 pub mod render;
+pub mod schema;
 pub mod snapshot;
 
 pub use apply::{ApplyOpts, ApplyReport, apply};

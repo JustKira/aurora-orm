@@ -11,11 +11,7 @@ pub struct SurqlParseError {
 }
 
 pub fn validate_expression(body: &str) -> Result<(), SurqlParseError> {
-    surrealdb_core::syn::value(body.trim())
-        .map(|_| ())
-        .map_err(|error| SurqlParseError {
-            message: format_surql_error(error),
-        })
+    validate_query(&format!("RETURN {};", body.trim()))
 }
 
 pub fn validate_field_permission(operation: &str, body: &str) -> Result<(), SurqlParseError> {
@@ -32,26 +28,12 @@ fn validate_query(query: &str) -> Result<(), SurqlParseError> {
     surrealdb_core::syn::parse(query)
         .map(|_| ())
         .map_err(|error| SurqlParseError {
-            message: format_surql_query_error(error),
+            message: format_surql_error(error),
         })
 }
 
 fn format_surql_error(error: impl fmt::Display) -> String {
     explain_surql_error(error.to_string())
-}
-
-fn format_surql_query_error(error: surrealdb_core::err::Error) -> String {
-    match error {
-        surrealdb_core::err::Error::InvalidQuery(error) => {
-            let message = error
-                .errors
-                .first()
-                .cloned()
-                .unwrap_or_else(|| "SurrealQL parse error".to_string());
-            explain_surql_error(message)
-        }
-        error => format_surql_error(error),
-    }
 }
 
 fn explain_surql_error(message: String) -> String {

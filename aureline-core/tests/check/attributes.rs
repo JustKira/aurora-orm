@@ -223,9 +223,19 @@ table Demo {
 
     let diagnostic = super::common::only_diagnostic(&diagnostics);
     assert_eq!(diagnostic.code, DiagnosticCode::ValidationError);
-    assert_eq!(
-        diagnostic.message,
-        "invalid SurrealQL: Unexpected end of file, expected an expression\nhelp: write a SurrealQL expression after this keyword, for example `WHERE $value != NONE` or `WHERE $auth.role = \"admin\"`",
+    assert!(
+        diagnostic
+            .message
+            .contains("Unexpected end of file, expected an expression"),
+        "{}",
+        diagnostic.message
+    );
+    assert!(
+        diagnostic
+            .message
+            .contains("for example `WHERE $value != NONE`"),
+        "{}",
+        diagnostic.message
     );
     assert!(
         diagnostic.message.contains("expected"),

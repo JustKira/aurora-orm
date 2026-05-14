@@ -1,82 +1,65 @@
-use aureline_core::ast::{Analyzer, Field, Index, Table, Type};
+use aureline_core::ast::{Field, Table};
 use aureline_core::emit::surql_type;
 
+use crate::change::FieldChangeSet;
+
+/// Executable migration steps after planning.
+///
+/// The first planner slice supports tables and fields only. Indexes, analyzers,
+/// and other schema entities will be added back as explicit planner steps.
+///
+/// TODO(migrate): table/field support currently tracks table mode plus field
+/// type/optional/flexible only. SurrealDB also exposes table TYPE, DROP,
+/// permissions, changefeeds, views, comments, and field defaults, values,
+/// readonly, assertions, permissions, references, computed fields, and comments.
+/// Add each clause as a structured change before preserving it in migrations.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Op {
+    /// Creates a table definition and emits its current field definitions.
     CreateTable(Table),
+    /// Removes a table definition; SurrealDB also deletes the table records.
     RemoveTable(String),
-    AddField {
-        table: String,
-        field: Field,
-    },
-    RemoveField {
-        table: String,
-        field: String,
-    },
-    ChangeFieldType {
-        table: String,
-        field: Field,
-        from_type: Type,
-    },
-    ChangeFieldOptional {
-        table: String,
-        field: Field,
-        now_optional: bool,
-    },
-    ChangeFieldFlexible {
-        table: String,
-        field: Field,
-        now_flexible: bool,
-    },
+    /// Changes table mode, for example schemaless <-> schemafull or drop mode.
     ChangeTableMode {
         table: String,
         from: Option<String>,
         to: Option<String>,
     },
-    CreateAnalyzer(Analyzer),
-    RemoveAnalyzer(String),
-    /// Analyzer changes: SurrealQL has no `ALTER ANALYZER`, so renderer emits
-    /// REMOVE + DEFINE in a single migration step.
-    ChangeAnalyzer {
-        from: Analyzer,
-        to: Analyzer,
-    },
-    CreateIndex {
+    /// Adds a schema field definition to an existing table.
+    AddField { table: String, field: Field },
+    /// Removes a field definition; SurrealDB keeps existing stored values.
+    RemoveField { table: String, field: Field },
+    /// Alters tracked field clauses only; existing rows are not rewritten.
+    AlterField {
         table: String,
-        index: Index,
-    },
-    RemoveIndex {
-        table: String,
-        name: String,
-    },
-    /// Index changes: SurrealQL `ALTER INDEX` only changes COMMENT/CONCURRENTLY/
-    /// DEFER (none of which Aureline exposes), so any real change becomes
-    /// REMOVE + DEFINE in the renderer.
-    ChangeIndex {
-        table: String,
-        name: String,
-        from: Index,
-        to: Index,
+        from: Field,
+        to: Field,
+        changes: FieldChangeSet,
     },
 }
 
 impl Op {
-    // TODO: This conflates two different hazards. Per surrealdb-probe findings,
-    // SurrealDB v3 enforces schema only at write time:
-    //   * Only `RemoveTable` physically deletes data.
-    //   * `RemoveField`, `ChangeFieldType`, `ChangeFieldOptional → required` all
-    //     leave existing data alive but possibly invalid under the new schema.
-    //   * Index/analyzer ops never touch data but can break running queries.
-    // Consider splitting into `data_loss()` (just RemoveTable) and
-    // `data_invalidation()` (the others) so the apply tool can warn distinctly.
     pub fn destructive(&self) -> bool {
         matches!(
             self,
             Op::RemoveTable(_)
                 | Op::RemoveField { .. }
-                | Op::ChangeFieldType { .. }
-                | Op::ChangeFieldOptional {
-                    now_optional: false,
+                | Op::AlterField {
+                    changes: FieldChangeSet {
+                        type_changed: true,
+                        ..
+                    },
+                    ..
+                }
+                | Op::AlterField {
+                    to: Field {
+                        optional: false,
+                        ..
+                    },
+                    changes: FieldChangeSet {
+                        optional_changed: true,
+                        ..
+                    },
                     ..
                 }
         )
@@ -86,53 +69,45 @@ impl Op {
         match self {
             Op::CreateTable(table) => format!("+ CREATE TABLE {}", table.name),
             Op::RemoveTable(table) => format!("- REMOVE TABLE {table}"),
-            Op::AddField { table, field } => format!("+ ADD FIELD {table}.{}", field.name),
-            Op::RemoveField { table, field } => format!("- REMOVE FIELD {table}.{field}"),
-            Op::ChangeFieldType {
-                table,
-                field,
-                from_type,
-            } => format!(
-                "~ CHANGE TYPE {table}.{} {} -> {}",
-                field.name,
-                surql_type(from_type),
-                surql_type(&field.ty)
-            ),
-            Op::ChangeFieldOptional {
-                table,
-                field,
-                now_optional,
-            } => format!(
-                "~ CHANGE OPTIONAL {table}.{} -> {}",
-                field.name,
-                if *now_optional {
-                    "optional"
-                } else {
-                    "required"
-                }
-            ),
-            Op::ChangeFieldFlexible {
-                table,
-                field,
-                now_flexible,
-            } => format!(
-                "~ CHANGE FLEXIBLE {table}.{} -> {}",
-                field.name,
-                if *now_flexible { "flexible" } else { "strict" }
-            ),
             Op::ChangeTableMode { table, from, to } => {
                 format!("~ CHANGE TABLE MODE {table} {:?} -> {:?}", from, to)
             }
-            Op::CreateAnalyzer(a) => format!("+ CREATE ANALYZER {}", a.name),
-            Op::RemoveAnalyzer(name) => format!("- REMOVE ANALYZER {name}"),
-            Op::ChangeAnalyzer { from, to: _ } => {
-                format!("~ CHANGE ANALYZER {}", from.name)
+            Op::AddField { table, field } => format!("+ ADD FIELD {table}.{}", field.name),
+            Op::RemoveField { table, field } => {
+                format!("- REMOVE FIELD {table}.{}", field.name)
             }
-            Op::CreateIndex { table, index } => {
-                format!("+ CREATE INDEX {}.{}", table, index.name)
-            }
-            Op::RemoveIndex { table, name } => format!("- REMOVE INDEX {table}.{name}"),
-            Op::ChangeIndex { table, name, .. } => format!("~ CHANGE INDEX {table}.{name}"),
+            Op::AlterField {
+                table,
+                from,
+                to,
+                changes,
+            } => alter_field_summary(table, from, to, *changes),
         }
     }
+}
+
+fn alter_field_summary(table: &str, from: &Field, to: &Field, changes: FieldChangeSet) -> String {
+    if changes.type_changed {
+        return format!(
+            "~ CHANGE TYPE {table}.{} {} -> {}",
+            to.name,
+            surql_type(&from.ty),
+            surql_type(&to.ty)
+        );
+    }
+    if changes.optional_changed {
+        return format!(
+            "~ CHANGE OPTIONAL {table}.{} -> {}",
+            to.name,
+            if to.optional { "optional" } else { "required" }
+        );
+    }
+    if changes.flexible_changed {
+        return format!(
+            "~ CHANGE FLEXIBLE {table}.{} -> {}",
+            to.name,
+            if to.flexible { "flexible" } else { "strict" }
+        );
+    }
+    format!("~ ALTER FIELD {table}.{}", to.name)
 }
