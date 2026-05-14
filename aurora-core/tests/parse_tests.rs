@@ -277,8 +277,13 @@ table T schemafull {
 }
 
 #[test]
-fn rejects_top_level_surql_block() {
-    assert!(parse_to_ast("#surql { RETURN 1; }").is_err());
+fn parses_top_level_surql_block() {
+    let schema = parse_to_ast("#surql { RETURN 1; }").unwrap();
+
+    match &schema.items[0] {
+        SchemaItem::SurqlBlock(block) => assert_eq!(block.body.trim(), "RETURN 1;"),
+        other => panic!("expected top-level SurQL block, got {other:?}"),
+    }
 }
 
 #[test]
@@ -307,6 +312,54 @@ table User {
                 other => panic!("expected SurQL assert arg, got {other:?}"),
             }
         }
+        _ => panic!("expected table"),
+    }
+}
+
+#[test]
+fn parses_surql_block_with_brace_inside_string_literal() {
+    let source = r#"
+table User {
+  marker string @assert(#surql { RETURN "}" })
+}
+"#;
+
+    let schema = parse_to_ast(source).unwrap();
+
+    match &schema.items[0] {
+        SchemaItem::TableDecl(table) => match &table.fields[0].raw_attributes[0].args[0] {
+            aurora_core::ast::AttributeArg::Positional {
+                value: aurora_core::ast::AttributeValue::Surql { body, .. },
+            } => assert_eq!(body, r#" RETURN "}" "#),
+            other => panic!("expected SurQL assert arg, got {other:?}"),
+        },
+        _ => panic!("expected table"),
+    }
+}
+
+#[test]
+fn parses_surql_block_with_brace_inside_comment() {
+    let source = r#"
+table User {
+  marker string @assert(#surql {
+    // comment with }
+    RETURN true
+  })
+}
+"#;
+
+    let schema = parse_to_ast(source).unwrap();
+
+    match &schema.items[0] {
+        SchemaItem::TableDecl(table) => match &table.fields[0].raw_attributes[0].args[0] {
+            aurora_core::ast::AttributeArg::Positional {
+                value: aurora_core::ast::AttributeValue::Surql { body, .. },
+            } => {
+                assert!(body.contains("// comment with }"));
+                assert!(body.contains("RETURN true"));
+            }
+            other => panic!("expected SurQL assert arg, got {other:?}"),
+        },
         _ => panic!("expected table"),
     }
 }

@@ -42,6 +42,7 @@ pub struct SourceFile {
 #[pest_ast(rule(Rule::schema_item))]
 pub enum SchemaItem {
     DocComment(DocComment),
+    SurqlBlock(SurqlBlock),
     TableBlock(TableBlock),
     AnalyzerBlock(AnalyzerBlock),
 }
@@ -50,6 +51,7 @@ pub enum SchemaItem {
 #[pest_ast(rule(Rule::source_items))]
 pub enum SourceItem {
     DocComment(DocComment),
+    SurqlBlock(SurqlBlock),
     TableBlock(TableBlock),
     AnalyzerBlock(AnalyzerBlock),
     InvalidLine(InvalidLine),
@@ -84,6 +86,8 @@ pub struct SurqlInline {
 #[allow(dead_code)]
 pub enum SurqlChunk {
     Nested(SurqlNested),
+    String(SurqlString),
+    Comment(SurqlComment),
     Text(SurqlText),
 }
 
@@ -92,6 +96,22 @@ pub enum SurqlChunk {
 #[allow(dead_code)]
 pub struct SurqlNested {
     pub chunks: Vec<SurqlChunk>,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::surql_string))]
+#[allow(dead_code)]
+pub struct SurqlString {
+    #[pest_ast(outer(with(span_to_string)))]
+    pub text: String,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::surql_comment))]
+#[allow(dead_code)]
+pub struct SurqlComment {
+    #[pest_ast(outer(with(span_to_string)))]
+    pub text: String,
 }
 
 #[derive(FromPest)]
@@ -444,6 +464,7 @@ impl SchemaItem {
     fn into_ast(self) -> ast::SchemaItem {
         match self {
             SchemaItem::DocComment(doc_comment) => doc_comment.into_ast(),
+            SchemaItem::SurqlBlock(block) => block.into_ast(),
             SchemaItem::TableBlock(table) => ast::SchemaItem::TableDecl(table.into_ast()),
             SchemaItem::AnalyzerBlock(analyzer) => {
                 ast::SchemaItem::AnalyzerDecl(analyzer.into_ast())
@@ -456,6 +477,7 @@ impl SourceItem {
     fn into_ast(self) -> Option<ast::SchemaItem> {
         match self {
             SourceItem::DocComment(doc_comment) => Some(doc_comment.into_ast()),
+            SourceItem::SurqlBlock(block) => Some(block.into_ast()),
             SourceItem::TableBlock(table) => Some(ast::SchemaItem::TableDecl(table.into_ast())),
             SourceItem::AnalyzerBlock(analyzer) => {
                 Some(ast::SchemaItem::AnalyzerDecl(analyzer.into_ast()))
@@ -475,6 +497,14 @@ impl DocComment {
             .join("\n");
 
         ast::SchemaItem::DocComment { text }
+    }
+}
+
+impl SurqlBlock {
+    fn into_ast(self) -> ast::SchemaItem {
+        ast::SchemaItem::SurqlBlock(ast::SurqlBlock {
+            body: extract_surql_body(&self.source),
+        })
     }
 }
 

@@ -2,21 +2,29 @@
 
 // Strict parser entry point. Called from Rust with `Rule::schema`.
 schema      = { SOI ~ EMPTY_LINES* ~ (schema_item ~ EMPTY_LINES*)* ~ EOI }
-schema_item = { doc_comment | table_block | analyzer_block }
+schema_item = { doc_comment | surql_block | table_block | analyzer_block }
 
 // Raw SurrealQL escape hatches. Aurora only owns the outer delimiters in
 // explicit escape slots; the inner body is extracted as text.
-surql_block  = { "#surql" ~ "{" ~ surql_chunk* ~ "}" }
-surql_chunk  = { surql_nested | surql_text }
-surql_nested = { "{" ~ surql_chunk* ~ "}" }
-surql_text   = @{ (!("{" | "}") ~ ANY)+ }
+surql_block         = { "#surql" ~ "{" ~ surql_chunk* ~ "}" }
+surql_chunk         = { surql_nested | surql_string | surql_comment | surql_text }
+surql_nested        = { "{" ~ surql_chunk* ~ "}" }
+surql_string        = @{ surql_double_string | surql_single_string | surql_backtick_string }
+surql_double_string = { "\"" ~ (surql_escape | !"\"" ~ ANY)* ~ "\"" }
+surql_single_string = { "'" ~ (surql_escape | !"'" ~ ANY)* ~ "'" }
+surql_backtick_string = { "`" ~ (surql_escape | !"`" ~ ANY)* ~ "`" }
+surql_escape        = { "\\" ~ ANY }
+surql_comment       = @{ surql_line_comment | surql_block_comment }
+surql_line_comment  = { "//" ~ (!NEWLINE ~ ANY)* }
+surql_block_comment = { "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+surql_text          = @{ (!("{" | "}" | "\"" | "'" | "`" | "//" | "/*") ~ ANY)+ }
 // Inline shorthand for one-line SurQL. Atomic so `#s` and the opening backtick
 // must be adjacent, and newlines are not accepted inside the shorthand.
 surql_inline = @{ "#s`" ~ (!("`" | NEWLINE) ~ ANY)* ~ "`" }
 
 // Tolerant checker/LSP entry point. Called from Rust with `Rule::source_file`.
 source_file  = { SOI ~ EMPTY_LINES* ~ (source_items ~ EMPTY_LINES*)* ~ EOI }
-source_items = { doc_comment | table_block | analyzer_block | #invalid_source_item = INVALID_SOURCE_ITEM }
+source_items = { doc_comment | surql_block | table_block | analyzer_block | #invalid_source_item = INVALID_SOURCE_ITEM }
 
 // Doc comment: triple-slash lines, captured as AST node.
 doc_comment      =  { doc_comment_line+ }
