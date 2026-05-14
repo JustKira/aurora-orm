@@ -17,27 +17,34 @@ tasks:
     command: 'cargo'
     args:
       - 'build'
-      - '--workspace'
+      - '--manifest-path'
+      - '$projectRoot/Cargo.toml'
     inputs:
       - '@globs(sources)'
       - '/Cargo.toml'
+      - '/Cargo.lock'
       - '/rust-toolchain.toml'
 
   check:
     command: 'cargo'
     args:
       - 'check'
-      - '--workspace'
+      - '--manifest-path'
+      - '$projectRoot/Cargo.toml'
+      - '--all-targets'
+      - '--all-features'
+      - '--locked'
     inputs:
       - '@globs(sources)'
       - '/Cargo.toml'
+      - '/Cargo.lock'
 
   fmt:
     command: 'cargo'
     args:
       - 'fmt'
-      - '--all'
-      - '--'
+      - '--manifest-path'
+      - '$projectRoot/Cargo.toml'
       - '--check'
     inputs:
       - '@globs(sources)'
@@ -47,19 +54,29 @@ tasks:
     command: 'cargo'
     args:
       - 'clippy'
-      - '--workspace'
+      - '--manifest-path'
+      - '$projectRoot/Cargo.toml'
       - '--all-targets'
       - '--all-features'
+      - '--locked'
+      - '--'
+      - '-D'
+      - 'warnings'
     inputs:
       - '@globs(sources)'
       - '@globs(tests)'
-      - '/.clippy.toml'
+      - '/Cargo.lock'
 
   test:
     command: 'cargo'
     args:
       - 'test'
-      - '--workspace'
+      - '--manifest-path'
+      - '$projectRoot/Cargo.toml'
+      - '--all-targets'
+      - '--all-features'
+      - '--locked'
     inputs:
       - '@globs(sources)'
       - '@globs(tests)'
+      - '/Cargo.lock'

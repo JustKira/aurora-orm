@@ -1,6 +1,6 @@
 projects:
   - .
-  - aurora-*
+  - aureline-*
 
 vcs:
   defaultBranch: main

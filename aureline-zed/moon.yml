@@ -1,0 +1,37 @@
+$schema: "https://moonrepo.dev/schemas/project.json"
+
+id: zed
+language: rust
+
+# This crate is a WASM cdylib for Zed's extension API. It's in the cargo
+# workspace's `[workspace] exclude` list — the `cargo build --workspace` task
+# inherited from rust.yml would do nothing useful here, and Zed's extension
+# installer is the authoritative build path. Skip all inherited tasks so
+# Moon doesn't shadow that workflow.
+workspace:
+  inheritedTasks:
+    include: []
+
+tasks:
+  setup:
+    command: bun
+    args: ["scripts/setup.ts", "--prod"]
+    options:
+      cache: false
+    inputs:
+      - "scripts/setup.ts"
+    outputs:
+      - "extension.toml"
+
+  setup-dev:
+    command: bun
+    args: ["scripts/setup.ts", "--dev"]
+    options:
+      cache: false
+      runInCI: false
+    inputs:
+      - "scripts/setup.ts"
+      - "/aureline-tree-sitter/**/*"
+    outputs:
+      - "extension.toml"
+      - "grammars/aureline/**/*"

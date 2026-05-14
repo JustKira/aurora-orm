@@ -1,0 +1,17 @@
+[package]
+name = "aureline-lsp"
+description = "Language server for the Aureline schema language."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "aureline-lsp"
+path = "src/main.rs"
+
+[dependencies]
+aureline-core.workspace = true
+serde_json = "1"
+tower-lsp-server = "0.23"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "io-std"] }

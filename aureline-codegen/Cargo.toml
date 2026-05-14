@@ -1,0 +1,10 @@
+[package]
+name = "aureline-codegen"
+description = "Internal Aureline client code generation placeholder."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+aureline-core.workspace = true

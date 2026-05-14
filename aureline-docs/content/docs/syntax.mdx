@@ -1,0 +1,427 @@
+---
+title: Schema Syntax
+description: Aureline schema syntax, supported declarations, attributes, and SurrealQL equivalents.
+icon: Braces
+---
+
+Aureline schema files describe the SurrealDB schema that Aureline can parse, validate, and emit today.
+This page documents the current language surface only; CLI workflows and migration behavior are intentionally out of scope.
+
+The examples use `aureline.schema` as the file name, but the syntax is not tied to a specific file name.
+
+## Source File
+
+An Aureline schema is a sequence of top-level items:
+
+```aureline
+/// Optional documentation comments.
+table User schemafull {
+  email string @unique
+}
+
+analyzer text_search {
+  tokenizers blank, class
+  filters lowercase, snowball(english)
+}
+
+#surql {
+  DEFINE EVENT custom_event ON TABLE user WHEN true THEN RETURN $after;
+}
+```
+
+Supported top-level items:
+
+| Item | Purpose |
+| --- | --- |
+| `table` | Defines a SurrealDB table and its fields. |
+| `analyzer` | Defines a SurrealDB analyzer for full-text indexes. |
+| `#surql { ... }` | Passes raw SurrealQL through unchanged, after trimming outer whitespace. |
+| `///` comments | Captured as documentation comments in the AST. |
+
+Line comments use `//`. Triple-slash comments use `///` and are preserved as documentation comments.
+
+Identifiers must start with an ASCII letter and can contain ASCII letters, numbers, and underscores.
+
+## Tables
+
+Define a table with `table`, a name, an optional modifier, and a block body.
+
+```aureline
+table User schemafull {
+  id record<User>
+  email string @unique
+  profile object @flexible
+}
+```
+
+Supported table modifiers:
+
+| Modifier | SurrealQL equivalent |
+| --- | --- |
+| none | `DEFINE TABLE user;` |
+| `schemafull` | `DEFINE TABLE user SCHEMAFULL;` |
+| `schemaless` | `DEFINE TABLE user SCHEMALESS;` |
+| `drop` | `DEFINE TABLE user DROP;` |
+
+Table names are emitted in snake case. For example, `UserProfile` emits as `user_profile`.
+
+Table bodies can contain fields and block attributes. Table views are not supported by the Aureline grammar today. Use a top-level `#surql { ... }` block if you need raw SurrealQL that Aureline does not model yet.
+
+## Fields
+
+A field is a name, a type, optional inline attributes, and optionally an attribute block.
+
+```aureline
+table Article {
+  title string @index
+  body string {
+    @fulltext(analyzer: text_search, bm25: (1.2, 0.75), highlights: true)
+  }
+}
+```
+
+SurrealQL equivalent:
+
+```surrealql
+DEFINE FIELD title ON article TYPE string;
+DEFINE INDEX article_title_idx ON article FIELDS title;
+DEFINE FIELD body ON article TYPE string;
+DEFINE INDEX article_body_fts ON article FIELDS body FULLTEXT ANALYZER text_search BM25(1.2, 0.75) HIGHLIGHTS;
+```
+
+Field attribute blocks are useful when a field has multiple rules or longer SurQL arguments:
+
+```aureline
+table User {
+  email string {
+    @assert(#surql { $value != NONE AND string::is::email($value) })
+    @allow(op: "SELECT", #surql { WHERE $auth.id = id })
+  }
+}
+```
+
+## Types
+
+Primitive types:
+
+| Type |
+| --- |
+| `any` |
+| `bool` |
+| `bytes` |
+| `datetime` |
+| `decimal` |
+| `duration` |
+| `float` |
+| `int` |
+| `number` |
+| `object` |
+| `range` |
+| `regex` |
+| `string` |
+| `uuid` |
+
+Compound types:
+
+| Syntax | Meaning |
+| --- | --- |
+| <code>option&lt;T&gt;</code> | Optional value. At field top level, this is equivalent to `T?`. |
+| <code>array&lt;T&gt;</code> | Array of `T`. |
+| <code>array&lt;T, N&gt;</code> | Array of `T` with length `N`. |
+| <code>set&lt;T&gt;</code> | Set of `T`. |
+| <code>set&lt;T, N&gt;</code> | Set of `T` with length `N`. |
+| `record` | Any record reference. |
+| <code>record&lt;table&gt;</code> | Record reference constrained to a table. |
+| <code>geometry&lt;feature&gt;</code> | Geometry constrained to one feature. |
+| <code>geometry&lt;feature &#124; feature&gt;</code> | Geometry constrained to multiple features. |
+
+Optional field syntax:
+
+```aureline
+table User {
+  age int?
+  nickname option<string>
+}
+```
+
+Both fields emit as `option<...>` types:
+
+```surrealql
+DEFINE FIELD age ON user TYPE option<int>;
+DEFINE FIELD nickname ON user TYPE option<string>;
+```
+
+Nested <code>option&lt;T&gt;</code> stays nested:
+
+```aureline
+table Example {
+  values array<option<string>>
+}
+```
+
+## Attributes
+
+Attributes attach schema rules to fields or tables. The parser accepts a generic argument shape, then validation decides which attributes and argument names are valid.
+
+Field attributes use `@`:
+
+```aureline
+table User {
+  email string @unique(name: "user_email_lookup")
+}
+```
+
+Block attributes use `@@` inside a table body:
+
+```aureline
+table Membership {
+  account record<Account>
+  user record<User>
+
+  @@unique(fields: [account, user])
+}
+```
+
+Attribute arguments can be positional or keyword arguments:
+
+```aureline
+@hnsw(dimension: 1536, dist: cosine)
+@assert(#surql { $value != NONE })
+```
+
+Supported attribute value forms:
+
+| Form | Example |
+| --- | --- |
+| number | `1536`, `1.2` |
+| boolean | `true`, `false` |
+| identifier | `cosine`, `simple_analyzer` |
+| string | `"custom_name"` |
+| array | `[account, user]` |
+| tuple | `(1.2, 0.75)` |
+| SurQL block | `#surql { $value != NONE }` |
+| inline SurQL | ``#s`$value != NONE` `` |
+
+There must be no whitespace between `#s` and the opening backtick.
+
+## Field Attributes
+
+| Attribute | Valid on | Purpose |
+| --- | --- | --- |
+| `@unique` | any field | Creates a unique index on that field. |
+| `@index` | any field | Creates a standard index on that field. |
+| `@flexible` | `object` fields only | Emits `TYPE object FLEXIBLE`. |
+| `@hnsw` | <code>array&lt;float&gt;</code> fields only | Creates a vector HNSW index. |
+| `@fulltext` | `string` fields only | Creates a full-text index. |
+| `@assert` | any field | Validates a SurQL expression for field assertions. |
+| `@allow` | any field | Validates a SurQL permission clause for one operation. |
+
+### `@unique` and `@index`
+
+```aureline
+table User {
+  email string @unique
+  status string @index(name: "idx_user_status")
+}
+```
+
+Accepted arguments:
+
+| Argument | Type | Required |
+| --- | --- | --- |
+| `name` | identifier or string | no |
+
+### `@flexible`
+
+```aureline
+table Document {
+  metadata object @flexible
+}
+```
+
+`@flexible` takes no arguments and is only valid on `object` fields.
+
+### `@hnsw`
+
+```aureline
+table Document {
+  embedding array<float> @hnsw(dimension: 1536, dist: cosine, type: f32, efc: 200, m: 16)
+}
+```
+
+Accepted arguments:
+
+| Argument | Type | Required |
+| --- | --- | --- |
+| `dimension` | non-negative integer | yes |
+| `dist` | identifier | no |
+| `type` | identifier | no |
+| `efc` | non-negative integer | no |
+| `m` | non-negative integer | no |
+| `name` | identifier or string | no |
+
+SurrealQL equivalent:
+
+```surrealql
+DEFINE INDEX document_embedding_hnsw ON document FIELDS embedding HNSW DIMENSION 1536 TYPE F32 DIST COSINE EFC 200 M 16;
+```
+
+### `@fulltext`
+
+```aureline
+analyzer text_search {
+  tokenizers blank, class
+  filters lowercase, snowball(english)
+}
+
+table Article {
+  body string @fulltext(analyzer: text_search, bm25: (1.2, 0.75), highlights: true)
+}
+```
+
+Accepted arguments:
+
+| Argument | Type | Required |
+| --- | --- | --- |
+| `analyzer` | identifier | yes |
+| `bm25` | tuple of two numbers | no |
+| `highlights` | boolean | no |
+| `name` | identifier or string | no |
+
+### `@assert`
+
+```aureline
+table User {
+  email string @assert(#surql {
+    $value != NONE AND string::is::email($value)
+  })
+}
+```
+
+`@assert` expects exactly one positional `#surql { ... }` block or inline ``#s`...` `` value. The body is validated as a SurrealDB expression.
+
+### `@allow`
+
+```aureline
+table User {
+  id record<User> @allow(op: "SELECT", #surql { WHERE $auth.id = id })
+}
+```
+
+Accepted arguments:
+
+| Argument | Type | Required |
+| --- | --- | --- |
+| `op` | string: `"SELECT"`, `"CREATE"`, `"UPDATE"`, or `"DELETE"` | yes |
+| permission | positional `#surql { ... }` or ``#s`...` `` | yes |
+
+The permission body is validated as a SurrealDB field permission clause.
+
+## Block Attributes
+
+Block attributes are written inside a table body and start with `@@`.
+
+| Attribute | Purpose |
+| --- | --- |
+| `@@index` | Creates a composite standard index. |
+| `@@unique` | Creates a composite unique index. |
+| `@@count` | Creates a count index. |
+
+### `@@index` and `@@unique`
+
+```aureline
+table Membership {
+  account record<Account>
+  user record<User>
+
+  @@index(fields: [account, user], name: "membership_lookup")
+  @@unique(fields: [account, user])
+}
+```
+
+Accepted arguments:
+
+| Argument | Type | Required |
+| --- | --- | --- |
+| `fields` | array of field identifiers | yes |
+| `name` | identifier or string | no |
+
+Every field named in `fields` must exist in the same table.
+
+### `@@count`
+
+```aureline
+table User {
+  email string
+
+  @@count
+}
+```
+
+`@@count` takes no arguments.
+
+## Analyzers
+
+Analyzers are top-level declarations used by `@fulltext`.
+
+```aureline
+analyzer text_search {
+  tokenizers blank, class
+  filters lowercase, snowball(english), edgengram(1, 3)
+}
+```
+
+SurrealQL equivalent:
+
+```surrealql
+DEFINE ANALYZER text_search TOKENIZERS blank,class FILTERS lowercase,snowball(english),edgengram(1,3);
+```
+
+Supported analyzer clauses:
+
+| Clause | Syntax |
+| --- | --- |
+| tokenizers | `tokenizers name, name` |
+| filters | `filters name, name(arg, arg)` |
+
+Filter arguments are alphanumeric tokens.
+
+## Raw SurrealQL
+
+Use a top-level `#surql { ... }` block for schema-level escape hatches that Aureline does not model yet:
+
+```aureline
+#surql {
+  DEFINE EVENT audit_user ON TABLE user WHEN true THEN RETURN $after;
+}
+```
+
+The outer `#surql {` and `}` delimiters are removed. The body is emitted after trimming outer whitespace.
+
+Use `#surql { ... }` or inline ``#s`...` `` inside attributes when an attribute expects SurQL:
+
+```aureline
+table User {
+  email string @assert(#s`$value != NONE`)
+  owner record<User> @allow(op: "UPDATE", #surql {
+    WHERE $auth.id = owner
+  })
+}
+```
+
+SurQL blocks can contain nested braces, strings, and comments. Aureline owns only the outer delimiters; the inner body is validated by SurrealDB parsing where the attribute rule requires validation.
+
+## Current Unsupported Syntax
+
+The current grammar does not model:
+
+| Not supported as Aureline syntax |
+| --- |
+| table views |
+| relations as first-class declarations |
+| events as first-class declarations |
+| functions as first-class declarations |
+| permissions as table-level declarations |
+| arbitrary SurrealDB `DEFINE` statements, except through `#surql { ... }` |
+
+Use `#surql { ... }` for unsupported SurrealQL schema constructs until Aureline grows first-class syntax for them.

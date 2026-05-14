@@ -1,0 +1,33 @@
+/// Primitive types supported by Aureline today.
+table primitives_demo schemafull {
+  flag      bool
+  count     int
+  ratio     float
+  money     decimal
+  any_num   number
+  label     string
+  created   datetime
+  ttl       duration
+  external  uuid
+  raw       bytes
+  freeform  any
+  pattern   regex
+  meta      object
+  time_span range
+}
+
+/// Compound and nested type forms.
+table compound_demo schemafull {
+  nickname    string?
+  alias       option<string>
+  tags        array<string>
+  fixed_buf   array<int, 8>
+  permissions set<string>
+  small_pool  set<int, 3>
+  any_ref     record
+  user_ref    record<user>
+  pin         geometry<point>
+  shape       geometry<point | polygon | multipolygon>
+  maybe_tags  array<option<string>>
+  followers   set<record<user>>
+}
