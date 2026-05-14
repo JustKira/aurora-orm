@@ -1,0 +1,94 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to publish, for example v0.1.0-dev.2"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  github-release:
+    name: GitHub Release
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+
+    steps:
+      - name: Resolve tag
+        id: release
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out tag
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+
+      - name: Validate tag matches repo versions
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version="${TAG#v}"
+          if [[ "$TAG" == "$version" || -z "$version" ]]; then
+            echo "Release tags must start with v, for example v0.1.0-dev.2." >&2
+            exit 1
+          fi
+
+          expected="version = \"$version\""
+          files=(
+            Cargo.toml
+            aureline-cli/Cargo.toml
+            aureline-codegen/Cargo.toml
+            aureline-config/Cargo.toml
+            aureline-core/Cargo.toml
+            aureline-lsp/Cargo.toml
+            aureline-migrate/Cargo.toml
+          )
+
+          for file in "${files[@]}"; do
+            if ! grep -Fq "$expected" "$file"; then
+              echo "$file does not contain $expected" >&2
+              exit 1
+            fi
+          done
+
+          dependency_pin="version = \"=$version\""
+          for crate in aureline-codegen aureline-config aureline-core aureline-migrate; do
+            if ! grep -F "$crate = " Cargo.toml | grep -Fq "$dependency_pin"; then
+              echo "Cargo.toml dependency pin for $crate does not match =$version" >&2
+              exit 1
+            fi
+          done
+
+          node_version="\"version\": \"$version\""
+          for file in package.json aureline-tree-sitter/package.json; do
+            if ! grep -Fq "$node_version" "$file"; then
+              echo "$file does not contain $node_version" >&2
+              exit 1
+            fi
+          done
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$TAG" \
+            --generate-notes \
+            --verify-tag

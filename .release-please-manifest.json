@@ -1,9 +1,0 @@
-{
-  "aureline-cli": "0.1.0-dev.1",
-  "aureline-codegen": "0.1.0-dev.1",
-  "aureline-config": "0.1.0-dev.1",
-  "aureline-docs": "0.1.0-dev.1",
-  "aureline-core": "0.1.0-dev.1",
-  "aureline-lsp": "0.1.0-dev.1",
-  "aureline-migrate": "0.1.0-dev.1"
-}
