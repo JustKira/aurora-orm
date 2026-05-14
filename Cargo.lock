@@ -332,7 +332,7 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
 name = "aureline-cli"
-version = "0.1.0-dev.1"
+version = "0.1.0-dev.2"
 dependencies = [
  "anyhow",
  "aureline-core",
@@ -343,14 +343,14 @@ dependencies = [
 
 [[package]]
 name = "aureline-codegen"
-version = "0.1.0-dev.1"
+version = "0.1.0-dev.2"
 dependencies = [
  "aureline-core",
 ]
 
 [[package]]
 name = "aureline-config"
-version = "0.1.0-dev.1"
+version = "0.1.0-dev.2"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -359,7 +359,7 @@ dependencies = [
 
 [[package]]
 name = "aureline-core"
-version = "0.1.0-dev.1"
+version = "0.1.0-dev.2"
 dependencies = [
  "from-pest",
  "pest",
@@ -373,7 +373,7 @@ dependencies = [
 
 [[package]]
 name = "aureline-lsp"
-version = "0.1.0-dev.1"
+version = "0.1.0-dev.2"
 dependencies = [
  "aureline-core",
  "serde_json",
@@ -383,7 +383,7 @@ dependencies = [
 
 [[package]]
 name = "aureline-migrate"
-version = "0.1.0-dev.1"
+version = "0.1.0-dev.2"
 dependencies = [
  "aureline-config",
  "aureline-core",
