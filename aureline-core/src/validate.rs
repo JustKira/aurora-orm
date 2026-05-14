@@ -1,10 +1,11 @@
-//! Attribute rule book — turns raw `@`/`@@` attributes from the parser into
+//! Attribute rule book - turns raw `@`/`@@` attributes from the parser into
 //! structured `Index`/`flexible` fields on the AST.
 //!
 //! This is the central place new attributes get added. Grammar stays
 //! unchanged; new rules add a case to `validate_field_attribute` or
 //! `validate_block_attribute`.
 
+use std::collections::HashSet;
 use std::fmt;
 
 use crate::ast::{
@@ -64,6 +65,7 @@ fn validate_table(table: &mut Table, errors: &mut Vec<ValidationError>) {
         validate_block_attribute(&table_name, &table.fields, attr, &mut indexes, errors);
     }
 
+    validate_index_names(&table_name, &indexes, errors);
     table.indexes = indexes;
 }
 
@@ -379,11 +381,17 @@ fn parse_hnsw_args(args: &[AttributeArg]) -> Result<(IndexKind, Option<String>),
             return Err(err("@hnsw does not accept positional arguments".to_string()));
         };
         match key.as_str() {
-            "dimension" => dimension = Some(uint_value(value, "@hnsw dimension")?),
-            "dist" => dist = Some(ident_value(value, "@hnsw dist")?),
-            "type" => ty = Some(ident_value(value, "@hnsw type")?),
-            "efc" => efc = Some(uint_value(value, "@hnsw efc")?),
-            "m" => m = Some(uint_value(value, "@hnsw m")?),
+            "dimension" => {
+                dimension = Some(uint_value_bounded(
+                    value,
+                    "@hnsw dimension",
+                    u16::MAX as u32,
+                )?)
+            }
+            "dist" => dist = Some(hnsw_distance_value(value)?),
+            "type" => ty = Some(hnsw_vector_type_value(value)?),
+            "efc" => efc = Some(uint_value_bounded(value, "@hnsw efc", u16::MAX as u32)?),
+            "m" => m = Some(uint_value_bounded(value, "@hnsw m", 127)?),
             "name" => name = Some(name_value(value, "@hnsw name")?),
             other => {
                 return Err(err(format!(
@@ -519,12 +527,35 @@ fn parse_field_list_block(
             "{label} on {table} requires a `fields: [...]` argument"
         ))
     })?;
+    if field_names.is_empty() {
+        return Err(err(format!(
+            "{label} on {table} requires at least one field"
+        )));
+    }
+    let mut seen = HashSet::new();
     for fname in &field_names {
+        if !seen.insert(fname.as_str()) {
+            return Err(err(format!(
+                "{label} on {table}: duplicate field `{fname}`"
+            )));
+        }
         if !fields.iter().any(|f| &f.name == fname) {
             return Err(err(format!("{label} on {table}: unknown field `{fname}`")));
         }
     }
     Ok((field_names, name))
+}
+
+fn validate_index_names(table: &str, indexes: &[Index], errors: &mut Vec<ValidationError>) {
+    let mut seen = HashSet::new();
+    for index in indexes {
+        if !seen.insert(index.name.as_str()) {
+            errors.push(err(format!(
+                "duplicate index name `{}` on table {table}",
+                index.name
+            )));
+        }
+    }
 }
 
 // === Value extractors ===
@@ -559,11 +590,63 @@ fn uint_value(v: &AttributeValue, label: &str) -> Result<u32, ValidationError> {
     }
 }
 
+fn uint_value_bounded(v: &AttributeValue, label: &str, max: u32) -> Result<u32, ValidationError> {
+    let value = uint_value(v, label)?;
+    if value > max {
+        return Err(err(format!(
+            "{label}: expected a value <= {max}, got {value}"
+        )));
+    }
+    Ok(value)
+}
+
 fn number_value(v: &AttributeValue, label: &str) -> Result<f64, ValidationError> {
     match v {
         AttributeValue::Number { value } => Ok(*value),
         _ => Err(err(format!("{label}: expected a number"))),
     }
+}
+
+fn hnsw_distance_value(v: &AttributeValue) -> Result<String, ValidationError> {
+    const DISTANCES: &[&str] = &[
+        "chebyshev",
+        "cosine",
+        "euclidean",
+        "hamming",
+        "jaccard",
+        "manhattan",
+        "pearson",
+    ];
+
+    let value = ident_value(v, "@hnsw dist")?;
+    let normalized = value.to_ascii_lowercase();
+    if DISTANCES.contains(&normalized.as_str()) {
+        return Ok(normalized);
+    }
+    if normalized == "minkowski" {
+        return Err(err(
+            "unsupported @hnsw dist `minkowski`; SurrealDB requires `MINKOWSKI <number>`, which Aureline does not model yet"
+                .to_string(),
+        ));
+    }
+    Err(err(format!(
+        "unknown @hnsw dist `{value}`; expected one of: {}",
+        DISTANCES.join(", ")
+    )))
+}
+
+fn hnsw_vector_type_value(v: &AttributeValue) -> Result<String, ValidationError> {
+    const TYPES: &[&str] = &["f64", "f32", "i64", "i32", "i16"];
+
+    let value = ident_value(v, "@hnsw type")?;
+    let normalized = value.to_ascii_lowercase();
+    if TYPES.contains(&normalized.as_str()) {
+        return Ok(normalized);
+    }
+    Err(err(format!(
+        "unknown @hnsw type `{value}`; expected one of: {}",
+        TYPES.join(", ")
+    )))
 }
 
 // === Type predicates ===

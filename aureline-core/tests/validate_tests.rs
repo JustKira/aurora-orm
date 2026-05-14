@@ -1,16 +1,6 @@
 use aureline_core::ast::{IndexKind, SchemaItem};
 use aureline_core::{AurelineError, parse_validated};
-
-fn extract_table(schema: &aureline_core::Schema, name: &str) -> aureline_core::ast::Table {
-    schema
-        .items
-        .iter()
-        .find_map(|item| match item {
-            SchemaItem::TableDecl(t) if t.name == name => Some(t.clone()),
-            _ => None,
-        })
-        .unwrap_or_else(|| panic!("table {name} not in schema"))
-}
+use aureline_test_support::extract_table;
 
 #[test]
 fn unique_field_annotation_creates_unique_index() {
@@ -232,6 +222,20 @@ table article {
         }
         _ => panic!("expected Fulltext"),
     }
+}
+
+#[test]
+fn fulltext_requires_explicit_analyzer() {
+    let src = r#"
+table article {
+  body string @fulltext
+}
+"#;
+    let err = parse_validated(src).unwrap_err();
+    let AurelineError::Validation(errs) = err else {
+        panic!("expected validation error");
+    };
+    assert!(errs[0].message.contains("analyzer"), "{}", errs[0].message);
 }
 
 #[test]

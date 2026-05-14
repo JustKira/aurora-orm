@@ -2,15 +2,13 @@ use aureline_core::check;
 
 #[test]
 fn diagnostic_output_is_easy_to_inspect() {
-    let report = check(
-        r#"
-table user {
-  name string
-}
-
-tabl post schemafull
-"#,
-    );
+    let report = check(aureline_schema!(
+        "table user {",
+        "  name string",
+        "}",
+        "",
+        "tabl post schemafull",
+    ));
 
     for diagnostic in &report.diagnostics {
         eprintln!("{diagnostic:#?}");

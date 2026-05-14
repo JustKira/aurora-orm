@@ -1,3 +1,4 @@
+#[macro_use]
 mod common;
 
 use aureline_migrate::diff::diff_schemas;
@@ -31,9 +32,9 @@ fn drop_modifier_is_a_table_mode_not_table_removal() {
             Some("drop"),
             vec![field("rating", "float", false)]
         ))]),
-        "\
-DEFINE TABLE review DROP;
-DEFINE FIELD rating ON review TYPE float;
-"
+        expected_surql!(
+            "DEFINE TABLE review DROP;",
+            "DEFINE FIELD rating ON review TYPE float;",
+        )
     );
 }

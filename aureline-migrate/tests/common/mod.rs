@@ -1,36 +1,32 @@
-#![allow(dead_code)]
+#![allow(dead_code, unused_imports, unused_macros)]
 
-use std::fs;
 use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH};
 
-use aureline_core::ast::{Field, Schema, SchemaItem, Table, Type};
+use aureline_core::ast::Schema;
 use aureline_migrate::config::{Config, MigrationsConfig, SchemaConfig};
+use aureline_migrate::diff::diff_schemas;
+use aureline_migrate::render::{emit_down, emit_up};
 
-pub fn schema(tables: Vec<Table>) -> Schema {
-    Schema {
-        items: tables.into_iter().map(SchemaItem::TableDecl).collect(),
-    }
+macro_rules! expected_surql {
+    ($($line:literal),* $(,)?) => {
+        aureline_test_support::expected_surql!($($line),*)
+    };
 }
 
-pub fn table(name: &str, modifier: Option<&str>, fields: Vec<Field>) -> Table {
-    Table {
-        name: name.to_string(),
-        modifier: modifier.map(str::to_string),
-        fields,
-        indexes: Vec::new(),
-        raw_attributes: Vec::new(),
-    }
+macro_rules! aureline_schema {
+    ($($line:literal),* $(,)?) => {
+        aureline_test_support::aureline_schema!($($line),*)
+    };
 }
 
-pub fn field(name: &str, type_name: &str, optional: bool) -> Field {
-    Field {
-        name: name.to_string(),
-        ty: Type::primitive(type_name),
-        optional,
-        flexible: false,
-        raw_attributes: Vec::new(),
-    }
+pub use aureline_test_support::{empty_schema, field, parse_schema, schema, table, temp_dir};
+
+pub fn diff_up(prev: &Schema, next: &Schema) -> String {
+    emit_up(&diff_schemas(prev, next))
+}
+
+pub fn diff_down(prev: &Schema, next: &Schema) -> String {
+    emit_down(&diff_schemas(prev, next))
 }
 
 pub fn config(schema: PathBuf, migrations: PathBuf) -> Config {
@@ -39,14 +35,4 @@ pub fn config(schema: PathBuf, migrations: PathBuf) -> Config {
         migrations: MigrationsConfig { dir: migrations },
         database: Default::default(),
     }
-}
-
-pub fn temp_dir(label: &str) -> PathBuf {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let dir = std::env::temp_dir().join(format!("aureline_migrate_{label}_{nanos}"));
-    fs::create_dir_all(&dir).unwrap();
-    dir
 }

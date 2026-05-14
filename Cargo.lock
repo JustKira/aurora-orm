@@ -383,6 +383,7 @@ dependencies = [
 name = "aureline-core"
 version = "0.1.0-dev.2"
 dependencies = [
+ "aureline-test-support",
  "from-pest",
  "pest",
  "pest-ast",
@@ -409,6 +410,7 @@ version = "0.1.0-dev.2"
 dependencies = [
  "aureline-config",
  "aureline-core",
+ "aureline-test-support",
  "chrono",
  "dotenvy",
  "serde",
@@ -418,6 +420,13 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "toml",
+]
+
+[[package]]
+name = "aureline-test-support"
+version = "0.1.0-dev.2"
+dependencies = [
+ "aureline-core",
 ]
 
 [[package]]

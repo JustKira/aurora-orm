@@ -51,13 +51,8 @@ fn typoed_analyzer_keyword_uses_source_recovery_suggestion() {
 
 #[test]
 fn analyzer_typoed_tokenizers_clause_highlights_word() {
-    let diagnostics = diagnostics_for(
-        r#"
-analyzer edu {
-  tokenizer blank
-}
-"#,
-    );
+    let diagnostics =
+        diagnostics_for(aureline_schema!("analyzer edu {", "  tokenizer blank", "}",));
     let diagnostic = only_diagnostic(&diagnostics);
 
     assert_eq!(diagnostic.code, DiagnosticCode::ParseError);
@@ -66,18 +61,16 @@ analyzer edu {
         "{}",
         diagnostic.message
     );
-    assert_range(diagnostic, (2, 2), (2, 11));
+    assert_range(diagnostic, (1, 2), (1, 11));
 }
 
 #[test]
 fn analyzer_typoed_filters_clause_highlights_word() {
-    let diagnostics = diagnostics_for(
-        r#"
-analyzer edu {
-  filtres lowercase
-}
-"#,
-    );
+    let diagnostics = diagnostics_for(aureline_schema!(
+        "analyzer edu {",
+        "  filtres lowercase",
+        "}",
+    ));
     let diagnostic = only_diagnostic(&diagnostics);
 
     assert_eq!(diagnostic.code, DiagnosticCode::ParseError);
@@ -86,18 +79,16 @@ analyzer edu {
         "{}",
         diagnostic.message
     );
-    assert_range(diagnostic, (2, 2), (2, 9));
+    assert_range(diagnostic, (1, 2), (1, 9));
 }
 
 #[test]
 fn analyzer_filter_missing_closing_paren_reports_close_paren() {
-    let diagnostics = diagnostics_for(
-        r#"
-analyzer edu {
-  filters lowercase, snowball(english
-}
-"#,
-    );
+    let diagnostics = diagnostics_for(aureline_schema!(
+        "analyzer edu {",
+        "  filters lowercase, snowball(english",
+        "}",
+    ));
     let diagnostic = only_diagnostic(&diagnostics);
 
     assert_eq!(diagnostic.code, DiagnosticCode::ParseError);
@@ -106,5 +97,5 @@ analyzer edu {
         "{}",
         diagnostic.message
     );
-    assert_range(diagnostic, (2, 29), (2, 30));
+    assert_range(diagnostic, (1, 29), (1, 30));
 }

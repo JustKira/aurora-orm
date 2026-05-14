@@ -76,7 +76,7 @@ fn known_keyword_without_required_parts_does_not_use_recovery_message() {
 
 #[test]
 fn typoed_schemafull_modifier_highlights_full_word() {
-    let diagnostics = diagnostics_for("table primitives_demo schemaful {\n}\n");
+    let diagnostics = diagnostics_for(aureline_schema!("table primitives_demo schemaful {", "}"));
     let diagnostic = only_diagnostic(&diagnostics);
 
     assert_eq!(diagnostic.code, DiagnosticCode::ParseError);
@@ -92,7 +92,7 @@ fn typoed_schemafull_modifier_highlights_full_word() {
 
 #[test]
 fn typoed_drop_modifier_highlights_full_word() {
-    let diagnostics = diagnostics_for("table primitives_demo dorp {\n}\n");
+    let diagnostics = diagnostics_for(aureline_schema!("table primitives_demo dorp {", "}"));
     let diagnostic = only_diagnostic(&diagnostics);
 
     assert_eq!(diagnostic.code, DiagnosticCode::ParseError);

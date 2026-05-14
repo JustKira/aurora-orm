@@ -21,3 +21,6 @@ toml = "0.8"
 surrealdb = { version = "2", default-features = false, features = ["protocol-http", "protocol-ws", "rustls"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 dotenvy = "0.15"
+
+[dev-dependencies]
+aureline-test-support.workspace = true

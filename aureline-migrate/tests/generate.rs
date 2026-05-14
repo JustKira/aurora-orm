@@ -1,3 +1,4 @@
+#[macro_use]
 mod common;
 
 use std::fs;
@@ -27,10 +28,10 @@ fn generate_creates_files_and_uses_previous_snapshot() {
     let migration = fs::read_to_string(migrations_dir.join("0000_init/migration.surql")).unwrap();
     assert_eq!(
         migration,
-        "\
-DEFINE TABLE user SCHEMAFULL;
-DEFINE FIELD email ON user TYPE string;
-"
+        expected_surql!(
+            "DEFINE TABLE user SCHEMAFULL;",
+            "DEFINE FIELD email ON user TYPE string;",
+        )
     );
     let journal = read_journal(&migrations_dir.join("meta")).unwrap();
     assert_eq!(

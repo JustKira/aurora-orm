@@ -1,3 +1,4 @@
+#[macro_use]
 mod common;
 
 use aureline_core::ast::Field;
@@ -81,20 +82,20 @@ fn render_up_and_down() {
 
     assert_eq!(
         emit_up(&ops),
-        "\
-DEFINE TABLE user SCHEMAFULL;
-DEFINE FIELD email ON user TYPE string;
-DEFINE FIELD score ON user TYPE option<float>;
-REMOVE FIELD legacy ON TABLE user;
-"
+        expected_surql!(
+            "DEFINE TABLE user SCHEMAFULL;",
+            "DEFINE FIELD email ON user TYPE string;",
+            "DEFINE FIELD score ON user TYPE option<float>;",
+            "REMOVE FIELD legacy ON TABLE user;",
+        )
     );
     assert_eq!(
         emit_down(&ops),
-        "\
--- down: RemoveField User.legacy cannot restore data
-REMOVE FIELD score ON TABLE user;
-REMOVE TABLE user;
-"
+        expected_surql!(
+            "-- down: RemoveField User.legacy cannot restore data",
+            "REMOVE FIELD score ON TABLE user;",
+            "REMOVE TABLE user;",
+        )
     );
 }
 
@@ -122,9 +123,12 @@ fn combined_type_and_optional_change_stays_one_op_but_renders_new_optionality() 
     ));
     assert_eq!(
         emit_up(&ops),
-        "ALTER FIELD age ON user TYPE option<string>;\n"
+        expected_surql!("ALTER FIELD age ON user TYPE option<string>;")
     );
-    assert_eq!(emit_down(&ops), "ALTER FIELD age ON user TYPE int;\n");
+    assert_eq!(
+        emit_down(&ops),
+        expected_surql!("ALTER FIELD age ON user TYPE int;")
+    );
 }
 
 #[test]
