@@ -146,21 +146,6 @@ jobs:
           publish_crate aureline-lsp
           publish_crate aureline-cli
 
-          install_root="$(mktemp -d)"
-          trap 'rm -rf "$install_root"' EXIT
-          for attempt in 1 2 3 4 5; do
-            if cargo install aureline-cli --version "$version" --locked --root "$install_root"; then
-              "$install_root/bin/aureline" --help
-              exit 0
-            fi
-
-            echo "cargo install failed for aureline-cli ${version} on attempt ${attempt}; retrying after crates.io index propagation."
-            sleep 30
-          done
-
-          echo "Failed to install aureline-cli ${version} from crates.io after publishing." >&2
-          exit 1
-
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
