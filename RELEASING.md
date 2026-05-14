@@ -1,8 +1,7 @@
 # Releasing Aureline
 
 Aureline uses manual synchronized versions and GitHub tags. There is no
-automatic version bumping, changelog generation, package publishing, or
-release-please state.
+automatic version bumping, changelog generation, or release-please state.
 
 ## Release Flow
 
@@ -23,8 +22,9 @@ git tag v0.1.0-dev.2
 git push origin v0.1.0-dev.2
 ```
 
-Pushing the tag runs `.github/workflows/release.yml`, which creates a GitHub
-Release with generated notes for that tag.
+Pushing the tag runs `.github/workflows/release.yml`, which publishes the
+workspace crates to crates.io and then creates a GitHub Release with generated
+notes for that tag.
 
 The release workflow checks the tag against the synchronized repo versions
 before creating the GitHub Release. For example, `v0.1.0-dev.2` only releases if
@@ -33,6 +33,8 @@ were not updated first, the workflow fails and no release is created.
 
 If the tag already exists and the workflow needs to be retried, run the
 `Release` workflow manually from GitHub Actions and pass the existing tag name.
+The crates.io publish step skips crate versions that already exist, so reruns
+can recover after a partial publish.
 
 ## Version Policy
 
@@ -48,22 +50,35 @@ Use explicit dev increments such as:
 Do not depend on Conventional Commit bump rules for now. If a future package is
 published independently, split it into its own documented release process then.
 
-## Publishing Boundaries
+## Crates.io Publishing
 
-Package-manager publishing is intentionally not enabled yet. The workflows do
-not call `cargo publish`, `npm publish`, or upload package artifacts. No Cargo,
-npm, or PyPI token is required for the current release flow.
+The release workflow requires a repository secret named
+`CARGO_REGISTRY_TOKEN`. Use a crates.io token that can publish all Aureline
+crates.
 
-The intended public Cargo surface is currently the CLI first, with codegen as a
-possible later package. `aureline-core` is explicitly private for now. It is the
-engine API for future extension/internal use, not a supported public crate.
+Crates are published in dependency order:
 
-Today `aureline-cli` still depends on internal workspace crates
-(`aureline-core`, `aureline-migrate`, and `aureline-config`). Cargo cannot
-publish a crate to crates.io with unpublished registry dependencies. Before
-enabling Cargo publishing for CLI-only distribution, either fold those internals
-behind the CLI package boundary or intentionally publish the dependency crates
-under a documented support policy.
+```text
+aureline-core
+aureline-config
+aureline-migrate
+aureline-codegen
+aureline-lsp
+aureline-cli
+```
+
+Publishing all workspace crates lets users install the CLI from source with
+Cargo once the version is available on crates.io.
+
+```bash
+cargo install aureline-cli
+```
+
+The installed binary is named `aureline`.
+
+Package-manager publishing outside crates.io is intentionally not enabled yet.
+The workflows do not call `npm publish` or upload package artifacts. No npm or
+PyPI token is required for the current release flow.
 
 `aureline-lsp` can be added later if we want to distribute it separately.
 `aureline-zed` should not be published to Cargo; it follows Zed's extension

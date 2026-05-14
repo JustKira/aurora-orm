@@ -1,10 +1,11 @@
 [package]
 name = "aureline-core"
-description = "Internal Aureline language parser and serializable AST."
+description = "Aureline schema language parser, validator, emitter, and serializable AST."
 version = "0.1.0-dev.2"
 edition.workspace = true
 license.workspace = true
-publish = false
+publish.workspace = true
+repository.workspace = true
 
 [dependencies]
 from-pest = "0.3"
