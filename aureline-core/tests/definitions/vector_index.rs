@@ -1,72 +1,7 @@
 use aureline_core::emit::emit_schema;
-use aureline_test_support::{aureline_schema, expected_surql, parse_schema, validation_errors};
+use aureline_test_support::{aureline_schema, expected_surql, parse_schema};
 
-// SurrealDB DEFINE INDEX also has statement-level clauses like OVERWRITE,
-// IF NOT EXISTS, COMMENT, CONCURRENTLY, DEFER, and the COLUMNS alias. Aureline
-// does not model those in schema attributes yet, so these tests focus on the
-// index definitions Aureline can currently express and emit.
-
-fn assert_validation_contains(source: &str, expected: &str) {
-    let errors = validation_errors(source);
-    assert!(
-        errors.iter().any(|error| error.message.contains(expected)),
-        "expected validation error containing `{expected}`, got {errors:#?}"
-    );
-}
-
-#[test]
-fn emits_standard_unique_composite_and_count_indexes() {
-    let schema = parse_schema(aureline_schema!(
-        "table User {",
-        "  tenant string",
-        "  email string @index",
-        "  handle string @unique",
-        "",
-        "  @@index(fields: [tenant, email], name: tenant_email_lookup)",
-        "  @@unique(fields: [tenant, handle])",
-        "  @@count",
-        "}",
-    ));
-
-    assert_eq!(
-        emit_schema(&schema),
-        expected_surql!(
-            "DEFINE TABLE user;",
-            "DEFINE FIELD email ON user TYPE string;",
-            "DEFINE FIELD handle ON user TYPE string;",
-            "DEFINE FIELD tenant ON user TYPE string;",
-            "DEFINE INDEX tenant_email_lookup ON user FIELDS tenant, email;",
-            "DEFINE INDEX user_count ON user COUNT;",
-            "DEFINE INDEX user_email_idx ON user FIELDS email;",
-            "DEFINE INDEX user_handle_unique ON user FIELDS handle UNIQUE;",
-            "DEFINE INDEX user_tenant_handle_unique ON user FIELDS tenant, handle UNIQUE;",
-        )
-    );
-}
-
-#[test]
-fn emits_fulltext_index_with_explicit_analyzer_options() {
-    let schema = parse_schema(aureline_schema!(
-        "analyzer simple {",
-        "  tokenizers blank, class",
-        "  filters lowercase",
-        "}",
-        "",
-        "table Article {",
-        "  body string @fulltext(analyzer: simple, bm25: (1.2, 0.75), highlights: true)",
-        "}",
-    ));
-
-    assert_eq!(
-        emit_schema(&schema),
-        expected_surql!(
-            "DEFINE ANALYZER simple TOKENIZERS blank,class FILTERS lowercase;",
-            "DEFINE TABLE article;",
-            "DEFINE FIELD body ON article TYPE string;",
-            "DEFINE INDEX article_body_fts ON article FIELDS body FULLTEXT ANALYZER simple BM25(1.2, 0.75) HIGHLIGHTS;",
-        )
-    );
-}
+use super::assert_validation_contains;
 
 #[test]
 fn emits_hnsw_index_with_current_aureline_options() {
@@ -153,65 +88,7 @@ fn accepts_supported_hnsw_vector_types() {
 }
 
 #[test]
-fn composite_index_fields_must_exist_be_non_empty_and_unique() {
-    assert_validation_contains(
-        aureline_schema!(
-            "table User {",
-            "  email string",
-            "",
-            "  @@index(fields: [])",
-            "}",
-        ),
-        "at least one field",
-    );
-    assert_validation_contains(
-        aureline_schema!(
-            "table User {",
-            "  email string",
-            "",
-            "  @@unique(fields: [email, email])",
-            "}",
-        ),
-        "duplicate field `email`",
-    );
-    assert_validation_contains(
-        aureline_schema!(
-            "table User {",
-            "  email string",
-            "",
-            "  @@index(fields: [missing])",
-            "}",
-        ),
-        "unknown field `missing`",
-    );
-}
-
-#[test]
-fn count_index_is_table_level_only() {
-    assert_validation_contains(
-        aureline_schema!(
-            "table User {",
-            "  email string",
-            "",
-            "  @@count(fields: [email])",
-            "}",
-        ),
-        "@@count on User takes no arguments",
-    );
-}
-
-#[test]
-fn fulltext_and_hnsw_are_field_level_only() {
-    assert_validation_contains(
-        aureline_schema!(
-            "table Article {",
-            "  body string",
-            "",
-            "  @@fulltext(fields: [body])",
-            "}",
-        ),
-        "unknown block attribute `@@fulltext`",
-    );
+fn hnsw_is_field_level_only() {
     assert_validation_contains(
         aureline_schema!(
             "table Document {",
@@ -221,22 +98,6 @@ fn fulltext_and_hnsw_are_field_level_only() {
             "}",
         ),
         "unknown block attribute `@@hnsw`",
-    );
-}
-
-#[test]
-fn fulltext_requires_string_and_explicit_analyzer() {
-    assert_validation_contains(
-        aureline_schema!("table Article {", "  body string @fulltext", "}",),
-        "analyzer",
-    );
-    assert_validation_contains(
-        aureline_schema!(
-            "table Article {",
-            "  body bytes @fulltext(analyzer: simple)",
-            "}",
-        ),
-        "requires `string`",
     );
 }
 
@@ -293,18 +154,5 @@ fn hnsw_rejects_surrealdb_options_not_modeled_by_aureline_yet() {
             "}",
         ),
         "unknown @hnsw arg `m0`",
-    );
-}
-
-#[test]
-fn duplicate_index_names_are_rejected_within_a_table() {
-    assert_validation_contains(
-        aureline_schema!(
-            "table User {",
-            "  email string @index(name: user_lookup)",
-            "  handle string @unique(name: user_lookup)",
-            "}",
-        ),
-        "duplicate index name `user_lookup` on table User",
     );
 }
