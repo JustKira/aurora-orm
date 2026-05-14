@@ -65,6 +65,7 @@ jobs:
             repo:clippy \
             repo:test \
             repo:build-release \
+            repo:cli-install \
             tree-sitter:generated-check \
             tree-sitter:test \
             docs:typecheck
