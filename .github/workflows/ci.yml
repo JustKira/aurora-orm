@@ -34,9 +34,6 @@ jobs:
         with:
           auto-install: true
 
-      - name: Install Rust Components
-        run: rustup component add rustfmt clippy
-
       - name: Cache Cargo
         uses: actions/cache@v5
         with:
@@ -59,11 +56,6 @@ jobs:
           key: bun-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'aureline-tree-sitter/package.json', 'aureline-docs/bun.lock', 'aureline-docs/package.json') }}
           restore-keys: |
             bun-${{ runner.os }}-
-
-      - name: Install Bun Dependencies
-        run: |
-          bun install --frozen-lockfile
-          bun install --cwd aureline-docs --frozen-lockfile
 
       - name: Run Moon CI
         run: |

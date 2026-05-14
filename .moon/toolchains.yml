@@ -1,6 +1,6 @@
 $schema: "https://moonrepo.dev/schemas/toolchain.json"
 
-node:
+javascript:
   packageManager: bun
   installDependencies: true
 
@@ -9,6 +9,9 @@ bun:
 
 rust:
   version: "1.94.0"
+  components:
+    - clippy
+    - rustfmt
   syncToolchainConfig: true
 
 unstable_python:
