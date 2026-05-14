@@ -86,17 +86,3 @@ tasks:
       - '@group(rust-config)'
     outputs:
       - 'target/release/aureline'
-
-  cli-install:
-    command: 'bash'
-    args:
-      - '-c'
-      - |
-        set -euo pipefail
-        rm -rf target/aureline-cli-install
-
-        cargo install --path aureline-cli --locked --root target/aureline-cli-install
-        target/aureline-cli-install/bin/aureline --help
-    inputs:
-      - '@group(rust-sources)'
-      - '@group(rust-config)'
