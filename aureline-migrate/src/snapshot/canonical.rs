@@ -32,9 +32,7 @@ fn sorted_tables(schema: &Schema) -> Vec<&Table> {
         .iter()
         .filter_map(|item| match item {
             SchemaItem::TableDecl(table) => Some(table),
-            SchemaItem::DocComment { .. }
-            | SchemaItem::SurqlBlock(_)
-            | SchemaItem::AnalyzerDecl(_) => None,
+            SchemaItem::DocComment { .. } | SchemaItem::AnalyzerDecl(_) => None,
         })
         .collect();
     tables.sort_by(|a, b| a.name.cmp(&b.name));
@@ -47,9 +45,7 @@ fn sorted_analyzers(schema: &Schema) -> Vec<&Analyzer> {
         .iter()
         .filter_map(|item| match item {
             SchemaItem::AnalyzerDecl(a) => Some(a),
-            SchemaItem::DocComment { .. }
-            | SchemaItem::SurqlBlock(_)
-            | SchemaItem::TableDecl(_) => None,
+            SchemaItem::DocComment { .. } | SchemaItem::TableDecl(_) => None,
         })
         .collect();
     analyzers.sort_by(|a, b| a.name.cmp(&b.name));

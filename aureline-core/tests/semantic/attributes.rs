@@ -87,7 +87,7 @@ fn allow_requires_operation_and_permission_block() {
     assert_semantic_error_contains(
         aureline_schema!(
             "table User {",
-            "  email string @allow(#surql { WHERE $value != NONE })",
+            "  email string @allow(#surql { WHERE $auth.id != NONE })",
             "}",
         ),
         "@allow requires an `op: \"SELECT\"` argument",

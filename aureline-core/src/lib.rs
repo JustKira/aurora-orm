@@ -1,4 +1,4 @@
-//! Aureline core: parser, validator, and serializable AST for the Aureline language.
+//! Aureline core: parser, semantic validation, and serializable AST for the Aureline language.
 
 pub mod ast;
 pub mod check;
@@ -6,8 +6,8 @@ mod convert;
 pub mod emit;
 pub mod error;
 pub mod grammar;
+pub mod semantic;
 pub mod surql;
-pub mod validate;
 
 pub use ast::*;
 pub use check::CheckReport;
@@ -17,7 +17,8 @@ pub use check::diagnostics::{
 };
 pub use error::AurelineError;
 pub use grammar::Rule;
-pub use validate::ValidationError;
+pub use semantic::SemanticError;
+pub use semantic::SemanticError as ValidationError;
 
 use from_pest::FromPest;
 use pest::Parser;
@@ -32,7 +33,7 @@ pub(crate) fn parse_source_file(
     grammar::AurelineParser::parse(Rule::source_file, source)
 }
 
-/// Parse without running the validator. The returned `Schema` has raw
+/// Parse without running semantic validation. The returned `Schema` has raw
 /// `@`/`@@` attribute blobs on fields and tables; `Table.indexes` is empty
 /// and `Field.flexible` is false until validation runs. Useful for the LSP
 /// (which wants structure even from incomplete input).
@@ -65,7 +66,7 @@ pub(crate) fn parse_source_file_pairs_to_ast(
 /// fields. This is what `aureline-migrate` and the CLI consume.
 pub fn parse_validated(source: &str) -> Result<Schema, AurelineError> {
     let mut schema = parse_to_ast(source)?;
-    validate::validate(&mut schema).map_err(AurelineError::Validation)?;
+    semantic::validate(&mut schema).map_err(AurelineError::Validation)?;
     Ok(schema)
 }
 

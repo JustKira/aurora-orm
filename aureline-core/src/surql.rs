@@ -10,6 +10,22 @@ pub struct SurqlParseError {
     pub message: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParsedSurql {
+    statement_count: usize,
+    let_statements: Vec<String>,
+}
+
+impl ParsedSurql {
+    pub fn statement_count(&self) -> usize {
+        self.statement_count
+    }
+
+    pub fn let_statements(&self) -> &[String] {
+        &self.let_statements
+    }
+}
+
 pub fn validate_expression(body: &str) -> Result<(), SurqlParseError> {
     validate_query(&format!("RETURN {};", body.trim()))
 }
@@ -24,9 +40,16 @@ pub fn validate_field_permission(operation: &str, body: &str) -> Result<(), Surq
     ))
 }
 
-fn validate_query(query: &str) -> Result<(), SurqlParseError> {
+pub fn validate_query(query: &str) -> Result<(), SurqlParseError> {
+    parse_query(query).map(|_| ())
+}
+
+pub fn parse_query(query: &str) -> Result<ParsedSurql, SurqlParseError> {
     surrealdb_core::syn::parse(query)
-        .map(|_| ())
+        .map(|ast| ParsedSurql {
+            statement_count: ast.num_statements(),
+            let_statements: ast.get_let_statements(),
+        })
         .map_err(|error| SurqlParseError {
             message: format_surql_error(error),
         })
@@ -48,7 +71,7 @@ fn explain_surql_error(message: String) -> String {
 fn surql_error_help(message: &str) -> Option<&'static str> {
     if message.contains("expected an expression") {
         return Some(
-            "write a SurrealQL expression after this keyword, for example `WHERE $value != NONE` or `WHERE $auth.role = \"admin\"`",
+            "write a valid SurrealQL expression; use `$value != NONE` in `@assert` or `WHERE $auth.role = \"admin\"` in `@allow`",
         );
     }
     None

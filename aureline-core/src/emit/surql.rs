@@ -1,18 +1,14 @@
-use crate::ast::{
-    Analyzer, Bm25, Field, FilterCall, Index, IndexKind, Schema, SchemaItem, SurqlBlock, Table,
-};
+use crate::ast::{Analyzer, Bm25, Field, FilterCall, Index, IndexKind, Schema, SchemaItem, Table};
 
 use super::naming::{pascal_to_snake, surql_type};
 
 pub fn emit_schema(schema: &Schema) -> String {
     let mut analyzers = Vec::new();
     let mut tables = Vec::new();
-    let mut surql_blocks = Vec::new();
     for item in &schema.items {
         match item {
             SchemaItem::AnalyzerDecl(a) => analyzers.push(a),
             SchemaItem::TableDecl(t) => tables.push(t),
-            SchemaItem::SurqlBlock(block) => surql_blocks.push(block),
             SchemaItem::DocComment { .. } => {}
         }
     }
@@ -38,16 +34,8 @@ pub fn emit_schema(schema: &Schema) -> String {
             parts.push(emit_index(&table.name, idx));
         }
     }
-    for block in surql_blocks {
-        parts.push(emit_surql_block(block));
-    }
 
     join_statements(parts)
-}
-
-/// Emits the raw SurQL body with outer whitespace stripped.
-pub fn emit_surql_block(block: &SurqlBlock) -> String {
-    block.body.trim().to_string()
 }
 
 pub fn emit_table(t: &Table) -> String {

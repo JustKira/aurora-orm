@@ -44,6 +44,8 @@ pub fn schema(tables: Vec<Table>) -> Schema {
 pub fn table(name: &str, modifier: Option<&str>, fields: Vec<Field>) -> Table {
     Table {
         name: name.to_string(),
+        source_range: None,
+        name_range: None,
         modifier: modifier.map(str::to_string),
         fields,
         indexes: Vec::new(),
@@ -54,6 +56,8 @@ pub fn table(name: &str, modifier: Option<&str>, fields: Vec<Field>) -> Table {
 pub fn field(name: &str, type_name: &str, optional: bool) -> Field {
     Field {
         name: name.to_string(),
+        source_range: None,
+        name_range: None,
         ty: Type::primitive(type_name),
         optional,
         flexible: false,

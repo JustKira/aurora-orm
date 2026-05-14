@@ -41,6 +41,8 @@ fn emit_up_op(op: &Op) -> Vec<String> {
         Op::RemoveTable(table) => vec![emit_remove_table(table)],
         Op::ChangeTableMode { table, to, .. } => vec![emit_table(&Table {
             name: table.clone(),
+            source_range: None,
+            name_range: None,
             modifier: to.clone(),
             fields: Vec::new(),
             indexes: Vec::new(),
@@ -59,6 +61,8 @@ fn emit_down_op(op: &Op) -> Vec<String> {
             "-- down: RemoveTable {table} cannot restore data\n{}",
             emit_table(&Table {
                 name: table.clone(),
+                source_range: None,
+                name_range: None,
                 modifier: None,
                 fields: Vec::new(),
                 indexes: Vec::new(),
@@ -67,6 +71,8 @@ fn emit_down_op(op: &Op) -> Vec<String> {
         )],
         Op::ChangeTableMode { table, from, .. } => vec![emit_table(&Table {
             name: table.clone(),
+            source_range: None,
+            name_range: None,
             modifier: from.clone(),
             fields: Vec::new(),
             indexes: Vec::new(),

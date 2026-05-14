@@ -277,13 +277,8 @@ table T schemafull {
 }
 
 #[test]
-fn parses_top_level_surql_block() {
-    let schema = parse_to_ast("#surql { RETURN 1; }").unwrap();
-
-    match &schema.items[0] {
-        SchemaItem::SurqlBlock(block) => assert_eq!(block.body.trim(), "RETURN 1;"),
-        other => panic!("expected top-level SurQL block, got {other:?}"),
-    }
+fn rejects_top_level_surql_block() {
+    assert!(parse_to_ast("#surql { RETURN 1; }").is_err());
 }
 
 #[test]
@@ -448,8 +443,8 @@ fn parses_field_attribute_blocks() {
     let source = r#"
 table User {
   id string {
-    @allow(op: "SELECT", #surql { WHERE $value != NONE })
-    @allow(op: "UPDATE",#surql { WHERE $value != NONE })
+    @allow(op: "SELECT", #surql { WHERE $auth.id != NONE })
+    @allow(op: "UPDATE",#surql { WHERE $auth.id != NONE })
   }
 }
 "#;

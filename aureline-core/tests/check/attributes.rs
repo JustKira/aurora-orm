@@ -118,7 +118,7 @@ fn assert_surql_body_reports_surrealdb_parse_errors() {
     assert!(
         diagnostic
             .message
-            .contains("for example `WHERE $value != NONE`"),
+            .contains("use `$value != NONE` in `@assert`"),
         "{}",
         diagnostic.message
     );
@@ -129,7 +129,7 @@ fn assert_surql_body_reports_surrealdb_parse_errors() {
 fn allow_surql_permission_is_a_known_field_attribute() {
     let diagnostics = diagnostics_for(aureline_schema!(
         "table Demo {",
-        "  id string @allow(op: \"SELECT\", #surql { WHERE $value != NONE })",
+        "  id string @allow(op: \"SELECT\", #surql { WHERE $auth.id != NONE })",
         "}",
     ));
 
@@ -140,7 +140,7 @@ fn allow_surql_permission_is_a_known_field_attribute() {
 fn allow_operation_must_be_a_key_value_arg() {
     let diagnostics = diagnostics_for(aureline_schema!(
         "table Demo {",
-        "  id string @allow(SELECT, #surql { WHERE $value != NONE })",
+        "  id string @allow(SELECT, #surql { WHERE $auth.id != NONE })",
         "}",
     ));
 
@@ -150,7 +150,7 @@ fn allow_operation_must_be_a_key_value_arg() {
             code: DiagnosticCode::ValidationError,
             message: "@allow positional arguments must be `#surql { ... }`; use `op: \"SELECT\"` for the operation",
             start: (1, 12),
-            end: (1, 59),
+            end: (1, 61),
         },
     );
 }
@@ -159,7 +159,7 @@ fn allow_operation_must_be_a_key_value_arg() {
 fn allow_op_must_be_a_string_literal() {
     let diagnostics = diagnostics_for(aureline_schema!(
         "table Demo {",
-        "  id string @allow(op: RUN, #surql { WHERE $value != NONE })",
+        "  id string @allow(op: RUN, #surql { WHERE $auth.id != NONE })",
         "}",
     ));
 
@@ -169,7 +169,7 @@ fn allow_op_must_be_a_string_literal() {
             code: DiagnosticCode::ValidationError,
             message: "@allow `op:` must be a string literal like \"SELECT\"",
             start: (1, 12),
-            end: (1, 60),
+            end: (1, 62),
         },
     );
 }
@@ -178,7 +178,7 @@ fn allow_op_must_be_a_string_literal() {
 fn allow_rejects_unknown_operation() {
     let diagnostics = diagnostics_for(aureline_schema!(
         "table Demo {",
-        "  id string @allow(op: \"RUN\", #surql { WHERE $value != NONE })",
+        "  id string @allow(op: \"RUN\", #surql { WHERE $auth.id != NONE })",
         "}",
     ));
 
@@ -188,7 +188,7 @@ fn allow_rejects_unknown_operation() {
             code: DiagnosticCode::ValidationError,
             message: "unknown @allow operation `RUN`; expected one of: SELECT, CREATE, UPDATE, DELETE",
             start: (1, 12),
-            end: (1, 62),
+            end: (1, 64),
         },
     );
 }
@@ -197,7 +197,7 @@ fn allow_rejects_unknown_operation() {
 fn allow_surql_permission_reports_surrealdb_parse_errors() {
     let diagnostics = diagnostics_for(aureline_schema!(
         "table Demo {",
-        "  id string @allow(op: \"SELECT\", #surql { WHERE $value != })",
+        "  id string @allow(op: \"SELECT\", #surql { WHERE $auth.id != })",
         "}",
     ));
 
@@ -213,7 +213,7 @@ fn allow_surql_permission_reports_surrealdb_parse_errors() {
     assert!(
         diagnostic
             .message
-            .contains("for example `WHERE $value != NONE`"),
+            .contains("`WHERE $auth.role = \"admin\"` in `@allow`"),
         "{}",
         diagnostic.message
     );
@@ -222,5 +222,5 @@ fn allow_surql_permission_reports_surrealdb_parse_errors() {
         "{}",
         diagnostic.message
     );
-    assert_range(diagnostic, (1, 33), (1, 59));
+    assert_range(diagnostic, (1, 33), (1, 61));
 }

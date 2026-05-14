@@ -1,7 +1,6 @@
 use aureline_core::ast::{Schema, SchemaItem};
 use aureline_core::emit::{
-    emit_field, emit_remove_field, emit_remove_table, emit_schema, emit_surql_block, emit_table,
-    pascal_to_snake,
+    emit_field, emit_remove_field, emit_remove_table, emit_schema, emit_table, pascal_to_snake,
 };
 use aureline_test_support::{field, table};
 
@@ -88,20 +87,4 @@ fn emits_schema_deterministically() {
     let expected = "DEFINE TABLE temp_log DROP;\nDEFINE TABLE user SCHEMAFULL;\nDEFINE FIELD x ON temp_log TYPE string;\nDEFINE FIELD a ON user TYPE option<string>;\nDEFINE FIELD b ON user TYPE int;\n";
     assert_eq!(emit_schema(&a), expected);
     assert_eq!(emit_schema(&b), expected);
-}
-
-#[test]
-fn emits_raw_surql_blocks() {
-    let block = aureline_core::ast::SurqlBlock {
-        body: "\n  RETURN 1;\n".to_string(),
-    };
-
-    assert_eq!(emit_surql_block(&block), "RETURN 1;");
-}
-
-#[test]
-fn parser_accepts_schema_with_top_level_raw_surql_block() {
-    let schema = aureline_core::parse_to_ast("#surql { RETURN 1; }").unwrap();
-
-    assert_eq!(emit_schema(&schema), "RETURN 1;\n");
 }

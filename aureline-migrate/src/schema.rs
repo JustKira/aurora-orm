@@ -12,9 +12,7 @@ pub fn table_field_schema(schema: &Schema) -> Schema {
                 SchemaItem::TableDecl(table) => {
                     Some(SchemaItem::TableDecl(table_field_table(table)))
                 }
-                SchemaItem::DocComment { .. }
-                | SchemaItem::SurqlBlock(_)
-                | SchemaItem::AnalyzerDecl(_) => None,
+                SchemaItem::DocComment { .. } | SchemaItem::AnalyzerDecl(_) => None,
             })
             .collect(),
     }
@@ -23,6 +21,8 @@ pub fn table_field_schema(schema: &Schema) -> Schema {
 pub(crate) fn table_field_table(table: &Table) -> Table {
     Table {
         name: table.name.clone(),
+        source_range: table.source_range,
+        name_range: table.name_range,
         modifier: table.modifier.clone(),
         fields: table.fields.iter().map(table_field_field).collect(),
         indexes: Vec::new(),
@@ -33,6 +33,8 @@ pub(crate) fn table_field_table(table: &Table) -> Table {
 pub(crate) fn table_field_field(field: &Field) -> Field {
     Field {
         name: field.name.clone(),
+        source_range: field.source_range,
+        name_range: field.name_range,
         ty: field.ty.clone(),
         optional: field.optional,
         flexible: field.flexible,

@@ -199,6 +199,8 @@ fn emits_field_with_compound_types() {
     use aureline_core::ast::Field;
     let field = Field {
         name: "tags".to_string(),
+        source_range: None,
+        name_range: None,
         ty: Type::Array {
             inner: Box::new(Type::primitive("string")),
             length: None,
@@ -214,6 +216,8 @@ fn emits_field_with_compound_types() {
 
     let field = Field {
         name: "author".to_string(),
+        source_range: None,
+        name_range: None,
         ty: Type::Record {
             table: Some("User".to_string()),
         },

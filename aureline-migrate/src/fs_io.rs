@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use aureline_core::ast::{Schema, SchemaItem};
+use aureline_core::ast::Schema;
 
 use crate::error::{Error, Result, io};
 use crate::journal::Journal;
@@ -24,23 +24,7 @@ pub fn read_schema(path: &Path) -> Result<Schema> {
         path: path.display().to_string(),
         source,
     })?;
-    reject_unsupported_schema_items(path, &schema)?;
     Ok(schema)
-}
-
-fn reject_unsupported_schema_items(path: &Path, schema: &Schema) -> Result<()> {
-    if schema
-        .items
-        .iter()
-        .any(|item| matches!(item, SchemaItem::SurqlBlock(_)))
-    {
-        return Err(Error::UnsupportedSchemaItem {
-            path: path.display().to_string(),
-            message: "#surql blocks are not yet supported by the migration engine".to_string(),
-        });
-    }
-
-    Ok(())
 }
 
 pub fn read_previous_schema(meta_dir: &Path, journal: &Journal) -> Result<Schema> {

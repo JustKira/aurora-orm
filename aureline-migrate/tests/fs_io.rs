@@ -36,7 +36,7 @@ fn fs_io_reads_schema_and_latest_snapshot() {
 }
 
 #[test]
-fn fs_io_rejects_surql_blocks_for_migrations() {
+fn fs_io_rejects_top_level_surql_as_parse_error() {
     let dir = temp_dir("fs_io_surql");
     let schema_path = dir.join("schema.aureline");
     fs::write(&schema_path, "#surql { RETURN 1; }\n").unwrap();
@@ -44,9 +44,7 @@ fn fs_io_rejects_surql_blocks_for_migrations() {
     let result = read_schema(&schema_path);
 
     match result {
-        Err(Error::UnsupportedSchemaItem { message, .. }) => {
-            assert!(message.contains("#surql blocks are not yet supported"));
-        }
-        other => panic!("expected top-level #surql migration rejection, got {other:?}"),
+        Err(Error::Parse { .. }) => {}
+        other => panic!("expected top-level #surql parse rejection, got {other:?}"),
     }
 }

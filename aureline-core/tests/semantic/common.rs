@@ -7,8 +7,8 @@
 //! pipeline accepted the source. `semantic_errors` asserts the parser passed,
 //! but the schema should fail because its meaning is invalid.
 
+use aureline_core::ValidationError;
 use aureline_core::ast::{Schema, Table};
-use aureline_core::{AurelineError, ValidationError};
 use aureline_test_support::extract_table;
 
 #[track_caller]
@@ -18,19 +18,18 @@ pub fn raw_ast(source: &str) -> Schema {
 
 #[track_caller]
 pub fn checked_schema(source: &str) -> Schema {
-    aureline_core::parse_validated(source).expect("source should pass semantic validation")
+    let mut schema = raw_ast(source);
+    aureline_core::semantic::validate(&mut schema).expect("source should pass semantic validation");
+    schema
 }
 
 #[track_caller]
 pub fn semantic_errors(source: &str) -> Vec<ValidationError> {
-    let err = match aureline_core::parse_validated(source) {
-        Ok(schema) => panic!("expected semantic validation error, got schema: {schema:#?}"),
-        Err(error) => error,
-    };
-    let AurelineError::Validation(errors) = err else {
-        panic!("expected semantic validation error, got {err:?}");
-    };
-    errors
+    let mut schema = raw_ast(source);
+    match aureline_core::semantic::validate(&mut schema) {
+        Ok(()) => panic!("expected semantic validation error, got schema: {schema:#?}"),
+        Err(errors) => errors,
+    }
 }
 
 #[track_caller]
