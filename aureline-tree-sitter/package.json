@@ -1,0 +1,21 @@
+{
+  "name": "aureline-tree-sitter",
+  "version": "0.1.0-dev.1",
+  "description": "Tree-sitter grammar for the Aureline schema language.",
+  "private": true,
+  "scripts": {
+    "generate": "bunx -p tree-sitter-cli@0.25.10 tree-sitter generate",
+    "test": "bunx -p tree-sitter-cli@0.25.10 tree-sitter test",
+    "parse": "bunx -p tree-sitter-cli@0.25.10 tree-sitter parse"
+  },
+  "tree-sitter": [
+    {
+      "scope": "source.aureline",
+      "file-types": ["aureline"],
+      "highlights": "queries/highlights.scm"
+    }
+  ],
+  "devDependencies": {
+    "tree-sitter-cli": "0.25.10"
+  }
+}

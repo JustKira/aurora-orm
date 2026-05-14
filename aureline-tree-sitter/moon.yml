@@ -1,0 +1,59 @@
+$schema: 'https://moonrepo.dev/schemas/project.json'
+
+id: tree-sitter
+language: javascript
+
+tasks:
+  # Regenerate src/parser.c + src/grammar.json from grammar.js.
+  # Run after editing grammar.js.
+  generate:
+    command: bunx
+    args: ['-p', 'tree-sitter-cli@0.25.10', 'tree-sitter', 'generate']
+    inputs:
+      - 'grammar.js'
+      - 'package.json'
+      - '/bun.lock'
+    outputs:
+      - 'src/parser.c'
+      - 'src/grammar.json'
+      - 'src/node-types.json'
+
+  # Run the corpus tests in test/corpus/*.txt against the generated parser.
+  test:
+    command: bunx
+    args: ['-p', 'tree-sitter-cli@0.25.10', 'tree-sitter', 'test']
+    inputs:
+      - 'grammar.js'
+      - 'package.json'
+      - '/bun.lock'
+      - 'src/**/*'
+      - 'test/corpus/**/*'
+    deps:
+      - 'generate'
+
+  # Ensure generated parser artifacts match grammar.js before release.
+  generated-check:
+    command: git
+    args: ['diff', '--exit-code', '--', 'src/parser.c', 'src/grammar.json', 'src/node-types.json']
+    deps:
+      - 'generate'
+    inputs:
+      - 'grammar.js'
+      - 'package.json'
+      - '/bun.lock'
+      - 'src/tree_sitter/**/*'
+    options:
+      cache: false
+
+  # Parse a file with the generated grammar. Pass the file after `--`.
+  parse:
+    command: bunx
+    args: ['-p', 'tree-sitter-cli@0.25.10', 'tree-sitter', 'parse']
+    inputs:
+      - 'grammar.js'
+      - 'package.json'
+      - '/bun.lock'
+      - 'src/**/*'
+      - 'examples/**/*'
+    deps:
+      - 'generate'

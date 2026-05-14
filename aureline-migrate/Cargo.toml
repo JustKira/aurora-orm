@@ -1,0 +1,21 @@
+[package]
+name = "aureline-migrate"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+aureline-config.workspace = true
+aureline-core.workspace = true
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+chrono = { version = "0.4", features = ["serde"] }
+sha2 = "0.10"
+toml = "0.8"
+
+# Apply pipeline (talks to a live SurrealDB via the official SDK).
+surrealdb = { version = "2", default-features = false, features = ["protocol-http", "protocol-ws", "rustls"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+dotenvy = "0.15"

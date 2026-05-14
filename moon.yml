@@ -1,0 +1,88 @@
+$schema: 'https://moonrepo.dev/schemas/project.json'
+
+id: repo
+language: rust
+
+# The root project owns full-workspace verification. Per-crate inherited Rust
+# tasks are package-scoped to avoid repeating `cargo --workspace` for each crate.
+workspace:
+  inheritedTasks:
+    include: []
+
+fileGroups:
+  rust-sources:
+    - 'aureline-*/src/**/*.rs'
+    - 'aureline-*/tests/**/*.rs'
+    - 'aureline-*/benches/**/*.rs'
+    - 'aureline-*/Cargo.toml'
+    - 'Cargo.toml'
+    - 'Cargo.lock'
+  rust-config:
+    - 'rust-toolchain.toml'
+    - 'rustfmt.toml'
+
+tasks:
+  fmt:
+    command: 'cargo'
+    args:
+      - 'fmt'
+      - '--all'
+      - '--check'
+    inputs:
+      - '@group(rust-sources)'
+      - '@group(rust-config)'
+
+  check:
+    command: 'cargo'
+    args:
+      - 'check'
+      - '--workspace'
+      - '--all-targets'
+      - '--all-features'
+      - '--locked'
+    inputs:
+      - '@group(rust-sources)'
+      - '@group(rust-config)'
+
+  clippy:
+    command: 'cargo'
+    args:
+      - 'clippy'
+      - '--workspace'
+      - '--all-targets'
+      - '--all-features'
+      - '--locked'
+      - '--'
+      - '-D'
+      - 'warnings'
+    inputs:
+      - '@group(rust-sources)'
+      - '@group(rust-config)'
+
+  test:
+    command: 'cargo'
+    args:
+      - 'test'
+      - '--workspace'
+      - '--all-targets'
+      - '--all-features'
+      - '--locked'
+    inputs:
+      - '@group(rust-sources)'
+      - '@group(rust-config)'
+
+  build-release:
+    command: 'cargo'
+    args:
+      - 'build'
+      - '--package'
+      - 'aureline-core'
+      - '--package'
+      - 'aureline-cli'
+      - '--release'
+      - '--locked'
+    inputs:
+      - '@group(rust-sources)'
+      - '@group(rust-config)'
+    outputs:
+      - 'target/release/aureline'

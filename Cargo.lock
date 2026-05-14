@@ -331,26 +331,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
-name = "aurora-cli"
-version = "0.0.0"
+name = "aureline-cli"
+version = "0.1.0-dev.1"
 dependencies = [
  "anyhow",
- "aurora-core",
- "aurora-migrate",
+ "aureline-core",
+ "aureline-migrate",
  "codespan-reporting",
  "tokio",
 ]
 
 [[package]]
-name = "aurora-codegen"
-version = "0.0.0"
+name = "aureline-codegen"
+version = "0.1.0-dev.1"
 dependencies = [
- "aurora-core",
+ "aureline-core",
 ]
 
 [[package]]
-name = "aurora-config"
-version = "0.0.0"
+name = "aureline-config"
+version = "0.1.0-dev.1"
 dependencies = [
  "serde",
  "thiserror 2.0.18",
@@ -358,8 +358,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "aurora-core"
-version = "0.0.0"
+name = "aureline-core"
+version = "0.1.0-dev.1"
 dependencies = [
  "from-pest",
  "pest",
@@ -372,21 +372,21 @@ dependencies = [
 ]
 
 [[package]]
-name = "aurora-lsp"
-version = "0.0.0"
+name = "aureline-lsp"
+version = "0.1.0-dev.1"
 dependencies = [
- "aurora-core",
+ "aureline-core",
  "serde_json",
  "tokio",
  "tower-lsp-server",
 ]
 
 [[package]]
-name = "aurora-migrate"
-version = "0.1.0"
+name = "aureline-migrate"
+version = "0.1.0-dev.1"
 dependencies = [
- "aurora-config",
- "aurora-core",
+ "aureline-config",
+ "aureline-core",
  "chrono",
  "dotenvy",
  "serde",

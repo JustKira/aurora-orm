@@ -1,4 +1,4 @@
-# Aurora
+# Aureline
 
 > ⚠️ **Highly experimental.** A lot of this code is AI-generated and needs careful human review.
 > Expect rough edges, breaking changes, and incomplete features. Do not use in production yet.
@@ -9,11 +9,11 @@ A schema language for SurrealDB.
 
 - [Prisma](https://www.prisma.io) — schema syntax, the `@field` / `@@table` annotation style, the "schema is the source of truth" philosophy.
 - [Drizzle](https://orm.drizzle.team) — the future typed client API: fluent, schema-driven, statically checked end-to-end.
-- [surrealql-tree-sitter](https://github.com/surrealdb/surrealql-tree-sitter) — SurrealQL grammar work used by Aurora editor integrations for highlighting/injection support.
+- [surrealql-tree-sitter](https://github.com/surrealdb/surrealql-tree-sitter) — SurrealQL grammar work used by Aureline editor integrations for highlighting/injection support.
 
 ## Schema
 
-```aurora
+```aureline
 analyzer edu_analyzer {
   tokenizers blank, class
   filters    lowercase, snowball(english)
@@ -36,7 +36,7 @@ table lesson_chunk schemafull {
 
 Two annotation styles — `@field` for single-field indexes and flags, `@@table` for composites and table-level concepts:
 
-```aurora
+```aureline
 table membership schemafull {
   account string
   user    string
@@ -56,7 +56,7 @@ The codegen pipeline (work in progress) will turn the schema above into typed cl
 ### TypeScript / JavaScript
 
 ```ts
-import { db, user, lessonChunk } from "./aurora-generated";
+import { db, user, lessonChunk } from "./aureline-generated";
 
 const alice = await db
   .select()
@@ -74,7 +74,7 @@ const similar = await db
 ### Rust
 
 ```rust
-use aurora_generated::{db, user, lesson_chunk};
+use aureline_generated::{db, user, lesson_chunk};
 
 let alice = db.select()
     .from(user)
@@ -91,7 +91,7 @@ let similar = db.select()
 ### Python
 
 ```python
-from aurora_generated import db, user, lesson_chunk
+from aureline_generated import db, user, lesson_chunk
 
 alice = await db.select().from_(user).where(user.email == "alice@example.com").first()
 
@@ -106,14 +106,14 @@ similar = await (
 
 | Crate | What it is | Philosophy |
 |---|---|---|
-| `aurora-core` | Pest parser, AST, validator, SurrealQL emitter | **Thin grammar, smart validator.** The grammar treats every `@ident(args)` as an opaque blob; the validator is the rule book that says which attributes mean what. Adding a new attribute = adding a validator arm, not changing the grammar. |
-| `aurora-config` | Shared `aurora.toml` loader | Every tool reads the same config — URL, NS, DB, env path — in one place. No tool re-implements credential loading. |
-| `aurora-migrate` | `diff` / `generate` / `apply` against live SurrealDB | Idempotent migrations tracked in `_aurora_migrations`. Talks to SurrealDB via the official Rust SDK, not raw HTTP. Drift detection compares snapshot checksums to refuse re-applying mutated migrations. |
-| `aurora-cli` | The `aurora` binary | Thin wrapper around the libraries — one entrypoint per workflow. |
-| `aurora-codegen` | Schema → intermediate JSON → wasm-plugin generators | The codegen pipeline emits a stable JSON intermediate that any wasm plugin can consume to generate a typed client. Built-in plugins planned for TS, Rust, and Python; the plugin model means new target languages (Go, Kotlin, Elixir, anything) just need a wasm plugin — not a Rust contribution to Aurora itself. **Work in progress.** |
-| `aurora-lsp` | Language server | Reads the *raw* AST (not the validated one), so editors can offer structure for in-progress / invalid schemas too. **Scaffolding.** |
-| `aurora-tree-sitter` | Grammar + corpus tests + showcase | Editor-agnostic syntax highlighting + structure. Single source of highlight queries; per-editor extensions symlink to it. |
-| `aurora-zed` | Zed editor extension | Wraps the grammar + LSP for Zed. Grammar URL points back at this repo. |
+| `aureline-core` | Pest parser, AST, validator, SurrealQL emitter | **Thin grammar, smart validator.** The grammar treats every `@ident(args)` as an opaque blob; the validator is the rule book that says which attributes mean what. Adding a new attribute = adding a validator arm, not changing the grammar. |
+| `aureline-config` | Shared `aureline.toml` loader | Every tool reads the same config — URL, NS, DB, env path — in one place. No tool re-implements credential loading. |
+| `aureline-migrate` | `diff` / `generate` / `apply` against live SurrealDB | Idempotent migrations tracked in `_aureline_migrations`. Talks to SurrealDB via the official Rust SDK, not raw HTTP. Drift detection compares snapshot checksums to refuse re-applying mutated migrations. |
+| `aureline-cli` | The `aureline` binary | Thin wrapper around the libraries — one entrypoint per workflow. |
+| `aureline-codegen` | Schema → intermediate JSON → wasm-plugin generators | The codegen pipeline emits a stable JSON intermediate that any wasm plugin can consume to generate a typed client. Built-in plugins planned for TS, Rust, and Python; the plugin model means new target languages (Go, Kotlin, Elixir, anything) just need a wasm plugin — not a Rust contribution to Aureline itself. **Work in progress.** |
+| `aureline-lsp` | Language server | Reads the *raw* AST (not the validated one), so editors can offer structure for in-progress / invalid schemas too. **Scaffolding.** |
+| `aureline-tree-sitter` | Grammar + corpus tests + showcase | Editor-agnostic syntax highlighting + structure. Single source of highlight queries; per-editor extensions symlink to it. |
+| `aureline-zed` | Zed editor extension | Wraps the grammar + LSP for Zed. Grammar URL points back at this repo. |
 
 ## Why
 
@@ -123,10 +123,10 @@ What I had before:
 - Manual migration scripts — no diff, no rollback, no record of what was applied.
 - Untyped client: `db.query("SELECT * FROM user WHERE email = $email", { email })`.
 
-What Aurora replaces it with:
+What Aureline replaces it with:
 
-- One `schema.aurora` file. Declarative. Editor-tooled. Validated.
-- `aurora migrate diff` shows what changed; `generate` writes a migration with checksums; `apply` runs it idempotently against live SurrealDB.
+- One `schema.aureline` file. Declarative. Editor-tooled. Validated.
+- `aureline migrate diff` shows what changed; `generate` writes a migration with checksums; `apply` runs it idempotently against live SurrealDB.
 - Typed clients (eventually) so `db.select().from(user).where(user.email.eq(...))` is statically checked end-to-end.
 
 ## Design philosophies
@@ -135,27 +135,27 @@ What Aurora replaces it with:
 
 **Schema is the source of truth.** The schema produces SurrealQL DDL. The schema produces editor highlights. The schema produces the JSON intermediate that codegen plugins consume. Everything downstream is derived; nothing is hand-maintained twice.
 
-**Codegen via wasm plugins, not built-in language support.** Aurora itself doesn't ship a TS generator or a Rust generator — it ships a stable JSON schema intermediate and a wasm plugin host. Any language can be supported by a wasm plugin that reads the JSON and emits target code. Built-ins planned for TS, Rust, and Python; everything else (Go, Kotlin, Elixir, internal DSLs, custom ORMs) is a plugin, not a fork.
+**Codegen via wasm plugins, not built-in language support.** Aureline itself doesn't ship a TS generator or a Rust generator — it ships a stable JSON schema intermediate and a wasm plugin host. Any language can be supported by a wasm plugin that reads the JSON and emits target code. Built-ins planned for TS, Rust, and Python; everything else (Go, Kotlin, Elixir, internal DSLs, custom ORMs) is a plugin, not a fork.
 
 ## Quickstart
 
 ```bash
 cargo build --workspace
-cargo test -p aurora-core
-cd aurora-tree-sitter && bunx tree-sitter test
+cargo test -p aureline-core
+cd aureline-tree-sitter && bunx tree-sitter test
 
 # Install the CLI
-cargo install --path aurora-cli
+cargo install --path aureline-cli
 # Or from this repo
-cargo install aurora-cli --git https://github.com/JustKira/aurora-orm --branch main
+cargo install aureline-cli --git https://github.com/pixelscortex/aureline-orm --branch main
 ```
 
-## Using Aurora in a project
+## Using Aureline in a project
 
 ```bash
-# In your project root, alongside aurora.toml + schema.aurora
-aurora migrate diff      # show pending changes vs. the live database
-aurora migrate generate  # write a new migration file with checksums
+# In your project root, alongside aureline.toml + schema.aureline
+aureline migrate diff      # show pending changes vs. the live database
+aureline migrate generate  # write a new migration file with checksums
 ```
 
-See [`aurora-tree-sitter/examples`](aurora-tree-sitter/examples) for focused syntax examples.
+See [`aureline-tree-sitter/examples`](aureline-tree-sitter/examples) for focused syntax examples.

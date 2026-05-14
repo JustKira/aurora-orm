@@ -1,11 +1,24 @@
 [workspace]
 resolver = "3"
 members = [
-  "aurora-cli",
-  "aurora-codegen",
-  "aurora-config",
-  "aurora-core",
-  "aurora-lsp",
-  "aurora-migrate",
+  "aureline-cli",
+  "aureline-codegen",
+  "aureline-config",
+  "aureline-core",
+  "aureline-lsp",
+  "aureline-migrate",
 ]
-exclude = ["aurora-zed"]
+exclude = ["aureline-zed"]
+
+[workspace.package]
+version = "0.1.0-dev.1"
+edition = "2024"
+license = "UNLICENSED"
+publish = false
+repository = "https://github.com/pixelscortex/aureline-orm"
+
+[workspace.dependencies]
+aureline-codegen = { path = "aureline-codegen", version = "=0.1.0-dev.1" }
+aureline-config = { path = "aureline-config", version = "=0.1.0-dev.1" }
+aureline-core = { path = "aureline-core", version = "=0.1.0-dev.1" }
+aureline-migrate = { path = "aureline-migrate", version = "=0.1.0-dev.1" }
