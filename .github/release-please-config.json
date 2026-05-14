@@ -11,12 +11,12 @@
       "extra-files": [
         {
           "type": "json",
-          "path": "package.json",
+          "path": "../package.json",
           "jsonpath": "$.version"
         },
         {
           "type": "json",
-          "path": "aureline-tree-sitter/package.json",
+          "path": "../aureline-tree-sitter/package.json",
           "jsonpath": "$.version"
         }
       ]
@@ -28,6 +28,11 @@
     "aureline-config": {
       "package-name": "aureline-config",
       "component": "aureline-config"
+    },
+    "aureline-docs": {
+      "package-name": "aureline-docs",
+      "component": "aureline-docs",
+      "release-type": "node"
     },
     "aureline-core": {
       "package-name": "aureline-core",
@@ -54,6 +59,7 @@
         "aureline-cli",
         "aureline-codegen",
         "aureline-config",
+        "aureline-docs",
         "aureline-core",
         "aureline-lsp",
         "aureline-migrate"
