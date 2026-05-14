@@ -1,6 +1,6 @@
 # Releasing Aureline
 
-Aureline uses one synchronized version across the Rust workspace and npm package
+Aureline uses one synchronized version across the Rust workspace and package
 manifests managed by release-please. The current beta line starts at
 `0.1.0-dev.1`.
 
@@ -57,9 +57,8 @@ documented support policy.
 
 `aureline-lsp` can be added later if we want to distribute it separately.
 `aureline-zed` should not be published to Cargo; it follows Zed's extension
-publishing flow. `aureline-tree-sitter` can be tested in CI and versioned with
-the repo, but npm publishing should only be enabled when the grammar package is
-ready to be public.
+publishing flow. `aureline-tree-sitter` is version-synced with the repo for
+consistency and CI testing, but it is not currently published from CI.
 
 SurrealDB's release workflow is a useful reference for a later stage: it uses
 scheduled nightlies, manual versioned releases, temporary release branches,
