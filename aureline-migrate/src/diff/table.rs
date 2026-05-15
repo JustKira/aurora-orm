@@ -4,6 +4,7 @@ use aureline_core::ast::{Schema, SchemaItem, Table};
 
 use crate::change::Change;
 use crate::diff::field::diff_table_fields;
+use crate::diff::index::diff_table_indexes;
 use crate::diff::pair::{Diff, diff_by_key};
 
 pub(crate) fn diff_tables(prev: &Schema, new: &Schema, changes: &mut Vec<Change>) {
@@ -14,7 +15,7 @@ pub(crate) fn diff_tables(prev: &Schema, new: &Schema, changes: &mut Vec<Change>
             Diff::Added(table) => {
                 changes.push(Change::TableAdded((*table).clone()));
             }
-            Diff::Removed => changes.push(Change::TableRemoved(name.to_string())),
+            Diff::Removed(_) => changes.push(Change::TableRemoved(name.to_string())),
             Diff::Change(prev, new) => {
                 if prev.modifier != new.modifier {
                     changes.push(Change::TableModeChanged {
@@ -42,4 +43,5 @@ fn tables_by_name(schema: &Schema) -> HashMap<&str, &Table> {
 
 fn diff_table_members(table_name: &str, prev: &Table, new: &Table, changes: &mut Vec<Change>) {
     diff_table_fields(table_name, prev, new, changes);
+    diff_table_indexes(table_name, prev, new, changes);
 }

@@ -41,3 +41,46 @@ pub(crate) fn table_field_field(field: &Field) -> Field {
         raw_attributes: Vec::new(),
     }
 }
+
+/// Full schema preserves analyzers and indexes while stripping DocComment and raw_attributes.
+/// Used for diffing and canonicalization where full schema fidelity is needed.
+pub fn full_schema(schema: &Schema) -> Schema {
+    Schema {
+        items: schema
+            .items
+            .iter()
+            .filter_map(|item| match item {
+                SchemaItem::TableDecl(table) => Some(SchemaItem::TableDecl(full_table(table))),
+                // Keep analyzers, drop doc comments
+                SchemaItem::AnalyzerDecl(_) => Some(item.clone()),
+                SchemaItem::DocComment { .. } => None,
+            })
+            .collect(),
+    }
+}
+
+fn full_table(table: &Table) -> Table {
+    Table {
+        name: table.name.clone(),
+        source_range: table.source_range,
+        name_range: table.name_range,
+        modifier: table.modifier.clone(),
+        fields: table.fields.iter().map(full_field).collect(),
+        indexes: table.indexes.clone(),
+        // Strip raw_attributes as they're intermediate representation
+        raw_attributes: Vec::new(),
+    }
+}
+
+fn full_field(field: &Field) -> Field {
+    Field {
+        name: field.name.clone(),
+        source_range: field.source_range,
+        name_range: field.name_range,
+        ty: field.ty.clone(),
+        optional: field.optional,
+        flexible: field.flexible,
+        // Strip raw_attributes as they're intermediate representation
+        raw_attributes: Vec::new(),
+    }
+}

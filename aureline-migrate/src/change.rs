@@ -1,4 +1,4 @@
-use aureline_core::ast::{Field, Table};
+use aureline_core::ast::{Analyzer, Field, Index, Table};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Change {
@@ -22,6 +22,25 @@ pub enum Change {
         from: Field,
         to: Field,
         changes: FieldChangeSet,
+    },
+    AnalyzerAdded(Analyzer),
+    AnalyzerRemoved(Analyzer),
+    AnalyzerChanged {
+        from: Analyzer,
+        to: Analyzer,
+    },
+    IndexAdded {
+        table: String,
+        index: Index,
+    },
+    IndexRemoved {
+        table: String,
+        index: Index,
+    },
+    IndexChanged {
+        table: String,
+        from: Index,
+        to: Index,
     },
 }
 

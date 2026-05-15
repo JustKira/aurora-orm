@@ -20,9 +20,9 @@ pub(crate) fn diff_table_fields(
                 table: table_name.to_string(),
                 field: (*field).clone(),
             }),
-            Diff::Removed => changes.push(Change::FieldRemoved {
+            Diff::Removed(field) => changes.push(Change::FieldRemoved {
                 table: table_name.to_string(),
-                field: (*prev_fields[name]).clone(),
+                field: (*field).clone(),
             }),
             Diff::Change(prev, new) => {
                 let field_changes = FieldChangeSet::between(prev, new);

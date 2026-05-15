@@ -1,4 +1,4 @@
-use aureline_core::ast::{Field, Table};
+use aureline_core::ast::{Analyzer, Field, Index, Table};
 use aureline_core::emit::surql_type;
 
 use crate::change::FieldChangeSet;
@@ -36,6 +36,14 @@ pub enum Op {
         to: Field,
         changes: FieldChangeSet,
     },
+    /// Creates an analyzer definition.
+    DefineAnalyzer(Analyzer),
+    /// Removes an analyzer definition; stores full Analyzer for down migration recreation.
+    RemoveAnalyzer(Analyzer),
+    /// Creates an index on a table.
+    DefineIndex { table: String, index: Index },
+    /// Removes an index from a table; stores full Index for down migration recreation.
+    RemoveIndex { table: String, index: Index },
 }
 
 impl Op {
@@ -44,6 +52,8 @@ impl Op {
             self,
             Op::RemoveTable(_)
                 | Op::RemoveField { .. }
+                | Op::RemoveAnalyzer(_)
+                | Op::RemoveIndex { .. }
                 | Op::AlterField {
                     changes: FieldChangeSet {
                         type_changed: true,
@@ -82,6 +92,14 @@ impl Op {
                 to,
                 changes,
             } => alter_field_summary(table, from, to, *changes),
+            Op::DefineAnalyzer(analyzer) => format!("+ DEFINE ANALYZER {}", analyzer.name),
+            Op::RemoveAnalyzer(analyzer) => format!("- REMOVE ANALYZER {}", analyzer.name),
+            Op::DefineIndex { table, index } => {
+                format!("+ DEFINE INDEX {} ON {} FIELDS {}", index.name, table, index.fields.join(", "))
+            }
+            Op::RemoveIndex { table, index } => {
+                format!("- REMOVE INDEX {} ON {}", index.name, table)
+            }
         }
     }
 }

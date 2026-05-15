@@ -1,6 +1,7 @@
 use aureline_core::ast::Table;
 use aureline_core::emit::{
-    emit_alter_field, emit_field, emit_remove_field, emit_remove_table, emit_table,
+    emit_alter_field, emit_analyzer, emit_field, emit_index, emit_remove_analyzer,
+    emit_remove_field, emit_remove_index, emit_remove_table, emit_table,
 };
 
 use crate::ops::Op;
@@ -51,6 +52,10 @@ fn emit_up_op(op: &Op) -> Vec<String> {
         Op::AddField { table, field } => vec![emit_field(table, field)],
         Op::RemoveField { table, field } => vec![emit_remove_field(table, &field.name)],
         Op::AlterField { table, to, .. } => vec![emit_alter_field(table, to)],
+        Op::DefineAnalyzer(a) => vec![emit_analyzer(a)],
+        Op::RemoveAnalyzer(a) => vec![emit_remove_analyzer(&a.name)],
+        Op::DefineIndex { table, index } => vec![emit_index(table, index)],
+        Op::RemoveIndex { table, index } => vec![emit_remove_index(table, &index.name)],
     }
 }
 
@@ -84,6 +89,10 @@ fn emit_down_op(op: &Op) -> Vec<String> {
             field.name
         )],
         Op::AlterField { table, from, .. } => vec![emit_alter_field(table, from)],
+        Op::DefineAnalyzer(analyzer) => vec![emit_remove_analyzer(&analyzer.name)],
+        Op::RemoveAnalyzer(analyzer) => vec![emit_analyzer(analyzer)],
+        Op::DefineIndex { table, index } => vec![emit_remove_index(table, &index.name)],
+        Op::RemoveIndex { table, index } => vec![emit_index(table, index)],
     }
 }
 

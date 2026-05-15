@@ -6,9 +6,8 @@ use std::collections::{BTreeSet, HashMap};
 pub(crate) enum Diff<'a, T> {
     /// Key is only on the new side — the item appeared.
     Added(&'a T),
-    /// Key is only on the prev side — the item disappeared. No payload because
-    /// callers only need the key name (from the iterator tuple) to emit the op.
-    Removed,
+    /// Key is only on the prev side — the item disappeared.
+    Removed(&'a T),
     /// Key exists on both sides. Whether it actually *changed* is up to the
     /// caller to decide by comparing `(prev, new)`.
     Change(&'a T, &'a T),
@@ -28,7 +27,7 @@ where
     keys.into_iter().map(move |k| {
         let change = match (prev.get(&k), new.get(&k)) {
             (None, Some(&n)) => Diff::Added(n),
-            (Some(_), None) => Diff::Removed,
+            (Some(&p), None) => Diff::Removed(p),
             (Some(&p), Some(&n)) => Diff::Change(p, n),
             // Impossible: `k` was drawn from the union of both maps' keys.
             (None, None) => unreachable!("key came from union of both maps"),

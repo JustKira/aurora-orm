@@ -1,12 +1,12 @@
 use aureline_core::ast::{Analyzer, Field, Index, Schema, SchemaItem, Table};
 use serde_json::{Value, json};
 
-use crate::schema::table_field_schema;
+use crate::schema::full_schema;
 
 use super::SNAPSHOT_VERSION;
 
 pub fn canonicalize(schema: &Schema) -> String {
-    let schema = table_field_schema(schema);
+    let schema = full_schema(schema);
     let tables: Vec<Value> = sorted_tables(&schema)
         .iter()
         .map(|table| canonicalize_table(table))
