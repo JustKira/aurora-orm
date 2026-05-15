@@ -41,6 +41,13 @@ pub fn validate_field_permission(operation: &str, body: &str) -> Result<(), Surq
     ))
 }
 
+pub fn validate_function_permission(body: &str) -> Result<(), SurqlParseError> {
+    validate_query(&format!(
+        "DEFINE FUNCTION fn::__aureline__() {{ RETURN NONE; }} PERMISSIONS {}",
+        body.trim()
+    ))
+}
+
 pub fn function_body_params(body: &str) -> Result<BTreeSet<String>, SurqlParseError> {
     surrealdb_core::syn::parse(body.trim()).map_err(|error| SurqlParseError {
         message: format_surql_error(error),

@@ -59,6 +59,24 @@ fn function_allow_only_accepts_run_operation() {
 }
 
 #[test]
+fn function_allow_rejects_invalid_permission_surql() {
+    let errors = semantic_errors(aureline_schema!(
+        "function get_full_name(first: string, last: string) -> string {",
+        "  #surql {",
+        "    RETURN $first + ' ' + $last;",
+        "  }",
+        "  @@allow(op: \"RUN\", #surql { WHERE $auth.id != })",
+        "}",
+    ));
+
+    let error = errors
+        .iter()
+        .find(|error| error.message.contains("invalid SurrealQL"))
+        .expect("invalid function permission SurQL should be reported");
+    assert!(error.range.is_some(), "{errors:#?}");
+}
+
+#[test]
 fn function_body_must_reference_declared_arguments() {
     assert_semantic_error_contains(
         aureline_schema!(

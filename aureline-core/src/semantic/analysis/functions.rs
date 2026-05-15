@@ -123,7 +123,7 @@ fn validate_allow_args(attr: &Attribute) -> Result<(), SemanticError> {
                 ));
             }
             AttributeArg::Positional {
-                value: AttributeValue::Surql { body, .. },
+                value: AttributeValue::Surql { body, source_range },
             } => {
                 if permission.is_some() {
                     return Err(err_at(
@@ -131,7 +131,7 @@ fn validate_allow_args(attr: &Attribute) -> Result<(), SemanticError> {
                         "@@allow has duplicate `#surql { ... }` permission blocks".to_string(),
                     ));
                 }
-                permission = Some(body);
+                permission = Some((body, source_range));
             }
             AttributeArg::Positional { .. } => {
                 return Err(err_at(
@@ -156,14 +156,18 @@ fn validate_allow_args(attr: &Attribute) -> Result<(), SemanticError> {
         ));
     }
 
-    if permission.is_none() {
+    let Some((body, source_range)) = permission else {
         return Err(err_at(
             attr,
             "@@allow requires one positional `#surql { ... }` permission block".to_string(),
         ));
-    }
+    };
 
-    Ok(())
+    crate::surql::validate_function_permission(body).map_err(|error| SemanticError {
+        message: error.message,
+        hint: None,
+        range: source_range.or(attr.source_range),
+    })
 }
 
 fn err_at(attr: &Attribute, message: String) -> SemanticError {
