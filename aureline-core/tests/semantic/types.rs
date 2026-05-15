@@ -71,3 +71,17 @@ fn nested_record_type_rejects_unknown_table_reference() {
         "unknown record table `User`",
     );
 }
+
+#[test]
+fn function_signature_record_types_reject_unknown_table_references() {
+    let schema = aureline_schema!(
+        "function load_owner(owner: record<MissingInput>) -> record<MissingOutput> {",
+        "  #surql {",
+        "    RETURN $owner;",
+        "  }",
+        "}",
+    );
+
+    assert_semantic_error_contains(&schema, "unknown record table `MissingInput`");
+    assert_semantic_error_contains(&schema, "unknown record table `MissingOutput`");
+}
