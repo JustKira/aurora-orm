@@ -653,7 +653,7 @@ impl TypeExpr {
     fn into_type(self) -> ast::Type {
         let optional = self.optional.is_some();
         let ty = self.type_node.into_ast();
-        if optional {
+        if optional && !matches!(ty, ast::Type::Option { .. }) {
             ast::Type::Option {
                 inner: Box::new(ty),
             }
