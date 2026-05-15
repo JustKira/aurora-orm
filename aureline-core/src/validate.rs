@@ -5,6 +5,7 @@
 //! unchanged; new rules add a case to `validate_field_attribute` or
 //! `validate_block_attribute`.
 
+use std::collections::BTreeSet;
 use std::fmt;
 
 use crate::ast::{
@@ -74,6 +75,10 @@ fn validate_table(table: &mut Table, errors: &mut Vec<ValidationError>) {
 const FUNCTION_ATTRS: &[&str] = &["allow"];
 
 fn validate_function(function: &Function, errors: &mut Vec<ValidationError>) {
+    if let Err(error) = validate_function_body_params(function) {
+        errors.push(error);
+    }
+
     for attr in &function.raw_attributes {
         match attr.name.as_str() {
             "allow" => {
@@ -86,6 +91,57 @@ fn validate_function(function: &Function, errors: &mut Vec<ValidationError>) {
             }
         }
     }
+}
+
+fn validate_function_body_params(function: &Function) -> Result<(), ValidationError> {
+    let declared = function
+        .params
+        .iter()
+        .map(|param| param.name.clone())
+        .collect::<BTreeSet<_>>();
+    let referenced = crate::surql::function_body_params(&function.body.body)
+        .map_err(|error| err(error.message))?;
+
+    let missing = declared
+        .difference(&referenced)
+        .cloned()
+        .collect::<Vec<_>>();
+    let unknown = referenced
+        .difference(&declared)
+        .cloned()
+        .collect::<Vec<_>>();
+
+    if missing.is_empty() && unknown.is_empty() {
+        return Ok(());
+    }
+
+    let mut parts = Vec::new();
+    if !missing.is_empty() {
+        parts.push(format!(
+            "missing references for function arguments: {}",
+            missing
+                .iter()
+                .map(|name| format!("`${name}`"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+    }
+    if !unknown.is_empty() {
+        parts.push(format!(
+            "unknown function body parameters: {}",
+            unknown
+                .iter()
+                .map(|name| format!("`${name}`"))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+    }
+
+    Err(err(format!(
+        "function `{}` SurQL body parameters do not match signature: {}",
+        function.name,
+        parts.join("; ")
+    )))
 }
 
 const FIELD_ATTRS: &[&str] = &[

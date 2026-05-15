@@ -454,6 +454,58 @@ function get_full_name(first: string, last: string) -> string {
 }
 
 #[test]
+fn function_body_must_reference_declared_arguments() {
+    let src = r#"
+function get_full_name(first: string, last: string) -> string {
+  #surql {
+    RETURN $first;
+  }
+  @@allow(op: "RUN", #surql { WHERE owner = $auth.id })
+}
+"#;
+
+    let err = parse_validated(src).unwrap_err();
+    let AurelineError::Validation(errs) = err else {
+        panic!("expected validation error");
+    };
+
+    assert_eq!(errs.len(), 1);
+    assert!(
+        errs[0]
+            .message
+            .contains("missing references for function arguments: `$last`"),
+        "{}",
+        errs[0].message
+    );
+}
+
+#[test]
+fn function_body_rejects_unknown_parameters() {
+    let src = r#"
+function get_full_name(first: string, last: string) -> string {
+  #surql {
+    RETURN $first + ' ' + $middle + ' ' + $last;
+  }
+  @@allow(op: "RUN", #surql { WHERE owner = $auth.id })
+}
+"#;
+
+    let err = parse_validated(src).unwrap_err();
+    let AurelineError::Validation(errs) = err else {
+        panic!("expected validation error");
+    };
+
+    assert_eq!(errs.len(), 1);
+    assert!(
+        errs[0]
+            .message
+            .contains("unknown function body parameters: `$middle`"),
+        "{}",
+        errs[0].message
+    );
+}
+
+#[test]
 fn field_unique_with_name_keyword() {
     let src = r#"
 table user {

@@ -3,7 +3,11 @@
 //! Aureline owns the surrounding schema syntax. SurrealDB owns the escaped
 //! `#surql` body syntax, so validation delegates to SurrealDB's parser.
 
+use std::collections::BTreeSet;
 use std::fmt;
+
+use surrealdb_core::sql::visit::{Visit, Visitor};
+use surrealdb_core::sql::Param;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SurqlParseError {
@@ -28,12 +32,48 @@ pub fn validate_field_permission(operation: &str, body: &str) -> Result<(), Surq
     ))
 }
 
+pub fn function_body_params(body: &str) -> Result<BTreeSet<String>, SurqlParseError> {
+    let query = surrealdb_core::syn::parse(body.trim()).map_err(|error| SurqlParseError {
+        message: format_surql_query_error(error),
+    })?;
+    let mut visitor = ParamCollector::default();
+    query.visit(&mut visitor).map_err(|error| SurqlParseError {
+        message: error.to_string(),
+    })?;
+    Ok(visitor.params)
+}
+
 fn validate_query(query: &str) -> Result<(), SurqlParseError> {
     surrealdb_core::syn::parse(query)
         .map(|_| ())
         .map_err(|error| SurqlParseError {
             message: format_surql_query_error(error),
         })
+}
+
+#[derive(Default)]
+struct ParamCollector {
+    params: BTreeSet<String>,
+}
+
+impl Visitor for ParamCollector {
+    type Error = fmt::Error;
+
+    fn visit_param(&mut self, param: &Param) -> Result<(), Self::Error> {
+        let name = param.as_str();
+        if !is_builtin_param(name) {
+            self.params.insert(name.to_string());
+        }
+        Ok(())
+    }
+}
+
+fn is_builtin_param(name: &str) -> bool {
+    matches!(
+        name,
+        "after" | "auth" | "before" | "event" | "input" | "parent" | "session" | "this" | "token"
+            | "value"
+    )
 }
 
 fn format_surql_error(error: impl fmt::Display) -> String {
