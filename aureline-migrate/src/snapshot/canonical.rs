@@ -1,4 +1,5 @@
-use aureline_core::ast::{Analyzer, Field, Index, Schema, SchemaItem, Table};
+use aureline_core::ast::{Analyzer, Field, Index, Schema, Table};
+use aureline_core::schema_index::SchemaIndex;
 use serde_json::{Value, json};
 
 use crate::schema::full_schema;
@@ -7,14 +8,16 @@ use super::SNAPSHOT_VERSION;
 
 pub fn canonicalize(schema: &Schema) -> String {
     let schema = full_schema(schema);
-    let tables: Vec<Value> = sorted_tables(&schema)
-        .iter()
-        .map(|table| canonicalize_table(table))
+    let index = SchemaIndex::from_schema(&schema);
+
+    let tables: Vec<Value> = index
+        .tables()
+        .map(|(_, table)| canonicalize_table(&index, table))
         .collect();
 
-    let analyzers: Vec<Value> = sorted_analyzers(&schema)
-        .iter()
-        .map(|a| canonicalize_analyzer(a))
+    let analyzers: Vec<Value> = index
+        .analyzers()
+        .map(|(_, analyzer)| canonicalize_analyzer(analyzer))
         .collect();
 
     let root = json!({
@@ -25,41 +28,18 @@ pub fn canonicalize(schema: &Schema) -> String {
     serde_json::to_string_pretty(&root).expect("canonical snapshot is valid JSON")
 }
 
-/// Returns the schema's tables in alphabetical order, dropping non-table items.
-fn sorted_tables(schema: &Schema) -> Vec<&Table> {
-    let mut tables: Vec<&Table> = schema
-        .items
-        .iter()
-        .filter_map(|item| match item {
-            SchemaItem::TableDecl(table) => Some(table),
-            SchemaItem::DocComment { .. } | SchemaItem::AnalyzerDecl(_) => None,
-        })
+fn canonicalize_table(index: &SchemaIndex<'_>, table: &Table) -> Value {
+    let fields: Vec<Value> = index
+        .fields()
+        .filter(|(key, _)| key.as_tuple().0 == table.name.as_str())
+        .map(|(_, field)| canonicalize_field(field))
         .collect();
-    tables.sort_by(|a, b| a.name.cmp(&b.name));
-    tables
-}
 
-fn sorted_analyzers(schema: &Schema) -> Vec<&Analyzer> {
-    let mut analyzers: Vec<&Analyzer> = schema
-        .items
-        .iter()
-        .filter_map(|item| match item {
-            SchemaItem::AnalyzerDecl(a) => Some(a),
-            SchemaItem::DocComment { .. } | SchemaItem::TableDecl(_) => None,
-        })
+    let indexes: Vec<Value> = index
+        .indexes()
+        .filter(|(key, _)| key.as_tuple().0 == table.name.as_str())
+        .map(|(_, index)| canonicalize_index(index))
         .collect();
-    analyzers.sort_by(|a, b| a.name.cmp(&b.name));
-    analyzers
-}
-
-fn canonicalize_table(table: &Table) -> Value {
-    let mut fields: Vec<&Field> = table.fields.iter().collect();
-    fields.sort_by(|a, b| a.name.cmp(&b.name));
-    let fields: Vec<Value> = fields.iter().map(|f| canonicalize_field(f)).collect();
-
-    let mut indexes: Vec<&Index> = table.indexes.iter().collect();
-    indexes.sort_by(|a, b| a.name.cmp(&b.name));
-    let indexes: Vec<Value> = indexes.iter().map(|i| canonicalize_index(i)).collect();
 
     json!({
         "name": table.name,
