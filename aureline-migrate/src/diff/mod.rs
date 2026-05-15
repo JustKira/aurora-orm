@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use aureline_core::ast::{Schema, SchemaItem, Table};
+use aureline_core::ast::{Schema, Table};
+use aureline_core::schema_index::SchemaIndex;
 
 use crate::change::Change;
 use crate::diff::pair::{Diff, diff_by_key};
@@ -54,13 +55,11 @@ fn diff_indexes(prev: &Schema, new: &Schema, changes: &mut Vec<Change>) {
 }
 
 fn tables_by_name(schema: &Schema) -> HashMap<&str, &Table> {
-    schema
-        .items
+    let index = SchemaIndex::from_schema(schema);
+    index
+        .tables
         .iter()
-        .filter_map(|item| match item {
-            SchemaItem::TableDecl(table) => Some((table.name.as_str(), table)),
-            SchemaItem::DocComment { .. } | SchemaItem::AnalyzerDecl(_) => None,
-        })
+        .map(|(&name, &table)| (name, table))
         .collect()
 }
 

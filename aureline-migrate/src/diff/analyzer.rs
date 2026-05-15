@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use aureline_core::ast::{Analyzer, Schema, SchemaItem};
+use aureline_core::ast::{Analyzer, Schema};
+use aureline_core::schema_index::SchemaIndex;
 
 use crate::change::Change;
 use crate::diff::pair::{Diff, diff_by_key};
@@ -30,12 +31,10 @@ pub fn diff_analyzers(prev: &Schema, next: &Schema, changes: &mut Vec<Change>) {
 }
 
 fn analyzers_by_name(schema: &Schema) -> HashMap<&str, &Analyzer> {
-    schema
-        .items
+    let index = SchemaIndex::from_schema(schema);
+    index
+        .analyzers
         .iter()
-        .filter_map(|item| match item {
-            SchemaItem::AnalyzerDecl(analyzer) => Some((analyzer.name.as_str(), analyzer)),
-            SchemaItem::DocComment { .. } | SchemaItem::TableDecl(_) => None,
-        })
+        .map(|(&name, &analyzer)| (name, analyzer))
         .collect()
 }
