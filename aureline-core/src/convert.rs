@@ -583,16 +583,7 @@ impl FieldLine {
 
 impl FieldNode {
     fn into_ast(self) -> ast::Field {
-        let optional_from_marker = self.type_expr.optional.is_some();
-        let raw = self.type_expr.type_node.into_ast();
-        // Normalize: if the parsed top-level type is `option<T>`, lift the
-        // inner type and set `optional = true`. So `option<int>` and `int?`
-        // produce identical AST. Nested `Type::Option` (inside compound types)
-        // is left alone.
-        let (ty, optional_from_type) = match raw {
-            ast::Type::Option { inner } => (*inner, true),
-            other => (other, false),
-        };
+        let (ty, optional) = self.type_expr.into_field_type();
         let mut raw_attributes: Vec<_> = self
             .attributes
             .into_iter()
@@ -609,7 +600,7 @@ impl FieldNode {
         ast::Field {
             name: self.name.value,
             ty,
-            optional: optional_from_marker || optional_from_type,
+            optional,
             flexible: false, // populated by validator
             raw_attributes,
         }
@@ -641,15 +632,30 @@ impl TypeNode {
     }
 }
 
-fn type_expr_into_ast_type(type_expr: TypeExpr) -> ast::Type {
-    let optional = type_expr.optional.is_some();
-    let ty = type_expr.type_node.into_ast();
-    if optional {
-        ast::Type::Option {
-            inner: Box::new(ty),
+impl TypeExpr {
+    fn into_type(self) -> ast::Type {
+        let optional = self.optional.is_some();
+        let ty = self.type_node.into_ast();
+        if optional {
+            ast::Type::Option {
+                inner: Box::new(ty),
+            }
+        } else {
+            ty
         }
-    } else {
-        ty
+    }
+
+    fn into_field_type(self) -> (ast::Type, bool) {
+        let optional_from_marker = self.optional.is_some();
+        let raw = self.type_node.into_ast();
+        // Normalize: if the parsed top-level type is `option<T>`, lift the
+        // inner type and set `optional = true`. So `option<int>` and `int?`
+        // produce identical AST. Nested `Type::Option` (inside compound types)
+        // is left alone.
+        match raw {
+            ast::Type::Option { inner } => (*inner, true),
+            other => (other, optional_from_marker),
+        }
     }
 }
 
@@ -789,7 +795,7 @@ impl FunctionBlock {
                         .collect()
                 })
                 .unwrap_or_default(),
-            return_type: type_expr_into_ast_type(self.return_type),
+            return_type: self.return_type.into_type(),
             body: ast::SurqlBlock {
                 body: extract_surql_body(&self.body.source),
             },
@@ -801,7 +807,7 @@ impl FunctionParamNode {
     fn into_ast(self) -> ast::FunctionParam {
         ast::FunctionParam {
             name: self.name.value,
-            ty: type_expr_into_ast_type(self.type_expr),
+            ty: self.type_expr.into_type(),
         }
     }
 }
