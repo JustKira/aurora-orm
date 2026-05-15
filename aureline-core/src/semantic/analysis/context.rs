@@ -9,15 +9,12 @@ pub(super) struct AnalysisContext {
     // Emitted SurrealDB names. This catches `User` and `user` colliding after
     // `pascal_to_snake` normalization.
     normalized_table_names: HashSet<String>,
-    // Analyzer declarations are referenced by full-text indexes.
-    analyzer_names: HashSet<String>,
 }
 
 impl AnalysisContext {
     pub(super) fn new(schema: &Schema) -> Self {
         let mut table_names = HashSet::new();
         let mut normalized_table_names = HashSet::new();
-        let mut analyzer_names = HashSet::new();
 
         for item in &schema.items {
             match item {
@@ -25,9 +22,7 @@ impl AnalysisContext {
                     table_names.insert(table.name.clone());
                     normalized_table_names.insert(normalized_name(&table.name));
                 }
-                SchemaItem::AnalyzerDecl(analyzer) => {
-                    analyzer_names.insert(analyzer.name.clone());
-                }
+                SchemaItem::AnalyzerDecl(_) => {}
                 SchemaItem::DocComment { .. } => {}
             }
         }
@@ -35,7 +30,6 @@ impl AnalysisContext {
         Self {
             table_names,
             normalized_table_names,
-            analyzer_names,
         }
     }
 
@@ -44,10 +38,6 @@ impl AnalysisContext {
         // table name (`User`) or the normalized SurrealDB table name (`user`).
         self.table_names.contains(name)
             || self.normalized_table_names.contains(&normalized_name(name))
-    }
-
-    pub(super) fn has_analyzer(&self, name: &str) -> bool {
-        self.analyzer_names.contains(name)
     }
 }
 

@@ -10,6 +10,7 @@ mod symbols;
 mod types;
 
 use crate::ast::Schema;
+use crate::schema_index::SchemaIndex;
 
 use super::{SemanticError, SemanticResult};
 use context::AnalysisContext;
@@ -23,13 +24,14 @@ pub fn analyze(schema: &Schema) -> SemanticResult {
     // Build shared lookup tables once so each semantic pass can focus on one
     // rule family instead of repeatedly walking the schema for common symbols.
     let context = AnalysisContext::new(schema);
+    let schema_index = SchemaIndex::from_schema(schema);
     let mut errors = Vec::new();
 
     // Keep the passes small and meaning-oriented. If one of these files grows
     // large, split it under a folder with the same name.
     symbols::analyze(schema, &context, &mut errors);
     types::analyze(schema, &context, &mut errors);
-    analyzers::analyze(schema, &context, &mut errors);
+    analyzers::analyze(schema, &schema_index, &mut errors);
     surql::analyze(schema, &mut errors);
 
     if errors.is_empty() {

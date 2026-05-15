@@ -1,9 +1,13 @@
 use crate::ast::{AttributeArg, AttributeValue, Schema, SchemaItem};
+use crate::schema_index::SchemaIndex;
 
-use super::context::AnalysisContext;
 use super::{SemanticError, error};
 
-pub(super) fn analyze(schema: &Schema, context: &AnalysisContext, errors: &mut Vec<SemanticError>) {
+pub(super) fn analyze(
+    schema: &Schema,
+    schema_index: &SchemaIndex<'_>,
+    errors: &mut Vec<SemanticError>,
+) {
     for item in &schema.items {
         let SchemaItem::TableDecl(table) = item else {
             continue;
@@ -22,7 +26,7 @@ pub(super) fn analyze(schema: &Schema, context: &AnalysisContext, errors: &mut V
                     continue;
                 };
 
-                if !context.has_analyzer(analyzer) {
+                if !schema_index.has_analyzer(analyzer) {
                     let mut err = error(format!("unknown analyzer `{analyzer}`"));
                     err.range = attr.source_range;
                     errors.push(err);
