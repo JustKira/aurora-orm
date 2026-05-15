@@ -1,0 +1,158 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to publish, for example v0.1.0-dev.2"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  github-release:
+    name: GitHub Release
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+
+    steps:
+      - name: Resolve tag
+        id: release
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out tag
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.release.outputs.tag }}
+
+      - name: Validate tag matches repo versions
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version="${TAG#v}"
+          if [[ "$TAG" == "$version" || -z "$version" ]]; then
+            echo "Release tags must start with v, for example v0.1.0-dev.2." >&2
+            exit 1
+          fi
+
+          expected="version = \"$version\""
+          files=(
+            Cargo.toml
+            aureline-cli/Cargo.toml
+            aureline-codegen/Cargo.toml
+            aureline-config/Cargo.toml
+            aureline-core/Cargo.toml
+            aureline-lsp/Cargo.toml
+            aureline-migrate/Cargo.toml
+          )
+
+          for file in "${files[@]}"; do
+            if ! grep -Fq "$expected" "$file"; then
+              echo "$file does not contain $expected" >&2
+              exit 1
+            fi
+          done
+
+          dependency_pin="version = \"=$version\""
+          for crate in aureline-codegen aureline-config aureline-core aureline-migrate; do
+            if ! grep -F "$crate = " Cargo.toml | grep -Fq "$dependency_pin"; then
+              echo "Cargo.toml dependency pin for $crate does not match =$version" >&2
+              exit 1
+            fi
+          done
+
+          node_version="\"version\": \"$version\""
+          for file in package.json aureline-tree-sitter/package.json; do
+            if ! grep -Fq "$node_version" "$file"; then
+              echo "$file does not contain $node_version" >&2
+              exit 1
+            fi
+          done
+
+      - name: Publish crates.io packages
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          TAG: ${{ steps.release.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+            echo "CARGO_REGISTRY_TOKEN secret is required to publish crates." >&2
+            exit 1
+          fi
+
+          version="${TAG#v}"
+
+          crate_exists() {
+            local crate="$1"
+            curl --fail --silent --show-error \
+              "https://crates.io/api/v1/crates/${crate}/${version}" \
+              >/dev/null 2>&1
+          }
+
+          publish_crate() {
+            local crate="$1"
+            if crate_exists "$crate"; then
+              echo "${crate} ${version} already exists on crates.io; skipping."
+              return
+            fi
+
+            for attempt in 1 2 3 4 5; do
+              publish_log="$(mktemp)"
+              if cargo publish --package "$crate" --locked 2>&1 | tee "$publish_log"; then
+                rm -f "$publish_log"
+                return
+              fi
+
+              if grep -Fq "already exists on crates.io index" "$publish_log"; then
+                echo "${crate} ${version} already exists on crates.io; skipping."
+                rm -f "$publish_log"
+                return
+              fi
+
+              rm -f "$publish_log"
+
+              if crate_exists "$crate"; then
+                echo "${crate} ${version} was published by a previous attempt."
+                return
+              fi
+
+              echo "cargo publish failed for ${crate} on attempt ${attempt}; retrying after crates.io index propagation."
+              sleep 30
+            done
+
+            echo "Failed to publish ${crate} ${version} after 5 attempts." >&2
+            exit 1
+          }
+
+          publish_crate aureline-core
+          publish_crate aureline-config
+          publish_crate aureline-migrate
+          publish_crate aureline-codegen
+          publish_crate aureline-lsp
+          publish_crate aureline-cli
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$TAG" \
+            --generate-notes \
+            --verify-tag

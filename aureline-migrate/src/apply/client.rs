@@ -27,8 +27,8 @@ impl Client {
     pub async fn connect(connection: Connection) -> Result<Self, ClientError> {
         let db = surrealdb::engine::any::connect(&connection.url).await?;
         db.signin(Root {
-            username: &connection.user,
-            password: &connection.pass,
+            username: connection.user.clone(),
+            password: connection.pass.clone(),
         })
         .await?;
         Ok(Self { db, connection })
@@ -55,8 +55,8 @@ impl Client {
     /// Run multi-statement SurrealQL and surface any per-statement error as a
     /// single `ClientError`. The caller is responsible for having already
     /// scoped the connection (or for embedding `USE NS .. DB ..` in `sql`).
-    pub async fn run_sql(&self, sql: &str) -> Result<surrealdb::Response, ClientError> {
-        let response = self.db.query(sql).await?;
-        Ok(response.check()?)
+    pub async fn run_sql(&self, sql: &str) -> Result<(), ClientError> {
+        self.db.query(sql).await?.check()?;
+        Ok(())
     }
 }

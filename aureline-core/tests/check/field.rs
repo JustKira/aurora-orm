@@ -6,13 +6,7 @@ use super::common::{
 
 #[test]
 fn invalid_type_highlights_full_token_for_lsp_consumers() {
-    let diagnostics = diagnostics_for(
-        r#"
-table Demo {
-  ttl duratio
-}
-"#,
-    );
+    let diagnostics = diagnostics_for(aureline_schema!("table Demo {", "  ttl duratio", "}",));
     let diagnostic = only_diagnostic(&diagnostics);
 
     assert_eq!(diagnostic.code, DiagnosticCode::ParseError);
@@ -21,18 +15,16 @@ table Demo {
         "{}",
         diagnostic.message
     );
-    assert_range(diagnostic, (2, 6), (2, 13));
+    assert_range(diagnostic, (1, 6), (1, 13));
 }
 
 #[test]
 fn array_missing_length_explains_array_syntax() {
-    let diagnostics = diagnostics_for(
-        r#"
-table Demo {
-  tags array<string, >
-}
-"#,
-    );
+    let diagnostics = diagnostics_for(aureline_schema!(
+        "table Demo {",
+        "  tags array<string, >",
+        "}",
+    ));
     let diagnostic = only_diagnostic(&diagnostics);
 
     assert_eq!(diagnostic.code, DiagnosticCode::ParseError);
@@ -47,13 +39,11 @@ table Demo {
 
 #[test]
 fn set_missing_length_explains_set_syntax() {
-    let diagnostics = diagnostics_for(
-        r#"
-table Demo {
-  tags set<string, >
-}
-"#,
-    );
+    let diagnostics = diagnostics_for(aureline_schema!(
+        "table Demo {",
+        "  tags set<string, >",
+        "}",
+    ));
     let diagnostic = only_diagnostic(&diagnostics);
 
     assert_eq!(diagnostic.code, DiagnosticCode::ParseError);
@@ -68,13 +58,7 @@ table Demo {
 
 #[test]
 fn geometry_empty_feature_list_explains_expected_features() {
-    let diagnostics = diagnostics_for(
-        r#"
-table Demo {
-  shape geometry<>
-}
-"#,
-    );
+    let diagnostics = diagnostics_for(aureline_schema!("table Demo {", "  shape geometry<>", "}",));
     let diagnostic = only_diagnostic(&diagnostics);
 
     assert_eq!(diagnostic.code, DiagnosticCode::ParseError);
@@ -88,14 +72,12 @@ table Demo {
 
 #[test]
 fn non_ascii_text_before_parse_error_does_not_panic() {
-    let diagnostics = diagnostics_for(
-        r#"
-/// مرحبا
-table Demo {
-  name string @default("x"
-}
-"#,
-    );
+    let diagnostics = diagnostics_for(aureline_schema!(
+        "/// مرحبا",
+        "table Demo {",
+        "  name string @default(\"x\"",
+        "}",
+    ));
     let diagnostic = only_diagnostic(&diagnostics);
 
     assert_eq!(diagnostic.code, DiagnosticCode::ParseError);
@@ -107,34 +89,23 @@ table Demo {
 
 #[test]
 fn record_missing_type_close_documents_current_field_context_error() {
-    let diagnostics = diagnostics_for(
-        r#"
-table Demo {
-  owner record<User
-}
-"#,
-    );
+    let diagnostics =
+        diagnostics_for(aureline_schema!("table Demo {", "  owner record<User", "}",));
 
     assert_single_diagnostic(
         &diagnostics,
         ExpectedDiagnostic {
             code: DiagnosticCode::ParseError,
             message: "expected end of file, field attribute block, `?`, or field attribute",
-            start: (2, 14),
-            end: (2, 15),
+            start: (1, 14),
+            end: (1, 15),
         },
     );
 }
 
 #[test]
 fn missing_field_type_reports_type() {
-    let diagnostics = diagnostics_for(
-        r#"
-table Demo {
-  name
-}
-"#,
-    );
+    let diagnostics = diagnostics_for(aureline_schema!("table Demo {", "  name", "}",));
     let diagnostic = only_diagnostic(&diagnostics);
 
     assert_eq!(diagnostic.code, DiagnosticCode::ParseError);
@@ -143,18 +114,12 @@ table Demo {
         "{}",
         diagnostic.message
     );
-    assert_range(diagnostic, (2, 6), (2, 7));
+    assert_range(diagnostic, (1, 6), (1, 7));
 }
 
 #[test]
 fn type_written_as_field_name_reports_missing_type() {
-    let diagnostics = diagnostics_for(
-        r#"
-table Demo {
-  string
-}
-"#,
-    );
+    let diagnostics = diagnostics_for(aureline_schema!("table Demo {", "  string", "}",));
     let diagnostic = only_diagnostic(&diagnostics);
 
     assert_eq!(diagnostic.code, DiagnosticCode::ParseError);
@@ -163,5 +128,5 @@ table Demo {
         "{}",
         diagnostic.message
     );
-    assert_range(diagnostic, (2, 8), (2, 9));
+    assert_range(diagnostic, (1, 8), (1, 9));
 }

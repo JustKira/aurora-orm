@@ -1,9 +1,11 @@
 [package]
 name = "aureline-migrate"
-version = "0.1.0-dev.1"
+description = "Migration diffing and application support for Aureline schemas."
+version = "0.1.0-dev.2"
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
+repository.workspace = true
 
 [dependencies]
 aureline-config.workspace = true
@@ -16,6 +18,9 @@ sha2 = "0.10"
 toml = "0.8"
 
 # Apply pipeline (talks to a live SurrealDB via the official SDK).
-surrealdb = { version = "2", default-features = false, features = ["protocol-http", "protocol-ws", "rustls"] }
+surrealdb = { version = "3.1.0-beta.3", default-features = false, features = ["protocol-http", "protocol-ws", "rustls"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 dotenvy = "0.15"
+
+[dev-dependencies]
+aureline-test-support.workspace = true

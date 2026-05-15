@@ -6,9 +6,12 @@ dist/
 .env
 .env.local
 .moon/cache/
+.moon/docker/
 .tmp/
 .research/
 /schema.aurora
+/schema.aureline
 
 # opensrc - source code for packages
 opensrc/
+.sisyphus

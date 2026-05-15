@@ -42,7 +42,6 @@ pub struct SourceFile {
 #[pest_ast(rule(Rule::schema_item))]
 pub enum SchemaItem {
     DocComment(DocComment),
-    SurqlBlock(SurqlBlock),
     TableBlock(TableBlock),
     AnalyzerBlock(AnalyzerBlock),
     FunctionBlock(FunctionBlock),
@@ -52,7 +51,6 @@ pub enum SchemaItem {
 #[pest_ast(rule(Rule::source_items))]
 pub enum SourceItem {
     DocComment(DocComment),
-    SurqlBlock(SurqlBlock),
     TableBlock(TableBlock),
     AnalyzerBlock(AnalyzerBlock),
     FunctionBlock(FunctionBlock),
@@ -140,6 +138,8 @@ pub struct DocCommentLine {
 #[derive(FromPest)]
 #[pest_ast(rule(Rule::table_block))]
 pub struct TableBlock {
+    #[pest_ast(outer(with(span_to_source_range)))]
+    pub source_range: SourceRange,
     pub name: Identifier,
     pub modifier: Option<TableModifier>,
     pub members: Vec<TableMember>,
@@ -186,6 +186,8 @@ pub struct BlockAttributeLine {
 #[derive(FromPest)]
 #[pest_ast(rule(Rule::field))]
 pub struct FieldNode {
+    #[pest_ast(outer(with(span_to_source_range)))]
+    pub source_range: SourceRange,
     pub name: Identifier,
     pub type_expr: TypeExpr,
     pub attributes: Vec<AttributeNode>,
@@ -379,6 +381,8 @@ pub struct AttrString {
 #[derive(FromPest)]
 #[pest_ast(rule(Rule::analyzer_block))]
 pub struct AnalyzerBlock {
+    #[pest_ast(outer(with(span_to_source_range)))]
+    pub source_range: SourceRange,
     pub name: Identifier,
     pub members: Vec<AnalyzerMember>,
 }
@@ -433,6 +437,8 @@ pub struct FilterArgNode {
 #[derive(FromPest)]
 #[pest_ast(rule(Rule::function_block))]
 pub struct FunctionBlock {
+    #[pest_ast(outer(with(span_to_source_range)))]
+    pub source_range: SourceRange,
     pub name: Identifier,
     pub params: Option<FunctionParams>,
     pub return_type: TypeExpr,
@@ -464,6 +470,8 @@ pub struct FunctionAttributeLine {
 #[derive(FromPest)]
 #[pest_ast(rule(Rule::identifier))]
 pub struct Identifier {
+    #[pest_ast(outer(with(span_to_source_range)))]
+    pub source_range: SourceRange,
     #[pest_ast(outer(with(span_to_string)))]
     pub value: String,
 }
@@ -498,7 +506,6 @@ impl SchemaItem {
     fn into_ast(self) -> ast::SchemaItem {
         match self {
             SchemaItem::DocComment(doc_comment) => doc_comment.into_ast(),
-            SchemaItem::SurqlBlock(block) => block.into_ast(),
             SchemaItem::TableBlock(table) => ast::SchemaItem::TableDecl(table.into_ast()),
             SchemaItem::AnalyzerBlock(analyzer) => {
                 ast::SchemaItem::AnalyzerDecl(analyzer.into_ast())
@@ -514,7 +521,6 @@ impl SourceItem {
     fn into_ast(self) -> Option<ast::SchemaItem> {
         match self {
             SourceItem::DocComment(doc_comment) => Some(doc_comment.into_ast()),
-            SourceItem::SurqlBlock(block) => Some(block.into_ast()),
             SourceItem::TableBlock(table) => Some(ast::SchemaItem::TableDecl(table.into_ast())),
             SourceItem::AnalyzerBlock(analyzer) => {
                 Some(ast::SchemaItem::AnalyzerDecl(analyzer.into_ast()))
@@ -540,14 +546,6 @@ impl DocComment {
     }
 }
 
-impl SurqlBlock {
-    fn into_ast(self) -> ast::SchemaItem {
-        ast::SchemaItem::SurqlBlock(ast::SurqlBlock {
-            body: extract_surql_body(&self.source),
-        })
-    }
-}
-
 fn extract_surql_body(source: &str) -> String {
     let body_start = source.find('{').map_or(0, |idx| idx + 1);
     let body_end = source.rfind('}').unwrap_or(source.len());
@@ -562,6 +560,10 @@ fn extract_surql_inline_body(source: &str) -> String {
 
 impl TableBlock {
     fn into_ast(self) -> ast::Table {
+        let Identifier {
+            value: name,
+            source_range: name_range,
+        } = self.name;
         let mut fields = Vec::new();
         let mut raw_attributes = Vec::new();
         for member in self.members {
@@ -573,10 +575,12 @@ impl TableBlock {
             }
         }
         ast::Table {
-            name: self.name.value,
+            name,
+            source_range: Some(self.source_range),
+            name_range: Some(name_range),
             modifier: self.modifier.map(|modifier| modifier.value),
             fields,
-            indexes: Vec::new(), // populated by validator
+            indexes: Vec::new(), // populated by semantic lowering
             raw_attributes,
         }
     }
@@ -590,6 +594,10 @@ impl FieldLine {
 
 impl FieldNode {
     fn into_ast(self) -> ast::Field {
+        let Identifier {
+            value: name,
+            source_range: name_range,
+        } = self.name;
         let (ty, optional) = self.type_expr.into_field_type();
         let mut raw_attributes: Vec<_> = self
             .attributes
@@ -605,10 +613,12 @@ impl FieldNode {
             );
         }
         ast::Field {
-            name: self.name.value,
+            name,
+            source_range: Some(self.source_range),
+            name_range: Some(name_range),
             ty,
             optional,
-            flexible: false, // populated by validator
+            flexible: false, // populated by semantic lowering
             raw_attributes,
         }
     }
@@ -757,6 +767,10 @@ impl AttrValueNode {
 
 impl AnalyzerBlock {
     fn into_ast(self) -> ast::Analyzer {
+        let Identifier {
+            value: name,
+            source_range: name_range,
+        } = self.name;
         let mut tokenizers = Vec::new();
         let mut filters = Vec::new();
         for member in self.members {
@@ -772,7 +786,9 @@ impl AnalyzerBlock {
             }
         }
         ast::Analyzer {
-            name: self.name.value,
+            name,
+            source_range: Some(self.source_range),
+            name_range: Some(name_range),
             tokenizers,
             filters,
         }
@@ -790,8 +806,14 @@ impl FilterCallNode {
 
 impl FunctionBlock {
     fn into_ast(self) -> ast::Function {
+        let Identifier {
+            value: name,
+            source_range: name_range,
+        } = self.name;
         ast::Function {
-            name: self.name.value,
+            name,
+            source_range: Some(self.source_range),
+            name_range: Some(name_range),
             params: self
                 .params
                 .map(|params| {
@@ -817,8 +839,13 @@ impl FunctionBlock {
 
 impl FunctionParamNode {
     fn into_ast(self) -> ast::FunctionParam {
+        let Identifier {
+            value: name,
+            source_range: name_range,
+        } = self.name;
         ast::FunctionParam {
-            name: self.name.value,
+            name,
+            name_range: Some(name_range),
             ty: self.type_expr.into_type(),
         }
     }

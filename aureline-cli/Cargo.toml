@@ -1,10 +1,11 @@
 [package]
 name = "aureline-cli"
-description = "Internal Aureline CLI proof of concept."
-version = "0.1.0-dev.1"
+description = "Command-line interface for Aureline schema tooling."
+version = "0.1.0-dev.2"
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
+repository.workspace = true
 
 [[bin]]
 name = "aureline"

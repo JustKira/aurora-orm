@@ -18,9 +18,9 @@ export default defineConfig({
       },
     }),
     react(),
-    // please see https://tanstack.com/start/latest/docs/framework/react/guide/hosting#nitro for guides on hosting
+    // Railway runs the docs as a long-lived Bun server from the Docker image.
     nitro({
-      preset: 'vercel',
+      preset: 'bun',
     }),
   ],
   resolve: {

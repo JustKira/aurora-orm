@@ -12,8 +12,6 @@ pub struct Schema {
 pub enum SchemaItem {
     #[serde(rename = "doc_comment")]
     DocComment { text: String },
-    #[serde(rename = "surql")]
-    SurqlBlock(SurqlBlock),
     #[serde(rename = "table")]
     TableDecl(Table),
     #[serde(rename = "analyzer")]
@@ -29,9 +27,13 @@ pub struct SurqlBlock {
 
 /// Top-level user-defined function declaration. Aureline owns the typed
 /// signature; the body remains a raw SurQL escape hatch.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Function {
     pub name: String,
+    #[serde(skip)]
+    pub source_range: Option<SourceRange>,
+    #[serde(skip)]
+    pub name_range: Option<SourceRange>,
     pub params: Vec<FunctionParam>,
     #[serde(rename = "return")]
     pub return_type: Type,
@@ -41,34 +43,70 @@ pub struct Function {
     pub raw_attributes: Vec<Attribute>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+impl PartialEq for Function {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+            && self.params == other.params
+            && self.return_type == other.return_type
+            && self.body == other.body
+            && self.raw_attributes == other.raw_attributes
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FunctionParam {
     pub name: String,
+    #[serde(skip)]
+    pub name_range: Option<SourceRange>,
     #[serde(rename = "type")]
     pub ty: Type,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+impl PartialEq for FunctionParam {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name && self.ty == other.ty
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Table {
     pub name: String,
+    #[serde(skip)]
+    pub source_range: Option<SourceRange>,
+    #[serde(skip)]
+    pub name_range: Option<SourceRange>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub modifier: Option<String>,
     pub fields: Vec<Field>,
-    /// Indexes on this table. Populated by the validator from `@`/`@@`
+    /// Indexes on this table. Populated by semantic lowering from `@`/`@@`
     /// attributes; empty in the raw post-parse AST.
     #[serde(default)]
     pub indexes: Vec<Index>,
     /// Block-level `@@`-attributes the user wrote. Kept around for the LSP
     /// (hover, completion, structured diagnostics) and for error messages
-    /// that point back at the original source. The validator consumes these
+    /// that point back at the original source. Semantic lowering consumes these
     /// to populate `indexes`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub raw_attributes: Vec<Attribute>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+impl PartialEq for Table {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+            && self.modifier == other.modifier
+            && self.fields == other.fields
+            && self.indexes == other.indexes
+            && self.raw_attributes == other.raw_attributes
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Field {
     pub name: String,
+    #[serde(skip)]
+    pub source_range: Option<SourceRange>,
+    #[serde(skip)]
+    pub name_range: Option<SourceRange>,
     #[serde(rename = "type")]
     pub ty: Type,
     /// True for trailing-`?` syntax (`int?`). Top-level `option<T>` is normalized
@@ -84,19 +122,41 @@ pub struct Field {
     pub raw_attributes: Vec<Attribute>,
 }
 
+impl PartialEq for Field {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+            && self.ty == other.ty
+            && self.optional == other.optional
+            && self.flexible == other.flexible
+            && self.raw_attributes == other.raw_attributes
+    }
+}
+
 fn is_false(b: &bool) -> bool {
     !*b
 }
 
 /// Top-level analyzer declaration. Mirrors SurrealDB's
 /// `DEFINE ANALYZER name TOKENIZERS ... FILTERS ...`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Analyzer {
     pub name: String,
+    #[serde(skip)]
+    pub source_range: Option<SourceRange>,
+    #[serde(skip)]
+    pub name_range: Option<SourceRange>,
     #[serde(default)]
     pub tokenizers: Vec<String>,
     #[serde(default)]
     pub filters: Vec<FilterCall>,
+}
+
+impl PartialEq for Analyzer {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+            && self.tokenizers == other.tokenizers
+            && self.filters == other.filters
+    }
 }
 
 /// A filter applied to an analyzer. May or may not have args (e.g.
@@ -109,7 +169,7 @@ pub struct FilterCall {
 }
 
 /// Generic attribute as parsed from source. The grammar produces these
-/// without knowing what they mean; the validator interprets them.
+/// without knowing what they mean; semantic lowering interprets them.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Attribute {
     pub name: String,
@@ -157,7 +217,7 @@ pub enum AttributeValue {
 }
 
 /// A SurrealDB index, post-validation. Built from the user's `@`/`@@`
-/// attributes by the validator.
+/// attributes by semantic lowering.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Index {
     pub name: String,

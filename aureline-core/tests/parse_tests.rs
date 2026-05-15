@@ -277,13 +277,8 @@ table T schemafull {
 }
 
 #[test]
-fn parses_top_level_surql_block() {
-    let schema = parse_to_ast("#surql { RETURN 1; }").unwrap();
-
-    match &schema.items[0] {
-        SchemaItem::SurqlBlock(block) => assert_eq!(block.body.trim(), "RETURN 1;"),
-        other => panic!("expected top-level SurQL block, got {other:?}"),
-    }
+fn rejects_top_level_surql_block() {
+    assert!(parse_to_ast("#surql { RETURN 1; }").is_err());
 }
 
 #[test]
@@ -304,10 +299,19 @@ function get_full_name(first: string, last: string) -> string {
             assert_eq!(function.name, "get_full_name");
             assert_eq!(function.params.len(), 2);
             assert_eq!(function.params[0].name, "first");
-            assert_eq!(function.params[0].ty, aureline_core::ast::Type::primitive("string"));
+            assert_eq!(
+                function.params[0].ty,
+                aureline_core::ast::Type::primitive("string")
+            );
             assert_eq!(function.params[1].name, "last");
-            assert_eq!(function.params[1].ty, aureline_core::ast::Type::primitive("string"));
-            assert_eq!(function.return_type, aureline_core::ast::Type::primitive("string"));
+            assert_eq!(
+                function.params[1].ty,
+                aureline_core::ast::Type::primitive("string")
+            );
+            assert_eq!(
+                function.return_type,
+                aureline_core::ast::Type::primitive("string")
+            );
             assert!(function.body.body.contains("RETURN $first + ' ' + $last;"));
             assert_eq!(function.raw_attributes.len(), 1);
             assert_eq!(function.raw_attributes[0].name, "allow");
@@ -508,8 +512,8 @@ fn parses_field_attribute_blocks() {
     let source = r#"
 table User {
   id string {
-    @allow(op: "SELECT", #surql { WHERE $value != NONE })
-    @allow(op: "UPDATE",#surql { WHERE $value != NONE })
+    @allow(op: "SELECT", #surql { WHERE $auth.id != NONE })
+    @allow(op: "UPDATE",#surql { WHERE $auth.id != NONE })
   }
 }
 "#;
