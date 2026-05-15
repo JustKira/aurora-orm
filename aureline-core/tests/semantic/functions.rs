@@ -77,6 +77,44 @@ fn function_allow_rejects_invalid_permission_surql() {
 }
 
 #[test]
+fn function_params_cannot_use_reserved_builtin_names() {
+    let errors = semantic_errors(aureline_schema!(
+        "function f(auth: string) -> string {",
+        "  #surql {",
+        "    RETURN $auth;",
+        "  }",
+        "}",
+    ));
+
+    let reserved = errors
+        .iter()
+        .find(|error| {
+            error
+                .message
+                .contains("function parameter name `auth` is reserved")
+        })
+        .expect("reserved parameter name should be reported");
+    assert!(reserved.range.is_some(), "{errors:#?}");
+    assert!(
+        !errors
+            .iter()
+            .any(|error| error.message.contains("missing references")),
+        "reserved params should not also produce misleading missing-reference errors: {errors:#?}"
+    );
+}
+
+#[test]
+fn function_body_allows_undeclared_builtin_references() {
+    checked_schema(aureline_schema!(
+        "function current_user() -> string {",
+        "  #surql {",
+        "    RETURN $auth.id;",
+        "  }",
+        "}",
+    ));
+}
+
+#[test]
 fn function_body_must_reference_declared_arguments() {
     assert_semantic_error_contains(
         aureline_schema!(

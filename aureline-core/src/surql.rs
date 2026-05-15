@@ -93,7 +93,7 @@ pub fn parse_query(query: &str) -> Result<ParsedSurql, SurqlParseError> {
         })
 }
 
-fn is_builtin_param(name: &str) -> bool {
+pub(crate) fn is_builtin_param(name: &str) -> bool {
     matches!(
         name,
         "after"

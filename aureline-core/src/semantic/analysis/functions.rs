@@ -12,8 +12,22 @@ pub(super) fn analyze(schema: &Schema, errors: &mut Vec<SemanticError>) {
             continue;
         };
 
+        validate_reserved_params(function, errors);
         validate_body_params(function, errors);
         validate_attributes(function, errors);
+    }
+}
+
+fn validate_reserved_params(function: &Function, errors: &mut Vec<SemanticError>) {
+    for param in &function.params {
+        if crate::surql::is_builtin_param(&param.name) {
+            let mut err = error(format!(
+                "function parameter name `{}` is reserved",
+                param.name
+            ));
+            err.range = param.name_range.or(function.source_range);
+            errors.push(err);
+        }
     }
 }
 
@@ -21,6 +35,7 @@ fn validate_body_params(function: &Function, errors: &mut Vec<SemanticError>) {
     let declared = function
         .params
         .iter()
+        .filter(|param| !crate::surql::is_builtin_param(&param.name))
         .map(|param| param.name.clone())
         .collect::<BTreeSet<_>>();
 
