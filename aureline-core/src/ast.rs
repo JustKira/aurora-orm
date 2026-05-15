@@ -36,6 +36,9 @@ pub struct Function {
     #[serde(rename = "return")]
     pub return_type: Type,
     pub body: SurqlBlock,
+    /// Function-level `@@` attributes. Currently only `@@allow` is supported.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub raw_attributes: Vec<Attribute>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

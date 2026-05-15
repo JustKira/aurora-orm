@@ -437,6 +437,7 @@ pub struct FunctionBlock {
     pub params: Option<FunctionParams>,
     pub return_type: TypeExpr,
     pub body: SurqlBlock,
+    pub attributes: Vec<FunctionAttributeLine>,
 }
 
 #[derive(FromPest)]
@@ -450,6 +451,12 @@ pub struct FunctionParams {
 pub struct FunctionParamNode {
     pub name: Identifier,
     pub type_expr: TypeExpr,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::function_attribute_line))]
+pub struct FunctionAttributeLine {
+    pub attribute: BlockAttribute,
 }
 
 // === Identifier ===
@@ -799,6 +806,11 @@ impl FunctionBlock {
             body: ast::SurqlBlock {
                 body: extract_surql_body(&self.body.source),
             },
+            raw_attributes: self
+                .attributes
+                .into_iter()
+                .map(|line| line.attribute.into_attribute())
+                .collect(),
         }
     }
 }

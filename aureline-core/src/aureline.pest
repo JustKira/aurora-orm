@@ -48,9 +48,10 @@ filter_call          =  { identifier ~ ("(" ~ filter_arg ~ ("," ~ filter_arg)* ~
 filter_arg           = @{ ASCII_ALPHANUMERIC+ }
 
 // Top-level user-defined function declaration.
-function_block  = { "function" ~ identifier ~ "(" ~ function_params? ~ ")" ~ "->" ~ type_expr ~ BLOCK_START ~ EMPTY_LINES* ~ surql_block ~ EMPTY_LINES* ~ BLOCK_END }
-function_params = { function_param ~ ("," ~ function_param)* }
-function_param  = { identifier ~ ":" ~ type_expr }
+function_block          = { "function" ~ identifier ~ "(" ~ function_params? ~ ")" ~ "->" ~ type_expr ~ BLOCK_START ~ EMPTY_LINES* ~ surql_block ~ EMPTY_LINES* ~ (function_attribute_line ~ EMPTY_LINES*)* ~ BLOCK_END }
+function_params         = { function_param ~ ("," ~ function_param)* }
+function_param          = { identifier ~ ":" ~ type_expr }
+function_attribute_line = { block_attribute ~ LINE_END }
 
 // Table: fields and block-attributes (any order). Both can appear repeatedly.
 table_block    = { "table" ~ identifier ~ table_modifier? ~ BLOCK_START ~ EMPTY_LINES* ~ (table_member ~ EMPTY_LINES*)* ~ BLOCK_END }

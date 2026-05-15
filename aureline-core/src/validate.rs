@@ -8,8 +8,8 @@
 use std::fmt;
 
 use crate::ast::{
-    Attribute, AttributeArg, AttributeValue, Bm25, Field, Index, IndexKind, Schema, SchemaItem,
-    Table, Type,
+    Attribute, AttributeArg, AttributeValue, Bm25, Field, Function, Index, IndexKind, Schema,
+    SchemaItem, Table, Type,
 };
 use crate::check::diagnostics::SourceRange;
 
@@ -38,8 +38,12 @@ pub fn validate(schema: &mut Schema) -> Result<(), Vec<ValidationError>> {
     let mut errors = Vec::new();
 
     for item in &mut schema.items {
-        if let SchemaItem::TableDecl(table) = item {
-            validate_table(table, &mut errors);
+        match item {
+            SchemaItem::TableDecl(table) => validate_table(table, &mut errors),
+            SchemaItem::FunctionDecl(function) => validate_function(function, &mut errors),
+            SchemaItem::DocComment { .. }
+            | SchemaItem::SurqlBlock(_)
+            | SchemaItem::AnalyzerDecl(_) => {}
         }
     }
 
@@ -65,6 +69,23 @@ fn validate_table(table: &mut Table, errors: &mut Vec<ValidationError>) {
     }
 
     table.indexes = indexes;
+}
+
+const FUNCTION_ATTRS: &[&str] = &["allow"];
+
+fn validate_function(function: &Function, errors: &mut Vec<ValidationError>) {
+    for attr in &function.raw_attributes {
+        match attr.name.as_str() {
+            "allow" => {
+                if let Err(error) = validate_function_allow_args(attr) {
+                    errors.push(error);
+                }
+            }
+            unknown => {
+                errors.push(unknown_attribute(unknown, FUNCTION_ATTRS, "function block").at(attr))
+            }
+        }
+    }
 }
 
 const FIELD_ATTRS: &[&str] = &[
@@ -281,6 +302,75 @@ fn validate_allow_args(attr: &Attribute) -> Result<(), ValidationError> {
             range: source_range.or(attr.source_range),
         }
     })
+}
+
+fn validate_function_allow_args(attr: &Attribute) -> Result<(), ValidationError> {
+    let mut operation = None;
+    let mut permission = None;
+
+    for arg in &attr.args {
+        match arg {
+            AttributeArg::Keyword { name, value } if name == "op" => {
+                if operation.is_some() {
+                    return Err(err_at(
+                        attr,
+                        "@@allow has duplicate `op:` arguments".to_string(),
+                    ));
+                }
+                let AttributeValue::String { value } = value else {
+                    return Err(err_at(
+                        attr,
+                        "@@allow `op:` must be a string literal like \"RUN\"".to_string(),
+                    ));
+                };
+                operation = Some(value.as_str());
+            }
+            AttributeArg::Keyword { name, .. } => {
+                return Err(err_at(
+                    attr,
+                    format!("unknown @@allow arg `{name}`; expected `op`"),
+                ));
+            }
+            AttributeArg::Positional {
+                value: AttributeValue::Surql { body, .. },
+            } => {
+                if permission.is_some() {
+                    return Err(err_at(
+                        attr,
+                        "@@allow has duplicate `#surql { ... }` permission blocks".to_string(),
+                    ));
+                }
+                permission = Some(body);
+            }
+            AttributeArg::Positional { .. } => {
+                return Err(err_at(
+                    attr,
+                    "@@allow positional arguments must be `#surql { ... }`; use `op: \"RUN\"` for the operation".to_string(),
+                ));
+            }
+        }
+    }
+
+    let Some(operation) = operation else {
+        return Err(err_at(
+            attr,
+            "@@allow requires an `op: \"RUN\"` argument".to_string(),
+        ));
+    };
+    if !operation.eq_ignore_ascii_case("RUN") {
+        return Err(err_at(
+            attr,
+            format!("unknown @@allow operation `{operation}`; expected RUN"),
+        ));
+    }
+    if permission.is_none() {
+        return Err(err_at(
+            attr,
+            "@@allow requires one positional `#surql { ... }` permission block".to_string(),
+        ));
+    }
+
+    Ok(())
 }
 
 /// `@unique` / `@index` accept only one optional kw arg: `name: "..."`.
@@ -600,7 +690,7 @@ fn err_at(attr: &Attribute, message: String) -> ValidationError {
 
 fn unknown_attribute(name: &str, valid: &[&str], scope: &str) -> ValidationError {
     let suggestion = closest_match(name, valid);
-    let prefix = if scope == "block" { "@@" } else { "@" };
+    let prefix = if scope.contains("block") { "@@" } else { "@" };
     ValidationError {
         message: format!("unknown {scope} attribute `{prefix}{name}`"),
         hint: suggestion.map(|s| format!("did you mean `{prefix}{s}`?")),

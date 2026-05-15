@@ -293,6 +293,7 @@ function get_full_name(first: string, last: string) -> string {
   #surql {
     RETURN $first + ' ' + $last;
   }
+  @@allow(op: "RUN", #surql { WHERE owner = $auth.id })
 }
 "#;
 
@@ -308,6 +309,8 @@ function get_full_name(first: string, last: string) -> string {
             assert_eq!(function.params[1].ty, aureline_core::ast::Type::primitive("string"));
             assert_eq!(function.return_type, aureline_core::ast::Type::primitive("string"));
             assert!(function.body.body.contains("RETURN $first + ' ' + $last;"));
+            assert_eq!(function.raw_attributes.len(), 1);
+            assert_eq!(function.raw_attributes[0].name, "allow");
         }
         other => panic!("expected function declaration, got {other:?}"),
     }

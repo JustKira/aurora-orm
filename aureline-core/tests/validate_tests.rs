@@ -378,6 +378,82 @@ analyzer edu {
 }
 
 #[test]
+fn function_allow_run_round_trips_through_parse_validated() {
+    let src = r#"
+function get_full_name(first: string, last: string) -> string {
+  #surql {
+    RETURN $first + ' ' + $last;
+  }
+  @@allow(op: "RUN", #surql { WHERE owner = $auth.id })
+}
+"#;
+
+    let schema = parse_validated(src).unwrap();
+    let function = schema
+        .items
+        .iter()
+        .find_map(|i| match i {
+            SchemaItem::FunctionDecl(function) => Some(function),
+            _ => None,
+        })
+        .unwrap();
+
+    assert_eq!(function.name, "get_full_name");
+    assert_eq!(function.raw_attributes.len(), 1);
+    assert_eq!(function.raw_attributes[0].name, "allow");
+}
+
+#[test]
+fn function_rejects_non_allow_block_attribute() {
+    let src = r#"
+function get_full_name(first: string, last: string) -> string {
+  #surql {
+    RETURN $first + ' ' + $last;
+  }
+  @@index(fields: [first])
+}
+"#;
+
+    let err = parse_validated(src).unwrap_err();
+    let AurelineError::Validation(errs) = err else {
+        panic!("expected validation error");
+    };
+
+    assert_eq!(errs.len(), 1);
+    assert!(
+        errs[0]
+            .message
+            .contains("unknown function block attribute `@@index`"),
+        "{}",
+        errs[0].message
+    );
+}
+
+#[test]
+fn function_allow_only_accepts_run_operation() {
+    let src = r#"
+function get_full_name(first: string, last: string) -> string {
+  #surql {
+    RETURN $first + ' ' + $last;
+  }
+  @@allow(op: "SELECT", #surql { WHERE owner = $auth.id })
+}
+"#;
+
+    let err = parse_validated(src).unwrap_err();
+    let AurelineError::Validation(errs) = err else {
+        panic!("expected validation error");
+    };
+
+    assert_eq!(errs.len(), 1);
+    assert!(
+        errs[0].message.contains("expected RUN"),
+        "{}",
+        errs[0].message
+    );
+}
+
+#[test]
 fn field_unique_with_name_keyword() {
     let src = r#"
 table user {
