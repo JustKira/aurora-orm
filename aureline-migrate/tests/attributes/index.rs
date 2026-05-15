@@ -116,6 +116,30 @@ fn creates_table_with_indexes_after_fields() {
 }
 
 #[test]
+fn removes_table_without_removing_its_indexes_separately() {
+    let prev = parse_schema(aureline_schema!(
+        "table User {",
+        "  account string",
+        "  email string @index",
+        "",
+        "  @@index(fields: [account, email], name: account_email_lookup)",
+        "}",
+    ));
+
+    assert_eq!(
+        diff_up(&prev, &empty_schema()),
+        expected_surql!("REMOVE TABLE user;")
+    );
+    assert_eq!(
+        diff_down(&prev, &empty_schema()),
+        expected_surql!(
+            "-- down: RemoveTable User cannot restore data",
+            "DEFINE TABLE user;",
+        )
+    );
+}
+
+#[test]
 fn removes_field_index_from_existing_table() {
     let prev = parse_schema(aureline_schema!(
         "table User {",

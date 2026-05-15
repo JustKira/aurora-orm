@@ -38,9 +38,10 @@ pub fn diff_schemas(prev: &Schema, new: &Schema) -> Vec<Op> {
 fn diff_indexes(prev: &SchemaIndex<'_>, new: &SchemaIndex<'_>, changes: &mut Vec<Change>) {
     for (name, change) in diff_by_key(&prev.tables, &new.tables) {
         match change {
-            Diff::Added(_) | Diff::Removed(_) | Diff::Change(_, _) => {
+            Diff::Added(_) | Diff::Change(_, _) => {
                 diff_table_indexes(name, prev, new, changes);
             }
+            Diff::Removed(_) => {}
         }
     }
 }
