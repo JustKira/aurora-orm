@@ -95,7 +95,12 @@ impl Op {
             Op::DefineAnalyzer(analyzer) => format!("+ DEFINE ANALYZER {}", analyzer.name),
             Op::RemoveAnalyzer(analyzer) => format!("- REMOVE ANALYZER {}", analyzer.name),
             Op::DefineIndex { table, index } => {
-                format!("+ DEFINE INDEX {} ON {} FIELDS {}", index.name, table, index.fields.join(", "))
+                format!(
+                    "+ DEFINE INDEX {} ON {} FIELDS {}",
+                    index.name,
+                    table,
+                    index.fields.join(", ")
+                )
             }
             Op::RemoveIndex { table, index } => {
                 format!("- REMOVE INDEX {} ON {}", index.name, table)

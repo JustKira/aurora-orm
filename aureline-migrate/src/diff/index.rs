@@ -43,10 +43,10 @@ pub(crate) fn diff_table_indexes(
     additions.sort_by(|left, right| compare_index_order(left, right));
 
     for index in additions {
-            changes.push(Change::IndexAdded {
-                table: table_name.to_string(),
-                index: index.clone(),
-            });
+        changes.push(Change::IndexAdded {
+            table: table_name.to_string(),
+            index: index.clone(),
+        });
     }
 }
 

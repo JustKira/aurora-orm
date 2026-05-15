@@ -14,7 +14,7 @@ pub(crate) fn diff_table_fields(
     let prev_fields = fields_by_name(&prev.fields);
     let new_fields = fields_by_name(&new.fields);
 
-    for (name, change) in diff_by_key(&prev_fields, &new_fields) {
+    for (_name, change) in diff_by_key(&prev_fields, &new_fields) {
         match change {
             Diff::Added(field) => changes.push(Change::FieldAdded {
                 table: table_name.to_string(),
