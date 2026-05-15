@@ -13,6 +13,7 @@ pub fn emit_schema(schema: &Schema) -> String {
             SchemaItem::AnalyzerDecl(a) => analyzers.push(a),
             SchemaItem::TableDecl(t) => tables.push(t),
             SchemaItem::SurqlBlock(block) => surql_blocks.push(block),
+            SchemaItem::FunctionDecl(_) => {}
             SchemaItem::DocComment { .. } => {}
         }
     }

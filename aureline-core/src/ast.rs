@@ -18,11 +18,31 @@ pub enum SchemaItem {
     TableDecl(Table),
     #[serde(rename = "analyzer")]
     AnalyzerDecl(Analyzer),
+    #[serde(rename = "function")]
+    FunctionDecl(Function),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SurqlBlock {
     pub body: String,
+}
+
+/// Top-level user-defined function declaration. Aureline owns the typed
+/// signature; the body remains a raw SurQL escape hatch.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Function {
+    pub name: String,
+    pub params: Vec<FunctionParam>,
+    #[serde(rename = "return")]
+    pub return_type: Type,
+    pub body: SurqlBlock,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct FunctionParam {
+    pub name: String,
+    #[serde(rename = "type")]
+    pub ty: Type,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

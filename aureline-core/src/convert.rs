@@ -45,6 +45,7 @@ pub enum SchemaItem {
     SurqlBlock(SurqlBlock),
     TableBlock(TableBlock),
     AnalyzerBlock(AnalyzerBlock),
+    FunctionBlock(FunctionBlock),
 }
 
 #[derive(FromPest)]
@@ -54,6 +55,7 @@ pub enum SourceItem {
     SurqlBlock(SurqlBlock),
     TableBlock(TableBlock),
     AnalyzerBlock(AnalyzerBlock),
+    FunctionBlock(FunctionBlock),
     InvalidLine(InvalidLine),
 }
 
@@ -426,6 +428,30 @@ pub struct FilterArgNode {
     pub value: String,
 }
 
+// === Function ===
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::function_block))]
+pub struct FunctionBlock {
+    pub name: Identifier,
+    pub params: Option<FunctionParams>,
+    pub return_type: TypeExpr,
+    pub body: SurqlBlock,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::function_params))]
+pub struct FunctionParams {
+    pub params: Vec<FunctionParamNode>,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::function_param))]
+pub struct FunctionParamNode {
+    pub name: Identifier,
+    pub type_expr: TypeExpr,
+}
+
 // === Identifier ===
 
 #[derive(FromPest)]
@@ -470,6 +496,9 @@ impl SchemaItem {
             SchemaItem::AnalyzerBlock(analyzer) => {
                 ast::SchemaItem::AnalyzerDecl(analyzer.into_ast())
             }
+            SchemaItem::FunctionBlock(function) => {
+                ast::SchemaItem::FunctionDecl(function.into_ast())
+            }
         }
     }
 }
@@ -482,6 +511,9 @@ impl SourceItem {
             SourceItem::TableBlock(table) => Some(ast::SchemaItem::TableDecl(table.into_ast())),
             SourceItem::AnalyzerBlock(analyzer) => {
                 Some(ast::SchemaItem::AnalyzerDecl(analyzer.into_ast()))
+            }
+            SourceItem::FunctionBlock(function) => {
+                Some(ast::SchemaItem::FunctionDecl(function.into_ast()))
             }
             SourceItem::InvalidLine(_) => None,
         }
@@ -609,6 +641,18 @@ impl TypeNode {
     }
 }
 
+fn type_expr_into_ast_type(type_expr: TypeExpr) -> ast::Type {
+    let optional = type_expr.optional.is_some();
+    let ty = type_expr.type_node.into_ast();
+    if optional {
+        ast::Type::Option {
+            inner: Box::new(ty),
+        }
+    } else {
+        ty
+    }
+}
+
 impl AttributeNode {
     fn into_attribute(self) -> ast::Attribute {
         ast::Attribute {
@@ -727,6 +771,37 @@ impl FilterCallNode {
         ast::FilterCall {
             name: self.name.value,
             args: self.args.into_iter().map(|a| a.value).collect(),
+        }
+    }
+}
+
+impl FunctionBlock {
+    fn into_ast(self) -> ast::Function {
+        ast::Function {
+            name: self.name.value,
+            params: self
+                .params
+                .map(|params| {
+                    params
+                        .params
+                        .into_iter()
+                        .map(FunctionParamNode::into_ast)
+                        .collect()
+                })
+                .unwrap_or_default(),
+            return_type: type_expr_into_ast_type(self.return_type),
+            body: ast::SurqlBlock {
+                body: extract_surql_body(&self.body.source),
+            },
+        }
+    }
+}
+
+impl FunctionParamNode {
+    fn into_ast(self) -> ast::FunctionParam {
+        ast::FunctionParam {
+            name: self.name.value,
+            ty: type_expr_into_ast_type(self.type_expr),
         }
     }
 }
