@@ -6,6 +6,7 @@ mod convert;
 pub mod emit;
 pub mod error;
 pub mod grammar;
+pub mod schema_index;
 pub mod semantic;
 pub mod surql;
 
