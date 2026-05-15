@@ -500,7 +500,7 @@ mod tests {
 
         let user_fields: Vec<_> = index.fields_for_table("user").collect();
         assert_eq!(user_fields.len(), 5);
-        assert!(user_fields.iter().all(|(n, _)| *n != ""));
+        assert!(user_fields.iter().all(|(n, _)| !n.is_empty()));
 
         let chunk_fields: Vec<_> = index.fields_for_table("lesson_chunk").collect();
         assert_eq!(chunk_fields.len(), 3);
