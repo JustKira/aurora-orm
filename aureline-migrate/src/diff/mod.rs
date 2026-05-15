@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use aureline_core::ast::{Schema, Table};
+use aureline_core::ast::Schema;
 use aureline_core::schema_index::SchemaIndex;
 
 use crate::change::Change;
@@ -23,11 +21,13 @@ use index::diff_table_indexes;
 pub fn diff_changes(prev: &Schema, new: &Schema) -> Vec<Change> {
     let prev = full_schema(prev);
     let new = full_schema(new);
+    let prev_index = SchemaIndex::from_schema(&prev);
+    let new_index = SchemaIndex::from_schema(&new);
     let mut changes = Vec::new();
-    diff_analyzers(&prev, &new, &mut changes);
-    diff_tables(&prev, &new, &mut changes);
+    diff_analyzers(&prev_index, &new_index, &mut changes);
+    diff_tables(&prev_index, &new_index, &mut changes);
     changes.retain(|change| !is_index_change(change));
-    diff_indexes(&prev, &new, &mut changes);
+    diff_indexes(&prev_index, &new_index, &mut changes);
     changes
 }
 
@@ -35,38 +35,14 @@ pub fn diff_schemas(prev: &Schema, new: &Schema) -> Vec<Op> {
     plan_changes(diff_changes(prev, new)).steps
 }
 
-fn diff_indexes(prev: &Schema, new: &Schema, changes: &mut Vec<Change>) {
-    let prev_tables = tables_by_name(prev);
-    let new_tables = tables_by_name(new);
-
-    for (name, change) in diff_by_key(&prev_tables, &new_tables) {
+fn diff_indexes(prev: &SchemaIndex<'_>, new: &SchemaIndex<'_>, changes: &mut Vec<Change>) {
+    for (name, change) in diff_by_key(&prev.tables, &new.tables) {
         match change {
-            Diff::Added(table) => {
-                let empty = table_without_indexes(table);
-                diff_table_indexes(name, &empty, table, changes);
+            Diff::Added(_) | Diff::Removed(_) | Diff::Change(_, _) => {
+                diff_table_indexes(name, prev, new, changes);
             }
-            Diff::Removed(table) => {
-                let empty = table_without_indexes(table);
-                diff_table_indexes(name, table, &empty, changes);
-            }
-            Diff::Change(prev, new) => diff_table_indexes(name, prev, new, changes),
         }
     }
-}
-
-fn tables_by_name(schema: &Schema) -> HashMap<&str, &Table> {
-    let index = SchemaIndex::from_schema(schema);
-    index
-        .tables
-        .iter()
-        .map(|(&name, &table)| (name, table))
-        .collect()
-}
-
-fn table_without_indexes(table: &Table) -> Table {
-    let mut table = table.clone();
-    table.indexes.clear();
-    table
 }
 
 fn is_index_change(change: &Change) -> bool {

@@ -1,18 +1,23 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
-use aureline_core::ast::{Index, IndexKind, Table};
+use aureline_core::ast::{Index, IndexKind};
+use aureline_core::schema_index::SchemaIndex;
 
 use crate::change::Change;
 use crate::diff::pair::{Diff, diff_by_key};
 
 pub(crate) fn diff_table_indexes(
     table_name: &str,
-    prev: &Table,
-    next: &Table,
+    prev: &SchemaIndex<'_>,
+    next: &SchemaIndex<'_>,
     changes: &mut Vec<Change>,
 ) {
-    let prev_indexes = indexes_by_name(&prev.indexes);
-    let new_indexes = indexes_by_name(&next.indexes);
+    let prev_indexes = prev
+        .indexes_for_table(table_name)
+        .collect::<BTreeMap<_, _>>();
+    let new_indexes = next
+        .indexes_for_table(table_name)
+        .collect::<BTreeMap<_, _>>();
 
     let diffs = diff_by_key(&prev_indexes, &new_indexes).collect::<Vec<_>>();
 
@@ -35,9 +40,9 @@ pub(crate) fn diff_table_indexes(
         }
     }
 
-    let mut additions = next
-        .indexes
-        .iter()
+    let mut additions = new_indexes
+        .values()
+        .copied()
         .filter(|index| !prev_indexes.contains_key(index.name.as_str()))
         .collect::<Vec<_>>();
     additions.sort_by(|left, right| compare_index_order(left, right));
@@ -70,11 +75,4 @@ fn hnsw_type_rank(index: &Index) -> Option<usize> {
         "i16" => Some(4),
         _ => None,
     }
-}
-
-fn indexes_by_name(indexes: &[Index]) -> HashMap<&str, &Index> {
-    indexes
-        .iter()
-        .map(|index| (index.name.as_str(), index))
-        .collect()
 }

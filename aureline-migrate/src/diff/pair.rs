@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Where a key sits relative to two schemas being compared. Lets callers
 /// match on `Added` / `Removed` / `Change` instead of decoding `Option`
@@ -17,11 +17,11 @@ pub(crate) enum Diff<'a, T> {
 /// the resulting op order is deterministic. Used at every diff level
 /// (tables, fields, indexes, analyzers).
 pub(crate) fn diff_by_key<'a, K, V>(
-    prev: &'a HashMap<K, &'a V>,
-    new: &'a HashMap<K, &'a V>,
+    prev: &'a BTreeMap<K, &'a V>,
+    new: &'a BTreeMap<K, &'a V>,
 ) -> impl Iterator<Item = (K, Diff<'a, V>)> + 'a
 where
-    K: Ord + Copy + Eq + std::hash::Hash,
+    K: Ord + Copy + Eq,
 {
     let keys: BTreeSet<K> = prev.keys().chain(new.keys()).copied().collect();
     keys.into_iter().map(move |k| {

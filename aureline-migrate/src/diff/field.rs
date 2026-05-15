@@ -1,18 +1,20 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
-use aureline_core::ast::{Field, Table};
+use aureline_core::schema_index::SchemaIndex;
 
 use crate::change::{Change, FieldChangeSet};
 use crate::diff::pair::{Diff, diff_by_key};
 
 pub(crate) fn diff_table_fields(
     table_name: &str,
-    prev: &Table,
-    new: &Table,
+    prev: &SchemaIndex<'_>,
+    new: &SchemaIndex<'_>,
     changes: &mut Vec<Change>,
 ) {
-    let prev_fields = fields_by_name(&prev.fields);
-    let new_fields = fields_by_name(&new.fields);
+    let prev_fields = prev
+        .fields_for_table(table_name)
+        .collect::<BTreeMap<_, _>>();
+    let new_fields = new.fields_for_table(table_name).collect::<BTreeMap<_, _>>();
 
     for (_name, change) in diff_by_key(&prev_fields, &new_fields) {
         match change {
@@ -37,11 +39,4 @@ pub(crate) fn diff_table_fields(
             }
         }
     }
-}
-
-fn fields_by_name(fields: &[Field]) -> HashMap<&str, &Field> {
-    fields
-        .iter()
-        .map(|field| (field.name.as_str(), field))
-        .collect()
 }
