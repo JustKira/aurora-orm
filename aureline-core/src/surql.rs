@@ -36,12 +36,35 @@ pub fn validate_field_permission(operation: &str, body: &str) -> Result<(), Surq
     // depending on the field type.
     validate_query(&format!(
         "DEFINE FIELD __aureline__ ON __aureline__ TYPE string PERMISSIONS FOR {operation} {}",
-        body
+        body.trim()
     ))
 }
 
 pub fn validate_query(query: &str) -> Result<(), SurqlParseError> {
-    parse_query(query).map(|_| ())
+    let parsed = parse_query(query)?;
+    validate_single_statement(&parsed)
+}
+
+fn validate_single_statement(parsed: &ParsedSurql) -> Result<(), SurqlParseError> {
+    if parsed.statement_count() != 1 {
+        return Err(SurqlParseError {
+            message: format!(
+                "invalid SurrealQL: expected exactly one statement, found {}",
+                parsed.statement_count()
+            ),
+        });
+    }
+
+    if !parsed.let_statements().is_empty() {
+        return Err(SurqlParseError {
+            message: format!(
+                "invalid SurrealQL: LET statements are not allowed in this context: {}",
+                parsed.let_statements().join(", ")
+            ),
+        });
+    }
+
+    Ok(())
 }
 
 pub fn parse_query(query: &str) -> Result<ParsedSurql, SurqlParseError> {
