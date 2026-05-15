@@ -2,13 +2,7 @@ use aureline_core::{DiagnosticCode, Severity, check};
 
 #[test]
 fn valid_schema_returns_schema_without_diagnostics() {
-    let report = check(
-        r#"
-table user {
-  name string
-}
-"#,
-    );
+    let report = check(aureline_schema!("table user {", "  name string", "}",));
 
     assert!(!report.has_errors());
     assert!(report.diagnostics.is_empty());
@@ -37,19 +31,17 @@ fn typoed_source_item_recovers_with_partial_schema() {
 
 #[test]
 fn recovery_preserves_valid_items_around_invalid_source_item() {
-    let report = check(
-        r#"
-table user {
-  name string
-}
-
-tabl post schemafull
-
-table comment {
-  body string
-}
-"#,
-    );
+    let report = check(aureline_schema!(
+        "table user {",
+        "  name string",
+        "}",
+        "",
+        "tabl post schemafull",
+        "",
+        "table comment {",
+        "  body string",
+        "}",
+    ));
 
     let schema = report
         .schema
@@ -64,9 +56,9 @@ table comment {
         diagnostic.message,
         "unknown source item `tabl`; did you mean `table`?"
     );
-    assert_eq!(diagnostic.range.start.line, 5);
+    assert_eq!(diagnostic.range.start.line, 4);
     assert_eq!(diagnostic.range.start.character, 0);
-    assert_eq!(diagnostic.range.end.line, 6);
+    assert_eq!(diagnostic.range.end.line, 5);
     assert_eq!(diagnostic.range.end.character, 0);
 }
 

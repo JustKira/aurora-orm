@@ -1,9 +1,13 @@
+#[macro_use]
+#[path = "check/common.rs"]
+mod common;
+
 #[path = "check/analyzer.rs"]
 mod analyzer;
 #[path = "check/attributes.rs"]
 mod attributes;
-#[path = "check/common.rs"]
-mod common;
+#[path = "check/duplicate_detection.rs"]
+mod duplicate_detection;
 #[path = "check/field.rs"]
 mod field;
 #[path = "check/recovery.rs"]

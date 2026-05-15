@@ -1,5 +1,5 @@
 use crate::check::diagnostics::ParseDiagnostic;
-use crate::validate::ValidationError;
+use crate::semantic::SemanticError;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AurelineError {
@@ -10,5 +10,5 @@ pub enum AurelineError {
     #[error("failed to serialize Aureline AST: {0}")]
     Json(serde_json::Error),
     #[error("validation failed: {}", .0.iter().map(|e| e.to_string()).collect::<Vec<_>>().join("; "))]
-    Validation(Vec<ValidationError>),
+    Validation(Vec<SemanticError>),
 }

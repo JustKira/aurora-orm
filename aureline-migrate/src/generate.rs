@@ -6,12 +6,13 @@ use chrono::Utc;
 
 use crate::checksum::sha256_hex;
 use crate::config::Config;
-use crate::diff::diff_schemas;
 use crate::error::{Error, Result, io};
 use crate::fs_io::{read_previous_schema, read_schema, write_atomic};
 use crate::journal::{Journal, JournalEntry, append_entry, next_idx, read_journal, validate_slug};
 use crate::ops::Op;
+use crate::plan::{MigrationPlan, plan_changes};
 use crate::render::{emit_down, emit_up};
+use crate::schema::full_schema;
 use crate::snapshot::canonicalize;
 
 pub struct GenerateOpts {
@@ -33,16 +34,16 @@ pub fn generate(opts: GenerateOpts) -> Result<GenerateReport> {
     validate_slug(&opts.name)?;
     let paths = Paths::from_config(&opts.config);
 
-    let diff = compute_diff(&paths)?;
-    if diff.ops.is_empty() && !opts.allow_empty {
+    let outcome = compute_plan(&paths)?;
+    if outcome.plan.steps.is_empty() && !opts.allow_empty {
         return Err(Error::EmptyDiff);
     }
 
-    let idx = next_idx(&diff.journal);
+    let idx = next_idx(&outcome.journal);
     let dir = paths.migration_dir(idx, &opts.name);
-    let up = write_artifacts(&paths, &dir, idx, &diff.ops, &diff.new_schema)?;
+    let up = write_artifacts(&paths, &dir, idx, &outcome.plan.steps, &outcome.new_schema)?;
 
-    let report = build_report(idx, opts.name, dir, diff.ops);
+    let report = build_report(idx, opts.name, dir, outcome.plan);
     record_in_journal(&paths.meta_dir, &report, &up)?;
     Ok(report)
 }
@@ -69,21 +70,22 @@ impl Paths {
     }
 }
 
-struct DiffOutcome {
-    ops: Vec<Op>,
+struct PlanOutcome {
+    plan: MigrationPlan,
     new_schema: Schema,
     journal: Journal,
 }
 
 /// Loads the new schema and the previous snapshot off disk, then diffs them.
 /// Returns the journal too so the caller can pick the next index without re-reading it.
-fn compute_diff(paths: &Paths) -> Result<DiffOutcome> {
-    let new_schema = read_schema(&paths.schema)?;
+fn compute_plan(paths: &Paths) -> Result<PlanOutcome> {
+    let new_schema = full_schema(&read_schema(&paths.schema)?);
     let journal = read_journal(&paths.meta_dir)?;
-    let prev = read_previous_schema(&paths.meta_dir, &journal)?;
-    let ops = diff_schemas(&prev, &new_schema);
-    Ok(DiffOutcome {
-        ops,
+    let prev = full_schema(&read_previous_schema(&paths.meta_dir, &journal)?);
+    let changes = crate::diff::diff_changes(&prev, &new_schema);
+    let plan = plan_changes(changes);
+    Ok(PlanOutcome {
+        plan,
         new_schema,
         journal,
     })
@@ -116,18 +118,22 @@ fn write_artifacts(
     Ok(up)
 }
 
-fn build_report(idx: u32, name: String, dir: PathBuf, ops: Vec<Op>) -> GenerateReport {
-    let destructive_ops = ops
+fn build_report(idx: u32, name: String, dir: PathBuf, plan: MigrationPlan) -> GenerateReport {
+    let destructive_ops = plan
+        .risks
         .iter()
-        .enumerate()
-        .filter_map(|(i, op)| op.destructive().then_some(i))
+        .filter_map(|risk| risk.blocks_by_default().then_some(risk.step_index))
         .collect::<Vec<_>>();
-    let warnings = ops.iter().flat_map(warnings_for_down).collect::<Vec<_>>();
+    let warnings = plan
+        .risks
+        .iter()
+        .map(|risk| risk.message.clone())
+        .collect::<Vec<_>>();
     GenerateReport {
         idx,
         name,
         dir,
-        ops,
+        ops: plan.steps,
         destructive_ops,
         warnings,
     }
@@ -188,20 +194,4 @@ fn ensure_compatible_lock(migrations_dir: &Path) -> Result<()> {
 struct MigrationLock {
     provider: String,
     snapshot_version: u32,
-}
-
-fn warnings_for_down(op: &Op) -> Vec<String> {
-    match op {
-        Op::RemoveTable(table) => {
-            vec![format!(
-                "RemoveTable {table}: down can only recreate an empty table"
-            )]
-        }
-        Op::RemoveField { table, field } => {
-            vec![format!(
-                "RemoveField {table}.{field}: down cannot restore the removed field definition"
-            )]
-        }
-        _ => Vec::new(),
-    }
 }

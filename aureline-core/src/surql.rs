@@ -10,12 +10,24 @@ pub struct SurqlParseError {
     pub message: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParsedSurql {
+    statement_count: usize,
+    let_statements: Vec<String>,
+}
+
+impl ParsedSurql {
+    pub fn statement_count(&self) -> usize {
+        self.statement_count
+    }
+
+    pub fn let_statements(&self) -> &[String] {
+        &self.let_statements
+    }
+}
+
 pub fn validate_expression(body: &str) -> Result<(), SurqlParseError> {
-    surrealdb_core::syn::value(body.trim())
-        .map(|_| ())
-        .map_err(|error| SurqlParseError {
-            message: format_surql_error(error),
-        })
+    validate_query(&format!("RETURN {};", body.trim()))
 }
 
 pub fn validate_field_permission(operation: &str, body: &str) -> Result<(), SurqlParseError> {
@@ -24,34 +36,50 @@ pub fn validate_field_permission(operation: &str, body: &str) -> Result<(), Surq
     // depending on the field type.
     validate_query(&format!(
         "DEFINE FIELD __aureline__ ON __aureline__ TYPE string PERMISSIONS FOR {operation} {}",
-        body
+        body.trim()
     ))
 }
 
-fn validate_query(query: &str) -> Result<(), SurqlParseError> {
+pub fn validate_query(query: &str) -> Result<(), SurqlParseError> {
+    let parsed = parse_query(query)?;
+    validate_single_statement(&parsed)
+}
+
+fn validate_single_statement(parsed: &ParsedSurql) -> Result<(), SurqlParseError> {
+    if parsed.statement_count() != 1 {
+        return Err(SurqlParseError {
+            message: format!(
+                "invalid SurrealQL: expected exactly one statement, found {}",
+                parsed.statement_count()
+            ),
+        });
+    }
+
+    if !parsed.let_statements().is_empty() {
+        return Err(SurqlParseError {
+            message: format!(
+                "invalid SurrealQL: LET statements are not allowed in this context: {}",
+                parsed.let_statements().join(", ")
+            ),
+        });
+    }
+
+    Ok(())
+}
+
+pub fn parse_query(query: &str) -> Result<ParsedSurql, SurqlParseError> {
     surrealdb_core::syn::parse(query)
-        .map(|_| ())
+        .map(|ast| ParsedSurql {
+            statement_count: ast.num_statements(),
+            let_statements: ast.get_let_statements(),
+        })
         .map_err(|error| SurqlParseError {
-            message: format_surql_query_error(error),
+            message: format_surql_error(error),
         })
 }
 
 fn format_surql_error(error: impl fmt::Display) -> String {
     explain_surql_error(error.to_string())
-}
-
-fn format_surql_query_error(error: surrealdb_core::err::Error) -> String {
-    match error {
-        surrealdb_core::err::Error::InvalidQuery(error) => {
-            let message = error
-                .errors
-                .first()
-                .cloned()
-                .unwrap_or_else(|| "SurrealQL parse error".to_string());
-            explain_surql_error(message)
-        }
-        error => format_surql_error(error),
-    }
 }
 
 fn explain_surql_error(message: String) -> String {
@@ -66,7 +94,7 @@ fn explain_surql_error(message: String) -> String {
 fn surql_error_help(message: &str) -> Option<&'static str> {
     if message.contains("expected an expression") {
         return Some(
-            "write a SurrealQL expression after this keyword, for example `WHERE $value != NONE` or `WHERE $auth.role = \"admin\"`",
+            "write a valid SurrealQL expression; use `$value != NONE` in `@assert` or `WHERE $auth.role = \"admin\"` in `@allow`",
         );
     }
     None

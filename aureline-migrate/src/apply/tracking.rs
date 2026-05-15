@@ -1,12 +1,12 @@
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
+use surrealdb::types::SurrealValue;
 
 use crate::journal::JournalEntry;
 
 use super::client::{Client, ClientError};
 
 /// One row in the `_aureline_migrations` tracking table on the target DB.
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, SurrealValue)]
 pub struct AppliedRecord {
     pub idx: u32,
     pub name: String,
@@ -60,19 +60,19 @@ pub async fn read_applied(client: &Client) -> Result<Vec<AppliedRecord>, ClientE
 /// first).
 pub async fn record_applied(client: &Client, entry: &JournalEntry) -> Result<(), ClientError> {
     let now = Utc::now();
-    let sql = "CREATE type::thing('_aureline_migrations', $idx) CONTENT {
-        idx: $idx,
-        name: $name,
-        checksum: $checksum,
-        applied_at: $applied_at
-    };";
+    let sql = "CREATE type::record('_aureline_migrations', $idx) CONTENT {
+            idx: $idx,
+            name: $name,
+            checksum: $checksum,
+            applied_at: $applied_at
+        };";
     client
         .db()
         .query(sql)
         .bind(("idx", entry.idx))
         .bind(("name", entry.name.clone()))
         .bind(("checksum", entry.checksum.clone()))
-        .bind(("applied_at", surrealdb::sql::Datetime::from(now)))
+        .bind(("applied_at", now))
         .await?
         .check()?;
     Ok(())

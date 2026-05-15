@@ -24,12 +24,16 @@ impl SnapshotTable {
     fn into_ast(self) -> Table {
         Table {
             name: self.name,
+            source_range: None,
+            name_range: None,
             modifier: self.modifier,
             fields: self
                 .fields
                 .into_iter()
                 .map(|field| Field {
                     name: field.name,
+                    source_range: None,
+                    name_range: None,
                     ty: field.ty,
                     optional: field.optional,
                     flexible: field.flexible,

@@ -40,7 +40,7 @@ pub fn check(source: &str) -> CheckReport {
         }
     };
 
-    match crate::validate::validate(&mut schema) {
+    match crate::semantic::validate(&mut schema) {
         Ok(()) => CheckReport {
             schema: Some(schema),
             diagnostics,
