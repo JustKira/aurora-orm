@@ -82,3 +82,26 @@ fn duplicate_analyzer_name_points_to_duplicate_declaration() {
     );
     assert_range(diagnostic, (4, 9), (4, 15));
 }
+
+#[test]
+fn duplicate_index_name_points_to_duplicate_attribute() {
+    let report = check(aureline_schema!(
+        "table Document {",
+        "  v_minimal array<float> @hnsw(dimension: 384)",
+        "  v_minimal array<float> @hnsw(dimension: 384)",
+        "}",
+    ));
+
+    let diagnostic = report
+        .diagnostics
+        .iter()
+        .find(|diagnostic| {
+            diagnostic
+                .message
+                .contains("duplicate index name `document_v_minimal_hnsw` on table Document")
+        })
+        .expect("duplicate index diagnostic should be present");
+
+    assert_eq!(diagnostic.code, DiagnosticCode::ValidationError);
+    assert_range(diagnostic, (2, 25), (2, 46));
+}

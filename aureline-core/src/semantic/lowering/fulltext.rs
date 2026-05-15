@@ -4,12 +4,13 @@ use super::super::SemanticError;
 use super::attributes::{
     at_attr, auto_name, err, err_at, ident_value, is_string, name_value, number_value, type_label,
 };
+use super::indexes::LoweredIndex;
 
 pub(super) fn lower(
     table: &str,
     field: &Field,
     attr: &Attribute,
-    indexes: &mut Vec<Index>,
+    indexes: &mut Vec<LoweredIndex>,
     errors: &mut Vec<SemanticError>,
 ) {
     match parse_fulltext_args(&attr.args).map_err(|error| at_attr(error, attr)) {
@@ -25,12 +26,16 @@ pub(super) fn lower(
                 ));
                 return;
             }
-            indexes.push(Index {
-                name: name_override
-                    .unwrap_or_else(|| auto_name(table, std::slice::from_ref(&field.name), "fts")),
-                fields: vec![field.name.clone()],
-                kind,
-            });
+            indexes.push(LoweredIndex::new(
+                Index {
+                    name: name_override.unwrap_or_else(|| {
+                        auto_name(table, std::slice::from_ref(&field.name), "fts")
+                    }),
+                    fields: vec![field.name.clone()],
+                    kind,
+                },
+                attr,
+            ));
         }
         Err(error) => errors.push(error),
     }

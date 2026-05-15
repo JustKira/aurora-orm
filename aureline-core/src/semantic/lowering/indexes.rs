@@ -1,24 +1,43 @@
 use std::collections::HashSet;
 
 use crate::ast::{Attribute, AttributeArg, AttributeValue, Field, Index, IndexKind};
+use crate::check::diagnostics::SourceRange;
 
 use super::super::SemanticError;
 use super::attributes::{at_attr, auto_name, err, err_at, name_value};
+
+pub(super) struct LoweredIndex {
+    pub index: Index,
+    range: Option<SourceRange>,
+}
+
+impl LoweredIndex {
+    pub(super) fn new(index: Index, attr: &Attribute) -> Self {
+        Self {
+            index,
+            range: attr.source_range,
+        }
+    }
+}
 
 pub(super) fn lower_field_unique(
     table: &str,
     field: &Field,
     attr: &Attribute,
-    indexes: &mut Vec<Index>,
+    indexes: &mut Vec<LoweredIndex>,
     errors: &mut Vec<SemanticError>,
 ) {
     match parse_named_only(&attr.args, "@unique").map_err(|error| at_attr(error, attr)) {
-        Ok(name_override) => indexes.push(Index {
-            name: name_override
-                .unwrap_or_else(|| auto_name(table, std::slice::from_ref(&field.name), "unique")),
-            fields: vec![field.name.clone()],
-            kind: IndexKind::Unique,
-        }),
+        Ok(name_override) => indexes.push(LoweredIndex::new(
+            Index {
+                name: name_override.unwrap_or_else(|| {
+                    auto_name(table, std::slice::from_ref(&field.name), "unique")
+                }),
+                fields: vec![field.name.clone()],
+                kind: IndexKind::Unique,
+            },
+            attr,
+        )),
         Err(error) => errors.push(error),
     }
 }
@@ -27,16 +46,19 @@ pub(super) fn lower_field_index(
     table: &str,
     field: &Field,
     attr: &Attribute,
-    indexes: &mut Vec<Index>,
+    indexes: &mut Vec<LoweredIndex>,
     errors: &mut Vec<SemanticError>,
 ) {
     match parse_named_only(&attr.args, "@index").map_err(|error| at_attr(error, attr)) {
-        Ok(name_override) => indexes.push(Index {
-            name: name_override
-                .unwrap_or_else(|| auto_name(table, std::slice::from_ref(&field.name), "idx")),
-            fields: vec![field.name.clone()],
-            kind: IndexKind::Standard,
-        }),
+        Ok(name_override) => indexes.push(LoweredIndex::new(
+            Index {
+                name: name_override
+                    .unwrap_or_else(|| auto_name(table, std::slice::from_ref(&field.name), "idx")),
+                fields: vec![field.name.clone()],
+                kind: IndexKind::Standard,
+            },
+            attr,
+        )),
         Err(error) => errors.push(error),
     }
 }
@@ -44,7 +66,7 @@ pub(super) fn lower_field_index(
 pub(super) fn lower_block_count(
     table: &str,
     attr: &Attribute,
-    indexes: &mut Vec<Index>,
+    indexes: &mut Vec<LoweredIndex>,
     errors: &mut Vec<SemanticError>,
 ) {
     if !attr.args.is_empty() {
@@ -54,29 +76,35 @@ pub(super) fn lower_block_count(
         ));
         return;
     }
-    indexes.push(Index {
-        name: auto_name(table, &[], "count"),
-        fields: Vec::new(),
-        kind: IndexKind::Count,
-    });
+    indexes.push(LoweredIndex::new(
+        Index {
+            name: auto_name(table, &[], "count"),
+            fields: Vec::new(),
+            kind: IndexKind::Count,
+        },
+        attr,
+    ));
 }
 
 pub(super) fn lower_block_index(
     table: &str,
     fields: &[Field],
     attr: &Attribute,
-    indexes: &mut Vec<Index>,
+    indexes: &mut Vec<LoweredIndex>,
     errors: &mut Vec<SemanticError>,
 ) {
     match parse_field_list_block(table, fields, &attr.args, "@@index")
         .map_err(|error| at_attr(error, attr))
     {
         Ok((field_names, name_override)) => {
-            indexes.push(Index {
-                name: name_override.unwrap_or_else(|| auto_name(table, &field_names, "idx")),
-                fields: field_names,
-                kind: IndexKind::Standard,
-            });
+            indexes.push(LoweredIndex::new(
+                Index {
+                    name: name_override.unwrap_or_else(|| auto_name(table, &field_names, "idx")),
+                    fields: field_names,
+                    kind: IndexKind::Standard,
+                },
+                attr,
+            ));
         }
         Err(error) => errors.push(error),
     }
@@ -86,31 +114,40 @@ pub(super) fn lower_block_unique(
     table: &str,
     fields: &[Field],
     attr: &Attribute,
-    indexes: &mut Vec<Index>,
+    indexes: &mut Vec<LoweredIndex>,
     errors: &mut Vec<SemanticError>,
 ) {
     match parse_field_list_block(table, fields, &attr.args, "@@unique")
         .map_err(|error| at_attr(error, attr))
     {
         Ok((field_names, name_override)) => {
-            indexes.push(Index {
-                name: name_override.unwrap_or_else(|| auto_name(table, &field_names, "unique")),
-                fields: field_names,
-                kind: IndexKind::Unique,
-            });
+            indexes.push(LoweredIndex::new(
+                Index {
+                    name: name_override.unwrap_or_else(|| auto_name(table, &field_names, "unique")),
+                    fields: field_names,
+                    kind: IndexKind::Unique,
+                },
+                attr,
+            ));
         }
         Err(error) => errors.push(error),
     }
 }
 
-pub(super) fn validate_names(table: &str, indexes: &[Index], errors: &mut Vec<SemanticError>) {
+pub(super) fn validate_names(
+    table: &str,
+    indexes: &[LoweredIndex],
+    errors: &mut Vec<SemanticError>,
+) {
     let mut seen = HashSet::new();
     for index in indexes {
-        if !seen.insert(index.name.as_str()) {
-            errors.push(err(format!(
+        if !seen.insert(index.index.name.as_str()) {
+            let mut error = err(format!(
                 "duplicate index name `{}` on table {table}",
-                index.name
-            )));
+                index.index.name
+            ));
+            error.range = index.range;
+            errors.push(error);
         }
     }
 }

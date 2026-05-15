@@ -1,4 +1,4 @@
-use crate::ast::{Attribute, AttributeValue, Field, Index, Schema, SchemaItem, Table, Type};
+use crate::ast::{Attribute, AttributeValue, Field, Schema, SchemaItem, Table, Type};
 
 use super::super::{SemanticError, SemanticResult};
 use super::{assertions, flexible, fulltext, hnsw, indexes, permissions};
@@ -43,7 +43,10 @@ fn lower_table(table: &mut Table, errors: &mut Vec<SemanticError>) {
     }
 
     indexes::validate_names(&table_name, &lowered_indexes, errors);
-    table.indexes = lowered_indexes;
+    table.indexes = lowered_indexes
+        .into_iter()
+        .map(|lowered| lowered.index)
+        .collect();
 }
 
 const FIELD_ATTRS: &[&str] = &[
@@ -53,7 +56,7 @@ const FIELD_ATTRS: &[&str] = &[
 fn lower_field_attributes(
     table: &str,
     field: &mut Field,
-    lowered_indexes: &mut Vec<Index>,
+    lowered_indexes: &mut Vec<indexes::LoweredIndex>,
     errors: &mut Vec<SemanticError>,
 ) {
     for attr in &field.raw_attributes {
@@ -87,7 +90,7 @@ fn lower_block_attribute(
     table: &str,
     fields: &[Field],
     attr: &Attribute,
-    lowered_indexes: &mut Vec<Index>,
+    lowered_indexes: &mut Vec<indexes::LoweredIndex>,
     errors: &mut Vec<SemanticError>,
 ) {
     match attr.name.as_str() {

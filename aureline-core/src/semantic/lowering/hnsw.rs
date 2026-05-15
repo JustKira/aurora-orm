@@ -5,12 +5,13 @@ use super::attributes::{
     at_attr, auto_name, err, err_at, ident_value, is_array_of_float, name_value, type_label,
     uint_value_bounded,
 };
+use super::indexes::LoweredIndex;
 
 pub(super) fn lower(
     table: &str,
     field: &Field,
     attr: &Attribute,
-    indexes: &mut Vec<Index>,
+    indexes: &mut Vec<LoweredIndex>,
     errors: &mut Vec<SemanticError>,
 ) {
     match parse_hnsw_args(&attr.args).map_err(|error| at_attr(error, attr)) {
@@ -26,12 +27,16 @@ pub(super) fn lower(
                 ));
                 return;
             }
-            indexes.push(Index {
-                name: name_override
-                    .unwrap_or_else(|| auto_name(table, std::slice::from_ref(&field.name), "hnsw")),
-                fields: vec![field.name.clone()],
-                kind,
-            });
+            indexes.push(LoweredIndex::new(
+                Index {
+                    name: name_override.unwrap_or_else(|| {
+                        auto_name(table, std::slice::from_ref(&field.name), "hnsw")
+                    }),
+                    fields: vec![field.name.clone()],
+                    kind,
+                },
+                attr,
+            ));
         }
         Err(error) => errors.push(error),
     }
