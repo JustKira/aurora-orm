@@ -12,7 +12,7 @@ use crate::journal::{Journal, JournalEntry, append_entry, next_idx, read_journal
 use crate::ops::Op;
 use crate::plan::{MigrationPlan, plan_changes};
 use crate::render::{emit_down, emit_up};
-use crate::schema::table_field_schema;
+use crate::schema::full_schema;
 use crate::snapshot::canonicalize;
 
 pub struct GenerateOpts {
@@ -79,9 +79,9 @@ struct PlanOutcome {
 /// Loads the new schema and the previous snapshot off disk, then diffs them.
 /// Returns the journal too so the caller can pick the next index without re-reading it.
 fn compute_plan(paths: &Paths) -> Result<PlanOutcome> {
-    let new_schema = table_field_schema(&read_schema(&paths.schema)?);
+    let new_schema = full_schema(&read_schema(&paths.schema)?);
     let journal = read_journal(&paths.meta_dir)?;
-    let prev = table_field_schema(&read_previous_schema(&paths.meta_dir, &journal)?);
+    let prev = full_schema(&read_previous_schema(&paths.meta_dir, &journal)?);
     let changes = crate::diff::diff_changes(&prev, &new_schema);
     let plan = plan_changes(changes);
     Ok(PlanOutcome {
