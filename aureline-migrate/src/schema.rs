@@ -1,19 +1,16 @@
 use aureline_core::ast::{Field, Schema, SchemaItem, Table};
+use aureline_core::schema_index::SchemaIndex;
 
 /// The migration engine is being rebuilt incrementally. This first slice only
 /// supports tables and fields, so snapshots and diffs must not record indexes,
 /// analyzers, raw attributes, or raw SurrealQL as migrated state.
 pub fn table_field_schema(schema: &Schema) -> Schema {
+    let index = SchemaIndex::from_schema(schema);
+
     Schema {
-        items: schema
-            .items
-            .iter()
-            .filter_map(|item| match item {
-                SchemaItem::TableDecl(table) => {
-                    Some(SchemaItem::TableDecl(table_field_table(table)))
-                }
-                SchemaItem::DocComment { .. } | SchemaItem::AnalyzerDecl(_) => None,
-            })
+        items: index
+            .tables()
+            .map(|(_, table)| SchemaItem::TableDecl(table_field_table(table)))
             .collect(),
     }
 }
@@ -45,16 +42,17 @@ pub(crate) fn table_field_field(field: &Field) -> Field {
 /// Full schema preserves analyzers and indexes while stripping DocComment and raw_attributes.
 /// Used for diffing and canonicalization where full schema fidelity is needed.
 pub fn full_schema(schema: &Schema) -> Schema {
+    let index = SchemaIndex::from_schema(schema);
+
     Schema {
-        items: schema
-            .items
-            .iter()
-            .filter_map(|item| match item {
-                SchemaItem::TableDecl(table) => Some(SchemaItem::TableDecl(full_table(table))),
-                // Keep analyzers, drop doc comments
-                SchemaItem::AnalyzerDecl(_) => Some(item.clone()),
-                SchemaItem::DocComment { .. } => None,
-            })
+        items: index
+            .analyzers()
+            .map(|(_, analyzer)| SchemaItem::AnalyzerDecl(analyzer.clone()))
+            .chain(
+                index
+                    .tables()
+                    .map(|(_, table)| SchemaItem::TableDecl(full_table(table))),
+            )
             .collect(),
     }
 }
