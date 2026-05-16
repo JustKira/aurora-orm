@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to publish, for example v0.1.0-dev.2"
+        description: "Existing tag to publish, for example vX.Y.Z"
         required: true
         type: string
 
@@ -44,7 +44,7 @@ jobs:
 
           version="${TAG#v}"
           if [[ "$TAG" == "$version" || -z "$version" ]]; then
-            echo "Release tags must start with v, for example v0.1.0-dev.2." >&2
+            echo "Release tags must start with v, for example vX.Y.Z." >&2
             exit 1
           fi
 
