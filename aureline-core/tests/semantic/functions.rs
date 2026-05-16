@@ -59,6 +59,36 @@ fn function_allow_only_accepts_run_operation() {
 }
 
 #[test]
+fn function_allow_rejects_missing_permission_surql() {
+    assert_semantic_error_contains(
+        aureline_schema!(
+            "function get_full_name(first: string, last: string) -> string {",
+            "  #surql {",
+            "    RETURN $first + ' ' + $last;",
+            "  }",
+            "  @@allow(op: \"RUN\")",
+            "}",
+        ),
+        "@@allow requires one positional `#surql { ... }` permission block",
+    );
+}
+
+#[test]
+fn function_allow_rejects_empty_permission_surql() {
+    assert_semantic_error_contains(
+        aureline_schema!(
+            "function get_full_name(first: string, last: string) -> string {",
+            "  #surql {",
+            "    RETURN $first + ' ' + $last;",
+            "  }",
+            "  @@allow(op: \"RUN\", #surql { })",
+            "}",
+        ),
+        "invalid SurrealQL",
+    );
+}
+
+#[test]
 fn function_allow_rejects_invalid_permission_surql() {
     let errors = semantic_errors(aureline_schema!(
         "function get_full_name(first: string, last: string) -> string {",

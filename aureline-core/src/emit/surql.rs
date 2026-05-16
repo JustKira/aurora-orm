@@ -55,7 +55,8 @@ pub fn emit_function(f: &Function) -> String {
         .collect::<Vec<_>>()
         .join(", ");
     let body = f.body.body.trim();
-    let permissions = function_permissions(&f.raw_attributes);
+    let permissions = function_permissions(&f.raw_attributes)
+        .unwrap_or_else(|| "FULL".to_string());
 
     format!(
         "DEFINE FUNCTION fn::{}({}) -> {} {{ {} }} PERMISSIONS {};",
@@ -67,12 +68,11 @@ pub fn emit_function(f: &Function) -> String {
     )
 }
 
-fn function_permissions(attrs: &[Attribute]) -> String {
+fn function_permissions(attrs: &[Attribute]) -> Option<String> {
     attrs
         .iter()
         .find(|attr| attr.name == "allow")
         .and_then(function_permission_body)
-        .unwrap_or_else(|| "FULL".to_string())
 }
 
 fn function_permission_body(attr: &Attribute) -> Option<String> {

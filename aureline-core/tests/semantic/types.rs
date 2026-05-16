@@ -82,6 +82,6 @@ fn function_signature_record_types_reject_unknown_table_references() {
         "}",
     );
 
-    assert_semantic_error_contains(&schema, "unknown record table `MissingInput`");
-    assert_semantic_error_contains(&schema, "unknown record table `MissingOutput`");
+    assert_semantic_error_contains(schema, "unknown record table `MissingInput`");
+    assert_semantic_error_contains(schema, "unknown record table `MissingOutput`");
 }
