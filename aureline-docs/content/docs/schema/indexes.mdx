@@ -1,0 +1,83 @@
+---
+title: Indexes
+description: Field-level and table-level index declarations.
+icon: Hash
+---
+
+Aureline supports index declarations on fields and in table blocks.
+
+## Field-level indexes
+
+```aureline
+table User schemafull {
+  email string @unique
+  name string @index
+}
+```
+
+```surrealql
+DEFINE INDEX user_email_unique ON user FIELDS email UNIQUE;
+DEFINE INDEX user_name_idx ON user FIELDS name;
+```
+
+Use a name when you need a stable custom index name:
+
+```aureline
+email string @unique(name: user_email_key)
+```
+
+## Full-text field indexes
+
+Full-text indexes require `string` fields.
+
+```aureline
+table Article {
+  body string @fulltext(analyzer: text_search, bm25: (1.2, 0.75), highlights: true)
+}
+```
+
+```surrealql
+DEFINE INDEX article_body_fts ON article FIELDS body FULLTEXT ANALYZER text_search BM25(1.2, 0.75) HIGHLIGHTS;
+```
+
+## Vector HNSW indexes
+
+HNSW indexes require `array<float>` and `dimension`.
+
+```aureline
+table Document {
+  embedding array<float, 1536> @hnsw(dimension: 1536, distance: cosine)
+}
+```
+
+```surrealql
+DEFINE INDEX document_embedding_hnsw ON document FIELDS embedding HNSW DIMENSION 1536 DIST COSINE TYPE F32;
+```
+
+Minkowski distance is not documented as supported in this release.
+
+## Table/block indexes
+
+Use `@@index`, `@@unique`, and `@@count` for table-level and composite indexes.
+
+```aureline
+table Membership schemafull {
+  org record<Org>
+  user record<User>
+
+  @@unique([org, user], name: membership_org_user_unique)
+  @@count(name: membership_count)
+}
+```
+
+```surrealql
+DEFINE INDEX membership_org_user_unique ON membership FIELDS org, user UNIQUE;
+DEFINE INDEX membership_count ON membership COUNT;
+```
+
+When an index changes, migrations remove the old index and define the new one.
+
+```surrealql
+REMOVE INDEX old_name ON membership;
+DEFINE INDEX membership_org_user_unique ON membership FIELDS org, user UNIQUE;
+```

@@ -1,71 +1,42 @@
 ---
-title: Hello World
-description: Your favourite docs framework.
-icon: Rocket
+title: Aureline
+description: Schema-first tooling for SurrealDB, focused on checked schemas and migrations.
+icon: Database
 ---
 
-Hey there! Fumadocs is the docs framework that also works on Tanstack Start!
+Aureline is an experimental ORM/toolkit for SurrealDB. The `0.1.0-dev.3` documentation focuses on the parts that are usable today: writing `schema.aureline`, checking it, generating migrations, and applying those migrations.
 
-## Heading
+## What works now
 
-Hello World!
+- Schema files with `table`, field, analyzer, field-index, and table-index declarations.
+- `aureline check` for parser and semantic validation.
+- Snapshot-based migrations with generated `migration.surql`, `down.surql`, snapshots, journal, and lockfile.
+- `aureline migrate apply` with checksum checks and `_aureline_migrations` tracking.
+
+## Still WIP
+
+Code generation, typed clients, advanced runtime APIs, and richer permission/assertion migration output are still in development. WIP pages describe the intended direction, but they are not a stable contract yet.
 
 <Cards>
-  <Card title="Learn more about Tanstack Start" href="https://tanstack.com/start" />
-  <Card title="Learn more about Fumadocs" href="https://fumadocs.dev" />
+  <Card title="Getting Started" href="/docs/getting-started" description="Create a schema and generate your first migration." />
+  <Card title="CLI Reference" href="/docs/cli" description="Commands and output shapes that exist today." />
+  <Card title="Schema Overview" href="/docs/syntax" description="How schema files are organized." />
+  <Card title="Migrations" href="/docs/migrations/overview" description="How generated migration artifacts work." />
 </Cards>
 
-### CodeBlock
-
-```ts
-console.log('Hello World');
-```
+## Minimal schema
 
 ```aureline
-/// User accounts persisted in SurrealDB.
-table user schemafull {
-  name string @assert(#s`$value != ""`)
-  email option<string> @unique
-  tags array<string, 8>
-  location geometry<point|polygon>?
-  owner record<user>
-
-  permissions bool @allow(#surql {
-    LET $viewer = (
-      SELECT id, roles, org
-      FROM type::thing("user", $auth.id)
-      FETCH org
-      LIMIT 1
-    )[0];
-
-    RETURN $auth.id = owner
-      OR "admin" IN $viewer.roles
-      OR (
-        $viewer.org = org
-        AND (
-          SELECT count()
-          FROM membership
-          WHERE user = $viewer.id
-            AND org = $viewer.org
-            AND role IN ["owner", "maintainer"]
-        )[0].count > 0
-      );
-  })
-
-  @@index(email)
-}
-
-analyzer search_text {
-  tokenizers blank, class
-  filters lowercase, snowball(english)
+/// User accounts.
+table User schemafull {
+  email string @unique
 }
 ```
 
-#### Table
+Expected migration output includes:
 
-| Head                            | Description                         |
-| ------------------------------- | ----------------------------------- |
-| `hello`                         | Hello World                         |
-| very **important**              | Hey                                 |
-| _Surprisingly_                  | Fumadocs                            |
-| very long text that looks weird | hello world hello world hello world |
+```surrealql
+DEFINE TABLE user SCHEMAFULL;
+DEFINE FIELD email ON user TYPE string;
+DEFINE INDEX user_email_unique ON user FIELDS email UNIQUE;
+```

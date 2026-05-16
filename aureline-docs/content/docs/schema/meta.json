@@ -1,0 +1,10 @@
+{
+  "title": "Schema",
+  "pages": [
+    "tables",
+    "fields-and-types",
+    "indexes",
+    "analyzers-and-search",
+    "validation-and-permissions"
+  ]
+}

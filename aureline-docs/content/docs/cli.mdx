@@ -1,0 +1,46 @@
+---
+title: CLI Reference
+description: Implemented Aureline CLI commands for schema checks and migrations.
+icon: Terminal
+---
+
+This page documents commands implemented for the dev.3 migration workflow.
+
+## `aureline parse <schema.aureline>`
+
+Parses a schema file and prints the parsed representation. Useful for debugging grammar issues.
+
+## `aureline check [schema.aureline]`
+
+Runs parser and semantic checks. If the path is omitted, Aureline uses configuration/default schema lookup.
+
+```bash
+aureline check schema.aureline
+```
+
+```text
+OK: schema.aureline passed Aureline checks.
+```
+
+## `aureline migrate diff [--config <path>]`
+
+Compares the current schema to the latest migration snapshot and prints pending operations. It does not inspect the live database.
+
+## `aureline migrate generate --name <slug> [--config <path>] [--allow-empty]`
+
+Generates a numbered migration directory and updates migration metadata.
+
+- `--name` is required.
+- Empty diffs exit with code `2` unless `--allow-empty` is set.
+- Output includes `migration.surql`, `down.surql`, a snapshot, journal updates, and lockfile updates.
+
+## `aureline migrate apply [--config <path>] [--dry-run] [--allow-destructive]`
+
+Applies pending migrations to SurrealDB.
+
+- `--dry-run` prints what would run without applying.
+- checksums are verified before execution.
+- destructive changes are blocked unless `--allow-destructive` is set.
+- applied migrations are tracked in `_aureline_migrations`.
+
+> Note: top-level CLI help may lag behind migrate subcommand help during dev releases; this page follows the implemented migrate command behavior.

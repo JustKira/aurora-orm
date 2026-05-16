@@ -1,0 +1,85 @@
+---
+title: Getting Started
+description: Create a schema, validate it, generate a migration, and apply it.
+icon: Rocket
+---
+
+This guide covers the currently supported path: schema authoring through migrations.
+
+## 1. Create `schema.aureline`
+
+```aureline
+table User schemafull {
+  email string @unique
+}
+```
+
+## 2. Optional configuration
+
+Create `aureline.toml` if you do not want to use defaults.
+
+```toml
+[schema]
+file = "schema.aureline"
+
+[migrations]
+dir = "migrations"
+```
+
+## 3. Check the schema
+
+```bash
+aureline check schema.aureline
+```
+
+Expected success output:
+
+```text
+OK: schema.aureline passed Aureline checks.
+```
+
+## 4. Preview the diff
+
+```bash
+aureline migrate diff
+```
+
+Aureline compares the current schema against the latest migration snapshot, not against a live database.
+
+## 5. Generate a migration
+
+```bash
+aureline migrate generate --name init
+```
+
+This creates files similar to:
+
+```text
+migrations/0001_init/migration.surql
+migrations/0001_init/down.surql
+migrations/meta/0001_snapshot.json
+migrations/meta/_journal.json
+migrations/migration_lock.toml
+```
+
+The generated `migration.surql` includes:
+
+```surrealql
+DEFINE TABLE user SCHEMAFULL;
+DEFINE FIELD email ON user TYPE string;
+DEFINE INDEX user_email_unique ON user FIELDS email UNIQUE;
+```
+
+## 6. Dry-run apply
+
+```bash
+aureline migrate apply --dry-run
+```
+
+## 7. Apply
+
+```bash
+aureline migrate apply
+```
+
+Aureline records applied migrations in the `_aureline_migrations` table and verifies checksums before running new migrations.

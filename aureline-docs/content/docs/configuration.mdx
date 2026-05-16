@@ -1,0 +1,41 @@
+---
+title: Configuration
+description: aureline.toml lookup, schema, migrations, and database environment settings.
+icon: Settings
+---
+
+Aureline looks for `aureline.toml` by walking upward from the current directory unless `--config <path>` is provided.
+
+## Default behavior
+
+When no config exists, Aureline expects:
+
+- schema file: `schema.aureline`
+- migration directory: `migrations`
+
+Relative paths are resolved from the config file location when a config file is used.
+
+## Example
+
+```toml
+[schema]
+file = "schema.aureline"
+
+[migrations]
+dir = "migrations"
+
+[database]
+# Values are environment variable names, not plaintext secrets.
+url = "SURREALDB_URL"
+user = "SURREALDB_USER"
+pass = "SURREALDB_PASS"
+namespace = "SURREALDB_NS"
+database = "SURREALDB_DB"
+# env_path = ".env.local"
+```
+
+## Database settings
+
+The `[database]` values point to environment variable names. `aureline migrate apply` reads those variables when connecting to SurrealDB.
+
+Use `env_path` when you want Aureline to load a dotenv file before resolving the database variables.

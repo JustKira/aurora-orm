@@ -1,0 +1,50 @@
+---
+title: Analyzers and Search
+description: Analyzer declarations, full-text indexes, and vector search.
+icon: Search
+---
+
+## Analyzers
+
+Declare analyzers at the top level.
+
+```aureline
+analyzer text_search {
+  tokenizers blank, class
+  filters lowercase, snowball(english)
+}
+```
+
+```surrealql
+DEFINE ANALYZER text_search TOKENIZERS blank, class FILTERS lowercase, snowball(english);
+```
+
+## Full-text indexes
+
+Attach full-text indexes to `string` fields.
+
+```aureline
+table Article {
+  body string @fulltext(analyzer: text_search, bm25: (1.2, 0.75), highlights: true)
+}
+```
+
+```surrealql
+DEFINE INDEX article_body_fts ON article FIELDS body FULLTEXT ANALYZER text_search BM25(1.2, 0.75) HIGHLIGHTS;
+```
+
+## Vector search
+
+HNSW indexes attach to `array<float>` fields.
+
+```aureline
+table Document {
+  embedding array<float, 1536> @hnsw(dimension: 1536, distance: cosine, efConstruction: 150, m: 12)
+}
+```
+
+```surrealql
+DEFINE INDEX document_embedding_hnsw ON document FIELDS embedding HNSW DIMENSION 1536 DIST COSINE TYPE F32 EFC 150 M 12;
+```
+
+Only options verified by the current parser, semantic checks, and migration tests should be used in dev.3 docs. Unsupported distance metrics or tuning knobs should be treated as future work.
