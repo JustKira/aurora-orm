@@ -1,6 +1,6 @@
 use pest::error::LineColLocation;
 
-use super::keywords::{ANALYZER, TABLE};
+use super::keywords::{ANALYZER, FUNCTION, TABLE};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum SyntaxContext {
@@ -14,6 +14,7 @@ pub(super) enum SyntaxContext {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum BlockKind {
     Analyzer,
+    Function,
     Table,
 }
 
@@ -21,6 +22,7 @@ impl BlockKind {
     pub(super) fn label(self) -> &'static str {
         match self {
             Self::Analyzer => ANALYZER,
+            Self::Function => FUNCTION,
             Self::Table => TABLE,
         }
     }
@@ -112,6 +114,10 @@ fn missing_block_start(before_error: &str) -> Option<BlockKind> {
 
     if starts_with_declaration_keyword(trimmed, ANALYZER) {
         return Some(BlockKind::Analyzer);
+    }
+
+    if starts_with_declaration_keyword(trimmed, FUNCTION) {
+        return Some(BlockKind::Function);
     }
 
     None

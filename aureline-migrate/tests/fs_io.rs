@@ -48,3 +48,32 @@ fn fs_io_rejects_top_level_surql_as_parse_error() {
         other => panic!("expected top-level #surql parse rejection, got {other:?}"),
     }
 }
+
+#[test]
+fn fs_io_rejects_function_declarations_as_unsupported() {
+    let dir = temp_dir("fs_io_function");
+    let schema_path = dir.join("schema.aureline");
+    fs::write(
+        &schema_path,
+        r#"
+function current_user() -> string {
+  #surql {
+    RETURN $auth.id;
+  }
+}
+"#,
+    )
+    .unwrap();
+
+    let result = read_schema(&schema_path);
+
+    match result {
+        Err(Error::UnsupportedSchemaItem { path, message }) => {
+            assert!(path.ends_with("schema.aureline"));
+            assert!(message.contains("function 'current_user'"));
+            assert!(message.contains("not supported by aureline-migrate yet"));
+            assert!(message.contains("not be migrated or snapshotted"));
+        }
+        other => panic!("expected unsupported function declaration rejection, got {other:?}"),
+    }
+}

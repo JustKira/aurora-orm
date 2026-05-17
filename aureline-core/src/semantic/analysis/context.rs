@@ -22,7 +22,7 @@ impl AnalysisContext {
                     table_names.insert(table.name.clone());
                     normalized_table_names.insert(normalized_name(&table.name));
                 }
-                SchemaItem::AnalyzerDecl(_) => {}
+                SchemaItem::AnalyzerDecl(_) | SchemaItem::FunctionDecl(_) => {}
                 SchemaItem::DocComment { .. } => {}
             }
         }

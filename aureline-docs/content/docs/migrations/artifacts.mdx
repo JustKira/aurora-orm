@@ -1,0 +1,29 @@
+---
+title: Migration Artifacts
+description: Files generated for each migration.
+icon: Files
+---
+
+Each generated migration has executable SurrealQL and metadata used by future diffs and applies.
+
+## `migration.surql`
+
+Forward migration statements.
+
+```surrealql
+DEFINE TABLE user SCHEMAFULL;
+DEFINE FIELD email ON user TYPE string;
+DEFINE INDEX user_email_unique ON user FIELDS email UNIQUE;
+```
+
+## `down.surql`
+
+Best-effort rollback statements generated for the same change set.
+
+## `meta/*_snapshot.json`
+
+The normalized schema snapshot used as the baseline for the next `migrate diff` or `migrate generate`.
+
+## `_journal.json` and `migration_lock.toml`
+
+Metadata and checksums used to detect changed migration files and determine what should be applied.

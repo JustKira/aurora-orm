@@ -14,6 +14,9 @@ pub enum Error {
         source: aureline_core::AurelineError,
     },
 
+    #[error("unsupported schema item in {path}: {message}")]
+    UnsupportedSchemaItem { path: String, message: String },
+
     #[error("snapshot decode error: {0}")]
     SnapshotDecode(String),
 

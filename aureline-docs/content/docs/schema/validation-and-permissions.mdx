@@ -1,0 +1,42 @@
+---
+title: Validation and Permissions
+subtitle: WIP migration output
+description: Current status for @assert and @allow.
+icon: ShieldAlert
+---
+
+`@assert` and `@allow` are parsed and their SurQL bodies are validated, but migration emission and snapshot preservation for these attributes are WIP in the current dev release.
+
+## Assertion syntax
+
+```aureline
+table User {
+  email string @assert(#s`$value != NONE`)
+}
+```
+
+Longer expressions can use attribute blocks:
+
+```aureline
+table User {
+  email string {
+    @assert(#surql { $value != NONE AND string::is::email($value) })
+  }
+}
+```
+
+## Permission syntax
+
+```aureline
+table Post {
+  owner record<User>
+
+  permissions bool @allow(op: "SELECT", #surql {
+    WHERE $auth.id = owner
+  })
+}
+```
+
+## Current boundary
+
+Use these examples to understand validation syntax only. Do not rely on generated migration DDL for `ASSERT` or `PERMISSIONS` until this page is no longer marked WIP.

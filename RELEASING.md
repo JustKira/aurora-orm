@@ -5,7 +5,7 @@ automatic version bumping, changelog generation, or release-please state.
 
 ## Release Flow
 
-1. Choose the next version, for example `0.1.0-dev.2`.
+1. Choose the next version, for example `0.1.0-dev.N`.
 2. Update every repo version that should stay synchronized:
    - `[workspace.package].version` in `Cargo.toml`
    - workspace dependency pins in `Cargo.toml`
@@ -18,8 +18,8 @@ automatic version bumping, changelog generation, or release-please state.
 ```bash
 git switch main
 git pull --ff-only origin main
-git tag v0.1.0-dev.2
-git push origin v0.1.0-dev.2
+git tag v0.1.0-dev.N
+git push origin v0.1.0-dev.N
 ```
 
 Pushing the tag runs `.github/workflows/release.yml`. Before publishing, the
@@ -28,9 +28,9 @@ the `CI` workflow completed successfully for that exact commit. It then publishe
 the workspace crates to crates.io and creates a GitHub Release with generated
 notes for that tag.
 
-The release workflow also checks the tag against the synchronized repo versions
-before creating the GitHub Release. For example, `v0.1.0-dev.2` only releases if
-the tracked Rust and package manifests also say `0.1.0-dev.2`. If the versions
+The release workflow checks the tag against the synchronized repo versions
+before creating the GitHub Release. For example, `v0.1.0-dev.N` only releases if
+the tracked Rust and package manifests also say `0.1.0-dev.N`. If the versions
 were not updated first, or if main CI has not passed for the tagged commit, the
 workflow fails and no release is created.
 
@@ -42,13 +42,7 @@ can recover after a partial publish.
 ## Version Policy
 
 Keep one repo-wide dev version while the package surface is still unstable.
-Use explicit dev increments such as:
-
-```text
-0.1.0-dev.1
-0.1.0-dev.2
-0.1.0-dev.3
-```
+Use explicit dev increments such as `0.1.0-dev.N`.
 
 Do not depend on Conventional Commit bump rules for now. If a future package is
 published independently, split it into its own documented release process then.

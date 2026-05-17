@@ -1,0 +1,44 @@
+---
+title: Tables
+description: Table declarations, modifiers, naming, and emitted SurrealQL.
+icon: Table
+---
+
+Define a table with `table`, a name, an optional modifier, and a body.
+
+```aureline
+table UserProfile schemafull {
+  displayName string
+}
+```
+
+Table names are emitted in snake case:
+
+```surrealql
+DEFINE TABLE user_profile SCHEMAFULL;
+DEFINE FIELD display_name ON user_profile TYPE string;
+```
+
+## Modifiers
+
+| Modifier | Output |
+| --- | --- |
+| none | `DEFINE TABLE name;` |
+| `schemafull` | `DEFINE TABLE name SCHEMAFULL;` |
+| `schemaless` | `DEFINE TABLE name SCHEMALESS;` |
+| `drop` | `DEFINE TABLE name DROP;` |
+
+## Table body
+
+A table body can contain fields and table-level index blocks such as `@@index`, `@@unique`, and `@@count`.
+
+```aureline
+table Account schemafull {
+  email string
+  org record<Org>
+
+  @@unique([org, email], name: org_email_unique)
+}
+```
+
+Table views, relation declarations, events, and custom raw SurrealQL blocks are not first-class migration declarations yet.

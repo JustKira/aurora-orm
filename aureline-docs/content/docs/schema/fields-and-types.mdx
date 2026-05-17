@@ -1,0 +1,82 @@
+---
+title: Fields and Types
+description: Field syntax and every supported type family.
+icon: ListTree
+---
+
+A field is a name, a type, optional inline attributes, and optionally an attribute block.
+
+```aureline
+table Article schemafull {
+  title string @index
+  tags array<string, 8>
+  author record<User>?
+}
+```
+
+Emitted field names are snake case.
+
+```surrealql
+DEFINE FIELD title ON article TYPE string;
+DEFINE FIELD tags ON article TYPE array<string, 8>;
+DEFINE FIELD author ON article TYPE option<record<user>>;
+```
+
+## Primitive types
+
+`any`, `bool`, `bytes`, `datetime`, `decimal`, `duration`, `float`, `int`, `number`, `object`, `range`, `regex`, `string`, `uuid`.
+
+## Optional values
+
+Use `?` or `option<T>` for nullable/optional fields.
+
+```aureline
+nickname string?
+metadata option<object>
+```
+
+## Arrays
+
+```aureline
+tags array<string>
+embedding array<float, 1536>
+```
+
+Arrays may include an item type and optional fixed length. Vector HNSW indexes require `array<float>` and a matching `dimension` argument.
+
+## Records
+
+```aureline
+owner record<User>
+subject record<User|Org>
+```
+
+Record targets are emitted using table naming rules.
+
+## Geometry
+
+```aureline
+location geometry<point>
+area geometry<polygon>
+shape geometry<point|polygon>
+```
+
+## Literals and flexible fields
+
+Use `@flexible` for SurrealDB flexible object-style fields.
+
+```aureline
+profile object @flexible
+```
+
+## Attribute blocks
+
+Use blocks when attributes need multiple arguments or SurQL snippets.
+
+```aureline
+table User {
+  email string {
+    @unique
+  }
+}
+```

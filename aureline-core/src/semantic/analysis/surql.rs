@@ -16,7 +16,9 @@ pub(super) fn analyze(schema: &Schema, errors: &mut Vec<SemanticError>) {
                     }
                 }
             }
-            SchemaItem::DocComment { .. } | SchemaItem::AnalyzerDecl(_) => {}
+            SchemaItem::DocComment { .. }
+            | SchemaItem::AnalyzerDecl(_)
+            | SchemaItem::FunctionDecl(_) => {}
         }
     }
 }

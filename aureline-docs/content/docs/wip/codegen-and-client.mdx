@@ -1,0 +1,19 @@
+---
+title: Codegen and Client APIs
+subtitle: WIP
+description: Planned direction for generated types and client helpers.
+icon: Hammer
+---
+
+This area is WIP and not part of the usable dev.3 workflow.
+
+The intended direction is to generate typed client helpers from `schema.aureline` once the schema and migration model stabilizes.
+
+Example shape, not implemented yet:
+
+```ts
+// Future example only
+const users = await db.user.select({ where: { email: 'team@example.com' } });
+```
+
+Until this page graduates from WIP, use Aureline for schema checks and migrations only.

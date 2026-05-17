@@ -116,7 +116,7 @@ impl<'a> SchemaIndex<'a> {
                         indexes.insert(key, index);
                     }
                 }
-                SchemaItem::DocComment { .. } => {}
+                SchemaItem::DocComment { .. } | SchemaItem::FunctionDecl(_) => {}
             }
         }
 

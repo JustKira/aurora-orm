@@ -15,6 +15,7 @@ dist/
 # opensrc - source code for packages
 opensrc/
 .sisyphus
+.context/
 .working
 
 # Temporary agent/research artifacts

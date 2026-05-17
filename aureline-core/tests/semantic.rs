@@ -11,6 +11,8 @@ mod analyzers;
 mod attributes;
 #[path = "semantic/fulltext.rs"]
 mod fulltext;
+#[path = "semantic/functions.rs"]
+mod functions;
 #[path = "semantic/indexes.rs"]
 mod indexes;
 #[path = "semantic/pipeline.rs"]

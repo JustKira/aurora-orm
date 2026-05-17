@@ -282,6 +282,117 @@ fn rejects_top_level_surql_block() {
 }
 
 #[test]
+fn parses_user_defined_function() {
+    let source = r#"
+function get_full_name(first: string, last: string) -> string {
+  #surql {
+    RETURN $first + ' ' + $last;
+  }
+  @@allow(op: "RUN", #surql { WHERE owner = $auth.id })
+}
+"#;
+
+    let schema = parse_to_ast(source).unwrap();
+
+    match &schema.items[0] {
+        SchemaItem::FunctionDecl(function) => {
+            assert_eq!(function.name, "get_full_name");
+            assert_eq!(function.params.len(), 2);
+            assert_eq!(function.params[0].name, "first");
+            assert_eq!(
+                function.params[0].ty,
+                aureline_core::ast::Type::primitive("string")
+            );
+            assert_eq!(function.params[1].name, "last");
+            assert_eq!(
+                function.params[1].ty,
+                aureline_core::ast::Type::primitive("string")
+            );
+            assert_eq!(
+                function.return_type,
+                aureline_core::ast::Type::primitive("string")
+            );
+            assert!(function.body.body.contains("RETURN $first + ' ' + $last;"));
+            assert_eq!(function.raw_attributes.len(), 1);
+            assert_eq!(function.raw_attributes[0].name, "allow");
+        }
+        other => panic!("expected function declaration, got {other:?}"),
+    }
+}
+
+#[test]
+fn parses_function_without_params_and_optional_return() {
+    let source = r#"
+function current_user() -> record<User>? {
+  #surql {
+    RETURN $auth.id;
+  }
+}
+"#;
+
+    let schema = parse_to_ast(source).unwrap();
+
+    match &schema.items[0] {
+        SchemaItem::FunctionDecl(function) => {
+            assert_eq!(function.name, "current_user");
+            assert!(function.params.is_empty());
+            assert_eq!(
+                function.return_type,
+                aureline_core::ast::Type::Option {
+                    inner: Box::new(aureline_core::ast::Type::Record {
+                        table: Some("User".to_string()),
+                    }),
+                }
+            );
+            assert!(function.body.body.contains("RETURN $auth.id;"));
+        }
+        other => panic!("expected function declaration, got {other:?}"),
+    }
+}
+
+#[test]
+fn parses_function_option_types_without_double_wrapping() {
+    let source = r#"
+function f(x: option<string>?) -> option<int>? {
+  #surql {
+    RETURN $x;
+  }
+}
+"#;
+
+    let schema = parse_to_ast(source).unwrap();
+
+    match &schema.items[0] {
+        SchemaItem::FunctionDecl(function) => {
+            assert_eq!(function.params.len(), 1);
+            assert_eq!(
+                function.params[0].ty,
+                aureline_core::ast::Type::Option {
+                    inner: Box::new(aureline_core::ast::Type::primitive("string")),
+                }
+            );
+            assert_eq!(
+                function.return_type,
+                aureline_core::ast::Type::Option {
+                    inner: Box::new(aureline_core::ast::Type::primitive("int")),
+                }
+            );
+
+            let aureline_core::ast::Type::Option { inner } = &function.params[0].ty else {
+                panic!("expected optional function parameter type");
+            };
+            assert!(!matches!(**inner, aureline_core::ast::Type::Option { .. }));
+
+            let aureline_core::ast::Type::Option { inner } = &function.return_type else {
+                panic!("expected optional function return type");
+            };
+            assert!(!matches!(**inner, aureline_core::ast::Type::Option { .. }));
+        }
+        other => panic!("expected function declaration, got {other:?}"),
+    }
+}
+
+#[test]
 fn parses_assert_surql_block_as_raw_attribute() {
     let source = r#"
 table User {

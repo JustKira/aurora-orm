@@ -44,6 +44,7 @@ pub enum SchemaItem {
     DocComment(DocComment),
     TableBlock(TableBlock),
     AnalyzerBlock(AnalyzerBlock),
+    FunctionBlock(FunctionBlock),
 }
 
 #[derive(FromPest)]
@@ -52,6 +53,7 @@ pub enum SourceItem {
     DocComment(DocComment),
     TableBlock(TableBlock),
     AnalyzerBlock(AnalyzerBlock),
+    FunctionBlock(FunctionBlock),
     InvalidLine(InvalidLine),
 }
 
@@ -430,6 +432,39 @@ pub struct FilterArgNode {
     pub value: String,
 }
 
+// === Function ===
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::function_block))]
+pub struct FunctionBlock {
+    #[pest_ast(outer(with(span_to_source_range)))]
+    pub source_range: SourceRange,
+    pub name: Identifier,
+    pub params: Option<FunctionParams>,
+    pub return_type: TypeExpr,
+    pub body: SurqlBlock,
+    pub attributes: Vec<FunctionAttributeLine>,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::function_params))]
+pub struct FunctionParams {
+    pub params: Vec<FunctionParamNode>,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::function_param))]
+pub struct FunctionParamNode {
+    pub name: Identifier,
+    pub type_expr: TypeExpr,
+}
+
+#[derive(FromPest)]
+#[pest_ast(rule(Rule::function_attribute_line))]
+pub struct FunctionAttributeLine {
+    pub attribute: BlockAttribute,
+}
+
 // === Identifier ===
 
 #[derive(FromPest)]
@@ -475,6 +510,9 @@ impl SchemaItem {
             SchemaItem::AnalyzerBlock(analyzer) => {
                 ast::SchemaItem::AnalyzerDecl(analyzer.into_ast())
             }
+            SchemaItem::FunctionBlock(function) => {
+                ast::SchemaItem::FunctionDecl(function.into_ast())
+            }
         }
     }
 }
@@ -486,6 +524,9 @@ impl SourceItem {
             SourceItem::TableBlock(table) => Some(ast::SchemaItem::TableDecl(table.into_ast())),
             SourceItem::AnalyzerBlock(analyzer) => {
                 Some(ast::SchemaItem::AnalyzerDecl(analyzer.into_ast()))
+            }
+            SourceItem::FunctionBlock(function) => {
+                Some(ast::SchemaItem::FunctionDecl(function.into_ast()))
             }
             SourceItem::InvalidLine(_) => None,
         }
@@ -557,16 +598,7 @@ impl FieldNode {
             value: name,
             source_range: name_range,
         } = self.name;
-        let optional_from_marker = self.type_expr.optional.is_some();
-        let raw = self.type_expr.type_node.into_ast();
-        // Normalize: if the parsed top-level type is `option<T>`, lift the
-        // inner type and set `optional = true`. So `option<int>` and `int?`
-        // produce identical AST. Nested `Type::Option` (inside compound types)
-        // is left alone.
-        let (ty, optional_from_type) = match raw {
-            ast::Type::Option { inner } => (*inner, true),
-            other => (other, false),
-        };
+        let (ty, optional) = self.type_expr.into_field_type();
         let mut raw_attributes: Vec<_> = self
             .attributes
             .into_iter()
@@ -585,7 +617,7 @@ impl FieldNode {
             source_range: Some(self.source_range),
             name_range: Some(name_range),
             ty,
-            optional: optional_from_marker || optional_from_type,
+            optional,
             flexible: false, // populated by semantic lowering
             raw_attributes,
         }
@@ -613,6 +645,33 @@ impl TypeNode {
             TypeNode::GeometryType(g) => ast::Type::Geometry {
                 features: g.features.into_iter().map(|f| f.value).collect(),
             },
+        }
+    }
+}
+
+impl TypeExpr {
+    fn into_type(self) -> ast::Type {
+        let optional = self.optional.is_some();
+        let ty = self.type_node.into_ast();
+        if optional && !matches!(ty, ast::Type::Option { .. }) {
+            ast::Type::Option {
+                inner: Box::new(ty),
+            }
+        } else {
+            ty
+        }
+    }
+
+    fn into_field_type(self) -> (ast::Type, bool) {
+        let optional_from_marker = self.optional.is_some();
+        let raw = self.type_node.into_ast();
+        // Normalize: if the parsed top-level type is `option<T>`, lift the
+        // inner type and set `optional = true`. So `option<int>` and `int?`
+        // produce identical AST. Nested `Type::Option` (inside compound types)
+        // is left alone.
+        match raw {
+            ast::Type::Option { inner } => (*inner, true),
+            other => (other, optional_from_marker),
         }
     }
 }
@@ -741,6 +800,53 @@ impl FilterCallNode {
         ast::FilterCall {
             name: self.name.value,
             args: self.args.into_iter().map(|a| a.value).collect(),
+        }
+    }
+}
+
+impl FunctionBlock {
+    fn into_ast(self) -> ast::Function {
+        let Identifier {
+            value: name,
+            source_range: name_range,
+        } = self.name;
+        ast::Function {
+            name,
+            source_range: Some(self.source_range),
+            name_range: Some(name_range),
+            params: self
+                .params
+                .map(|params| {
+                    params
+                        .params
+                        .into_iter()
+                        .map(FunctionParamNode::into_ast)
+                        .collect()
+                })
+                .unwrap_or_default(),
+            return_type: self.return_type.into_type(),
+            body: ast::SurqlBlock {
+                body: extract_surql_body(&self.body.source),
+            },
+            raw_attributes: self
+                .attributes
+                .into_iter()
+                .map(|line| line.attribute.into_attribute())
+                .collect(),
+        }
+    }
+}
+
+impl FunctionParamNode {
+    fn into_ast(self) -> ast::FunctionParam {
+        let Identifier {
+            value: name,
+            source_range: name_range,
+        } = self.name;
+        ast::FunctionParam {
+            name,
+            name_range: Some(name_range),
+            ty: self.type_expr.into_type(),
         }
     }
 }

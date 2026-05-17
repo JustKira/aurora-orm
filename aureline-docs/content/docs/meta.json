@@ -1,0 +1,13 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "getting-started",
+    "configuration",
+    "cli",
+    "syntax",
+    "schema",
+    "migrations",
+    "wip"
+  ]
+}
