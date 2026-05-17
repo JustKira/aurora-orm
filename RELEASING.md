@@ -22,14 +22,17 @@ git tag v0.1.0-dev.2
 git push origin v0.1.0-dev.2
 ```
 
-Pushing the tag runs `.github/workflows/release.yml`, which publishes the
-workspace crates to crates.io and then creates a GitHub Release with generated
+Pushing the tag runs `.github/workflows/release.yml`. Before publishing, the
+release workflow verifies that the tagged commit is contained on `main` and that
+the `CI` workflow completed successfully for that exact commit. It then publishes
+the workspace crates to crates.io and creates a GitHub Release with generated
 notes for that tag.
 
-The release workflow checks the tag against the synchronized repo versions
+The release workflow also checks the tag against the synchronized repo versions
 before creating the GitHub Release. For example, `v0.1.0-dev.2` only releases if
 the tracked Rust and package manifests also say `0.1.0-dev.2`. If the versions
-were not updated first, the workflow fails and no release is created.
+were not updated first, or if main CI has not passed for the tagged commit, the
+workflow fails and no release is created.
 
 If the tag already exists and the workflow needs to be retried, run the
 `Release` workflow manually from GitHub Actions and pass the existing tag name.
@@ -87,15 +90,24 @@ consistency and CI testing, but it is not currently published from CI.
 
 ## Verification
 
-Run the same checks locally that CI runs on Blacksmith:
+Run the same phase checks locally that CI runs on Blacksmith for normal PR
+validation:
 
 ```bash
-moon ci \
-  repo:fmt \
-  repo:check \
-  repo:clippy \
-  repo:test \
-  repo:build-release \
-  tree-sitter:generated-check \
-  tree-sitter:test
+moon ci repo:fmt
+moon ci repo:clippy
+moon ci repo:check tree-sitter:generated-check docs:typecheck
+moon ci repo:test tree-sitter:test
 ```
+
+Normal PR validation does not run the release build. Main/release validation
+includes the release build phase:
+
+```bash
+moon ci repo:build-release
+```
+
+Release publishing requires successful main CI validation/checking for the exact
+release commit before it publishes crates or creates the GitHub Release. Manual
+retries fail fast when that CI validation is missing instead of waiting on an idle
+runner.
