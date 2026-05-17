@@ -68,6 +68,8 @@ pub fn emit_function(f: &Function) -> String {
 }
 
 fn function_permissions(attrs: &[Attribute]) -> Option<String> {
+    // TODO: Revisit function attribute handling when the semantic engine owns
+    // function-specific lowering/cleanup instead of searching raw attributes here.
     attrs
         .iter()
         .find(|attr| attr.name == "allow")
