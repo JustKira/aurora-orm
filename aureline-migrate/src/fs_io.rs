@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use aureline_core::ast::Schema;
+use aureline_core::ast::{Schema, SchemaItem};
 
 use crate::error::{Error, Result, io};
 use crate::journal::Journal;
@@ -24,7 +24,23 @@ pub fn read_schema(path: &Path) -> Result<Schema> {
         path: path.display().to_string(),
         source,
     })?;
+    reject_unsupported_schema_items(path, &schema)?;
     Ok(schema)
+}
+
+fn reject_unsupported_schema_items(path: &Path, schema: &Schema) -> Result<()> {
+    for item in &schema.items {
+        if let SchemaItem::FunctionDecl(function) = item {
+            return Err(Error::UnsupportedSchemaItem {
+                path: path.display().to_string(),
+                message: format!(
+                    "function '{}' is not supported by aureline-migrate yet and would not be migrated or snapshotted",
+                    function.name
+                ),
+            });
+        }
+    }
+    Ok(())
 }
 
 pub fn read_previous_schema(meta_dir: &Path, journal: &Journal) -> Result<Schema> {

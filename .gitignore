@@ -15,3 +15,4 @@ dist/
 # opensrc - source code for packages
 opensrc/
 .sisyphus
+.context/

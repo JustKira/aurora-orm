@@ -16,6 +16,56 @@ pub enum SchemaItem {
     TableDecl(Table),
     #[serde(rename = "analyzer")]
     AnalyzerDecl(Analyzer),
+    #[serde(rename = "function")]
+    FunctionDecl(Function),
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SurqlBlock {
+    pub body: String,
+}
+
+/// Top-level user-defined function declaration. Aureline owns the typed
+/// signature; the body remains a raw SurQL escape hatch.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Function {
+    pub name: String,
+    #[serde(skip)]
+    pub source_range: Option<SourceRange>,
+    #[serde(skip)]
+    pub name_range: Option<SourceRange>,
+    pub params: Vec<FunctionParam>,
+    #[serde(rename = "return")]
+    pub return_type: Type,
+    pub body: SurqlBlock,
+    /// Function-level `@@` attributes. Currently only `@@allow` is supported.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub raw_attributes: Vec<Attribute>,
+}
+
+impl PartialEq for Function {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+            && self.params == other.params
+            && self.return_type == other.return_type
+            && self.body == other.body
+            && self.raw_attributes == other.raw_attributes
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FunctionParam {
+    pub name: String,
+    #[serde(skip)]
+    pub name_range: Option<SourceRange>,
+    #[serde(rename = "type")]
+    pub ty: Type,
+}
+
+impl PartialEq for FunctionParam {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name && self.ty == other.ty
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

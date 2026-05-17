@@ -5,14 +5,21 @@ use super::{SemanticError, error};
 
 pub(super) fn analyze(schema: &Schema, context: &AnalysisContext, errors: &mut Vec<SemanticError>) {
     for item in &schema.items {
-        let SchemaItem::TableDecl(table) = item else {
-            continue;
-        };
-
-        for field in &table.fields {
-            // Type references can be nested (`array<record<User>>`), so check
-            // the full tree instead of only the top-level field type.
-            record_references(&field.ty, context, errors);
+        match item {
+            SchemaItem::TableDecl(table) => {
+                for field in &table.fields {
+                    // Type references can be nested (`array<record<User>>`), so check
+                    // the full tree instead of only the top-level field type.
+                    record_references(&field.ty, context, errors);
+                }
+            }
+            SchemaItem::FunctionDecl(function) => {
+                for param in &function.params {
+                    record_references(&param.ty, context, errors);
+                }
+                record_references(&function.return_type, context, errors);
+            }
+            SchemaItem::DocComment { .. } | SchemaItem::AnalyzerDecl(_) => {}
         }
     }
 }

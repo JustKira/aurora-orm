@@ -1,23 +1,32 @@
-use crate::ast::{Analyzer, Bm25, Field, FilterCall, Index, IndexKind, Schema, SchemaItem, Table};
+use crate::ast::{
+    Analyzer, Attribute, AttributeArg, AttributeValue, Bm25, Field, FilterCall, Function, Index,
+    IndexKind, Schema, SchemaItem, Table,
+};
 
 use super::naming::{pascal_to_snake, surql_type};
 
 pub fn emit_schema(schema: &Schema) -> String {
     let mut analyzers = Vec::new();
+    let mut functions = Vec::new();
     let mut tables = Vec::new();
     for item in &schema.items {
         match item {
             SchemaItem::AnalyzerDecl(a) => analyzers.push(a),
+            SchemaItem::FunctionDecl(f) => functions.push(f),
             SchemaItem::TableDecl(t) => tables.push(t),
             SchemaItem::DocComment { .. } => {}
         }
     }
     analyzers.sort_by(|a, b| a.name.cmp(&b.name));
+    functions.sort_by(|a, b| a.name.cmp(&b.name));
     tables.sort_by(|a, b| a.name.cmp(&b.name));
 
     let mut parts = Vec::new();
     for a in &analyzers {
         parts.push(emit_analyzer(a));
+    }
+    for f in &functions {
+        parts.push(emit_function(f));
     }
     for table in &tables {
         parts.push(emit_table(table));
@@ -36,6 +45,44 @@ pub fn emit_schema(schema: &Schema) -> String {
     }
 
     join_statements(parts)
+}
+
+pub fn emit_function(f: &Function) -> String {
+    let params = f
+        .params
+        .iter()
+        .map(|p| format!("${}: {}", p.name, surql_type(&p.ty)))
+        .collect::<Vec<_>>()
+        .join(", ");
+    let body = f.body.body.trim();
+    let permissions = function_permissions(&f.raw_attributes).unwrap_or_else(|| "FULL".to_string());
+
+    format!(
+        "DEFINE FUNCTION fn::{}({}) -> {} {{ {} }} PERMISSIONS {};",
+        f.name,
+        params,
+        surql_type(&f.return_type),
+        body,
+        permissions
+    )
+}
+
+fn function_permissions(attrs: &[Attribute]) -> Option<String> {
+    // TODO: Revisit function attribute handling when the semantic engine owns
+    // function-specific lowering/cleanup instead of searching raw attributes here.
+    attrs
+        .iter()
+        .find(|attr| attr.name == "allow")
+        .and_then(function_permission_body)
+}
+
+fn function_permission_body(attr: &Attribute) -> Option<String> {
+    attr.args.iter().find_map(|arg| match arg {
+        AttributeArg::Positional {
+            value: AttributeValue::Surql { body, .. },
+        } => Some(body.trim().to_string()),
+        _ => None,
+    })
 }
 
 pub fn emit_table(t: &Table) -> String {

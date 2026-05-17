@@ -252,7 +252,7 @@ fn schema_index_parity_with_manual_traversal() {
                 manual_fields += table.fields.len();
                 manual_indexes += table.indexes.len();
             }
-            SchemaItem::DocComment { .. } => {}
+            SchemaItem::DocComment { .. } | SchemaItem::FunctionDecl(_) => {}
         }
     }
 

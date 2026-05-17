@@ -1,5 +1,6 @@
 use aureline_core::surql::{
-    parse_query, validate_expression, validate_field_permission, validate_query,
+    parse_query, validate_expression, validate_field_permission, validate_function_permission,
+    validate_query,
 };
 
 #[test]
@@ -31,6 +32,7 @@ fn validators_accept_valid_single_statement_inputs() {
     validate_query("RETURN 1;").unwrap();
     validate_expression("$value != NONE").unwrap();
     validate_field_permission("SELECT", "WHERE $auth.admin").unwrap();
+    validate_function_permission("WHERE $auth.admin").unwrap();
 }
 
 #[test]
@@ -74,6 +76,20 @@ fn field_permission_validation_rejects_embedded_statement_terminator() {
 fn field_permission_validation_rejects_embedded_let_statement() {
     let error =
         validate_field_permission("SELECT", "WHERE $auth.admin; LET $c = 'Ada'").unwrap_err();
+
+    assert!(error.message.contains("expected exactly one statement"));
+}
+
+#[test]
+fn function_permission_validation_rejects_malformed_permission() {
+    let error = validate_function_permission("WHERE $auth.id !=").unwrap_err();
+
+    assert!(error.message.contains("invalid SurrealQL"));
+}
+
+#[test]
+fn function_permission_validation_rejects_embedded_statement_terminator() {
+    let error = validate_function_permission("WHERE $auth.admin; RETURN true;").unwrap_err();
 
     assert!(error.message.contains("expected exactly one statement"));
 }
