@@ -55,8 +55,7 @@ pub fn emit_function(f: &Function) -> String {
         .collect::<Vec<_>>()
         .join(", ");
     let body = f.body.body.trim();
-    let permissions = function_permissions(&f.raw_attributes)
-        .unwrap_or_else(|| "FULL".to_string());
+    let permissions = function_permissions(&f.raw_attributes).unwrap_or_else(|| "FULL".to_string());
 
     format!(
         "DEFINE FUNCTION fn::{}({}) -> {} {{ {} }} PERMISSIONS {};",
