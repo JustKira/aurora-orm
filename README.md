@@ -146,8 +146,12 @@ cd aureline-tree-sitter && bunx tree-sitter test
 
 # Install the CLI
 cargo install --path aureline-cli
-# Or from this repo
+# Or from crates.io / this repo once published
+cargo install aureline-cli
 cargo install aureline-cli --git https://github.com/pixelscortex/aureline-orm --branch main
+
+# Optional: install the language server for editors
+cargo install aureline-lsp
 ```
 
 ## Using Aureline in a project

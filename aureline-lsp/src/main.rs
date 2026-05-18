@@ -140,8 +140,34 @@ fn to_lsp_position(position: SourcePosition) -> Position {
     Position::new(position.line, position.character)
 }
 
+fn handle_cli_args() -> bool {
+    let mut args = std::env::args().skip(1);
+    let Some(arg) = args.next() else {
+        return false;
+    };
+
+    match arg.as_str() {
+        "--version" | "-V" => {
+            println!("aureline-lsp {}", env!("CARGO_PKG_VERSION"));
+            true
+        }
+        "--help" | "-h" => {
+            println!(
+                "aureline-lsp {}\n\nUSAGE:\n    aureline-lsp [OPTIONS]\n\nOPTIONS:\n    -h, --help       Print help\n    -V, --version    Print version",
+                env!("CARGO_PKG_VERSION")
+            );
+            true
+        }
+        _ => false,
+    }
+}
+
 #[tokio::main]
 async fn main() {
+    if handle_cli_args() {
+        return;
+    }
+
     let stdin = tokio::io::stdin();
     let stdout = tokio::io::stdout();
     let (service, socket) = LspService::new(|client| AurelineLsp { client });
