@@ -3,8 +3,9 @@
 Zed editor extension for the Aureline schema language.
 
 Provides syntax highlighting, brackets, indentation, and document outline
-backed by `aureline-tree-sitter`. Wires up `aureline-lsp` from `aureline-lsp`
-if it's installed in `PATH`.
+backed by `aureline-tree-sitter`. Wires up `aureline-lsp` from `PATH` when
+available, and otherwise asks Cargo to install/update `aureline-lsp` before
+starting the language server.
 
 ## Install as a dev extension
 
@@ -17,7 +18,18 @@ if it's installed in `PATH`.
    (Older Zed versions used `wasm32-wasip1`. If you see a `wasm32-wasip1`
    error instead, install that one too.)
 
-2. Build the LSP and put it on your `PATH`:
+2. Install Cargo and the LSP.
+
+   The extension will try to run `cargo install aureline-lsp` automatically if
+   `aureline-lsp` is not on `PATH`, and it performs a best-effort Cargo update
+   check before startup when the binary already exists. For faster startup, you
+   can install it yourself first:
+
+   ```bash
+   cargo install aureline-lsp
+   ```
+
+   When developing locally before publishing, install from this checkout instead:
 
    ```bash
    cargo install --path aureline-lsp
@@ -43,8 +55,9 @@ if it's installed in `PATH`.
 
 4. Open `aureline-tree-sitter/examples/showcase.aureline`. Highlighting should turn
    on, and the language indicator in the status bar should read **Aureline**.
-   If `aureline-lsp` resolved on `PATH`, Zed shows it as a running server
-   in the language-server panel.
+   If `aureline-lsp` is on `PATH`, Zed starts it directly. If not, Zed waits
+   while the extension runs `cargo install aureline-lsp`, then starts the
+   installed server.
 
 ## Testing local grammar changes
 
@@ -97,7 +110,7 @@ which the extension references for SurrealQL highlighting/injection support.
 
 - `Cargo.toml` — WASM cdylib that gets compiled by Zed.
 - `extension.toml` — manifest declaring language + grammar + LSP.
-- `src/lib.rs` — extension entry point; resolves `aureline-lsp` from `PATH`.
+- `src/lib.rs` — extension entry point; resolves `aureline-lsp` from `PATH` or installs/updates it via Cargo.
 - `languages/aureline/` — language config + tree-sitter queries:
   - `config.toml` — name, grammar, file suffixes, comment syntax.
   - `highlights.scm` — semantic highlighting.

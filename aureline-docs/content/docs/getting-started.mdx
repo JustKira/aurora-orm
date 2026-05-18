@@ -6,6 +6,22 @@ icon: Rocket
 
 This guide covers the currently supported path: schema authoring through migrations.
 
+## Install Aureline
+
+Install the CLI with Cargo:
+
+```bash
+cargo install aureline-cli
+```
+
+For editor integrations, install the language server too:
+
+```bash
+cargo install aureline-lsp
+```
+
+The Zed extension can also run `cargo install aureline-lsp` automatically when it cannot find `aureline-lsp` on `PATH`, but installing it yourself first makes startup faster and clearer.
+
 ## 1. Create `schema.aureline`
 
 ```aureline

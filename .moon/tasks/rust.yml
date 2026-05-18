@@ -38,6 +38,7 @@ tasks:
       - '@globs(sources)'
       - '/Cargo.toml'
       - '/Cargo.lock'
+      - '/rust-toolchain.toml'
 
   fmt:
     command: 'cargo'
@@ -65,7 +66,9 @@ tasks:
     inputs:
       - '@globs(sources)'
       - '@globs(tests)'
+      - '/Cargo.toml'
       - '/Cargo.lock'
+      - '/rust-toolchain.toml'
 
   test:
     command: 'cargo'
@@ -79,4 +82,6 @@ tasks:
     inputs:
       - '@globs(sources)'
       - '@globs(tests)'
+      - '/Cargo.toml'
       - '/Cargo.lock'
+      - '/rust-toolchain.toml'

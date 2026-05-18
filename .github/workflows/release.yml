@@ -1,6 +1,13 @@
 name: Release
 
 on:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
+    branches:
+      - main
   push:
     tags:
       - "v*"
@@ -12,43 +19,145 @@ on:
         type: string
 
 permissions:
+  actions: read
   contents: write
 
 jobs:
-  github-release:
-    name: GitHub Release
+  gate:
+    name: Release Gate
     runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 5
+    outputs:
+      should_publish: ${{ steps.gate.outputs.should_publish }}
+      tag: ${{ steps.gate.outputs.tag }}
+      version: ${{ steps.gate.outputs.version }}
+      release_sha: ${{ steps.gate.outputs.release_sha }}
 
     steps:
-      - name: Resolve tag
-        id: release
-        shell: bash
-        run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Check out tag
+      - name: Check out repository
         uses: actions/checkout@v5
         with:
-          ref: ${{ steps.release.outputs.tag }}
+          fetch-depth: 0
 
-      - name: Validate tag matches repo versions
+      - name: Resolve release gate
+        id: gate
         env:
-          TAG: ${{ steps.release.outputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+          WORKFLOW_RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
         shell: bash
         run: |
           set -euo pipefail
 
-          version="${TAG#v}"
-          if [[ "$TAG" == "$version" || -z "$version" ]]; then
+          git fetch --force --tags origin '+refs/heads/main:refs/remotes/origin/main'
+
+          should_publish=false
+          tag=""
+          release_sha=""
+
+          if [[ "$EVENT_NAME" == "workflow_run" ]]; then
+            if [[ "$WORKFLOW_RUN_CONCLUSION" != "success" ]]; then
+              echo "CI workflow completed with conclusion=${WORKFLOW_RUN_CONCLUSION}; no release."
+              {
+                echo "should_publish=false"
+                echo "tag="
+                echo "version="
+                echo "release_sha="
+              } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
+            release_sha="$WORKFLOW_RUN_SHA"
+            tag="$(git tag --points-at "$release_sha" --list 'v*' | sort -V | tail -n 1)"
+            if [[ -z "$tag" ]]; then
+              echo "No v* tag points at successful CI commit ${release_sha}; no release."
+              {
+                echo "should_publish=false"
+                echo "tag="
+                echo "version="
+                echo "release_sha=${release_sha}"
+              } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          elif [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            tag="$INPUT_TAG"
+            release_sha="$(git rev-list -n 1 "${tag}^{commit}")"
+          else
+            tag="$REF_NAME"
+            release_sha="$(git rev-list -n 1 "${tag}^{commit}")"
+          fi
+
+          version="${tag#v}"
+          if [[ "$tag" == "$version" || -z "$version" ]]; then
             echo "Release tags must start with v, for example vX.Y.Z." >&2
             exit 1
           fi
 
-          expected="version = \"$version\""
+          echo "Release tag ${tag} resolves to ${release_sha}."
+
+          if ! git merge-base --is-ancestor "$release_sha" origin/main; then
+            echo "Release commit ${release_sha} is not contained on origin/main." >&2
+            exit 1
+          fi
+
+          if [[ "$EVENT_NAME" != "workflow_run" ]]; then
+            runs_json="$(gh run list \
+              --repo "$GITHUB_REPOSITORY" \
+              --workflow ci.yml \
+              --branch main \
+              --commit "$release_sha" \
+              --limit 20 \
+              --json status,conclusion,databaseId,url)"
+
+            completed_success="$(jq -r '[.[] | select(.status == "completed" and .conclusion == "success")] | first | .databaseId // empty' <<< "$runs_json")"
+            if [[ -z "$completed_success" ]]; then
+              latest_run="$(jq -r '[.[]] | first | .url // empty' <<< "$runs_json")"
+              if [[ -n "$latest_run" ]]; then
+                echo "No successful main CI run exists yet for ${release_sha}. Latest related run: ${latest_run}" >&2
+              else
+                echo "No main CI run exists yet for ${release_sha}." >&2
+              fi
+              echo "Wait for main CI to pass for this commit, then rerun release." >&2
+              exit 1
+            fi
+
+            echo "Found successful CI run ${completed_success} for ${release_sha}."
+          fi
+
+          should_publish=true
+          {
+            echo "should_publish=${should_publish}"
+            echo "tag=${tag}"
+            echo "version=${version}"
+            echo "release_sha=${release_sha}"
+          } >> "$GITHUB_OUTPUT"
+
+  publish:
+    name: Publish Release
+    needs: gate
+    if: needs.gate.outputs.should_publish == 'true'
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out tag
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.gate.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Validate tag matches repo versions
+        env:
+          TAG: ${{ needs.gate.outputs.tag }}
+          VERSION: ${{ needs.gate.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          expected="version = \"$VERSION\""
           files=(
             Cargo.toml
             aureline-cli/Cargo.toml
@@ -66,15 +175,15 @@ jobs:
             fi
           done
 
-          dependency_pin="version = \"=$version\""
+          dependency_pin="version = \"=$VERSION\""
           for crate in aureline-codegen aureline-config aureline-core aureline-migrate; do
             if ! grep -F "$crate = " Cargo.toml | grep -Fq "$dependency_pin"; then
-              echo "Cargo.toml dependency pin for $crate does not match =$version" >&2
+              echo "Cargo.toml dependency pin for $crate does not match =$VERSION" >&2
               exit 1
             fi
           done
 
-          node_version="\"version\": \"$version\""
+          node_version="\"version\": \"$VERSION\""
           for file in package.json aureline-tree-sitter/package.json; do
             if ! grep -Fq "$node_version" "$file"; then
               echo "$file does not contain $node_version" >&2
@@ -82,10 +191,57 @@ jobs:
             fi
           done
 
-      - name: Publish crates.io packages
+      - name: Check published artifacts
+        id: published
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.gate.outputs.tag }}
+          VERSION: ${{ needs.gate.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          crate_exists() {
+            local crate="$1"
+            curl --fail --silent --show-error \
+              "https://crates.io/api/v1/crates/${crate}/${VERSION}" \
+              >/dev/null 2>&1
+          }
+
+          missing=()
+          for crate in aureline-core aureline-config aureline-migrate aureline-codegen aureline-lsp aureline-cli; do
+            if crate_exists "$crate"; then
+              echo "${crate} ${VERSION} already exists on crates.io."
+            else
+              echo "${crate} ${VERSION} is missing from crates.io."
+              missing+=("$crate")
+            fi
+          done
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            github_release_exists=true
+            echo "GitHub release ${TAG} already exists."
+          else
+            github_release_exists=false
+            echo "GitHub release ${TAG} does not exist yet."
+          fi
+
+          missing_crates="${missing[*]}"
+          {
+            echo "missing_crates=${missing_crates}"
+            echo "github_release_exists=${github_release_exists}"
+          } >> "$GITHUB_OUTPUT"
+
+          if [[ -z "$missing_crates" && "$github_release_exists" == "true" ]]; then
+            echo "All release artifacts already exist; publish job will no-op."
+          fi
+
+      - name: Publish missing crates.io packages
+        if: steps.published.outputs.missing_crates != ''
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ needs.gate.outputs.version }}
+          MISSING_CRATES: ${{ steps.published.outputs.missing_crates }}
         shell: bash
         run: |
           set -euo pipefail
@@ -95,19 +251,17 @@ jobs:
             exit 1
           fi
 
-          version="${TAG#v}"
-
           crate_exists() {
             local crate="$1"
             curl --fail --silent --show-error \
-              "https://crates.io/api/v1/crates/${crate}/${version}" \
+              "https://crates.io/api/v1/crates/${crate}/${VERSION}" \
               >/dev/null 2>&1
           }
 
           publish_crate() {
             local crate="$1"
             if crate_exists "$crate"; then
-              echo "${crate} ${version} already exists on crates.io; skipping."
+              echo "${crate} ${VERSION} already exists on crates.io; skipping."
               return
             fi
 
@@ -119,7 +273,7 @@ jobs:
               fi
 
               if grep -Fq "already exists on crates.io index" "$publish_log"; then
-                echo "${crate} ${version} already exists on crates.io; skipping."
+                echo "${crate} ${VERSION} already exists on crates.io; skipping."
                 rm -f "$publish_log"
                 return
               fi
@@ -127,29 +281,32 @@ jobs:
               rm -f "$publish_log"
 
               if crate_exists "$crate"; then
-                echo "${crate} ${version} was published by a previous attempt."
+                echo "${crate} ${VERSION} was published by a previous attempt."
                 return
+              fi
+
+              if [[ "$attempt" == "5" ]]; then
+                break
               fi
 
               echo "cargo publish failed for ${crate} on attempt ${attempt}; retrying after crates.io index propagation."
               sleep 30
             done
 
-            echo "Failed to publish ${crate} ${version} after 5 attempts." >&2
+            echo "Failed to publish ${crate} ${VERSION} after 5 attempts." >&2
             exit 1
           }
 
-          publish_crate aureline-core
-          publish_crate aureline-config
-          publish_crate aureline-migrate
-          publish_crate aureline-codegen
-          publish_crate aureline-lsp
-          publish_crate aureline-cli
+          for crate in $MISSING_CRATES; do
+            publish_crate "$crate"
+          done
 
       - name: Create GitHub release
+        if: steps.published.outputs.github_release_exists != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.release.outputs.tag }}
+          TAG: ${{ needs.gate.outputs.tag }}
+        shell: bash
         run: |
           gh release create "$TAG" \
             --repo "$GITHUB_REPOSITORY" \

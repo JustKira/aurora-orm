@@ -1,10 +1,14 @@
 $schema: 'https://moonrepo.dev/schemas/project.json'
 
-id: repo
 language: rust
+layer: application
 
-# The root project owns full-workspace verification. Per-crate inherited Rust
-# tasks are package-scoped to avoid repeating `cargo --workspace` for each crate.
+env:
+  CARGO_TERM_COLOR: always
+
+# The root project owns full-workspace verification with Cargo workspace
+# commands. Per-crate inherited Rust tasks stay available for local targeted
+# runs, but CI uses these workspace-* tasks to avoid parallel Cargo fanout.
 workspace:
   inheritedTasks:
     include: []
@@ -22,7 +26,7 @@ fileGroups:
     - 'rustfmt.toml'
 
 tasks:
-  fmt:
+  workspace-format:
     command: 'cargo'
     args:
       - 'fmt'
@@ -32,7 +36,7 @@ tasks:
       - '@group(rust-sources)'
       - '@group(rust-config)'
 
-  check:
+  workspace-check:
     command: 'cargo'
     args:
       - 'check'
@@ -44,7 +48,7 @@ tasks:
       - '@group(rust-sources)'
       - '@group(rust-config)'
 
-  clippy:
+  workspace-lint:
     command: 'cargo'
     args:
       - 'clippy'
@@ -59,7 +63,7 @@ tasks:
       - '@group(rust-sources)'
       - '@group(rust-config)'
 
-  test:
+  workspace-test:
     command: 'cargo'
     args:
       - 'test'

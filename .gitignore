@@ -16,3 +16,8 @@ dist/
 opensrc/
 .sisyphus
 .context/
+.working
+
+# Temporary agent/research artifacts
+context.md
+research.md
