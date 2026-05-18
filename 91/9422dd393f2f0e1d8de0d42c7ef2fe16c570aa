@@ -1,0 +1,27 @@
+aureline-zed/README.md
+  s_0f2d3d8d5bcae1::t_f59f4db46b731d 6-8,21-32,58-60,113
+aureline-zed/src/lib.rs
+  s_0f2d3d8d5bcae1::t_e2f0d58b7c7659 1-7,18,21-30,32-51,61-133
+aureline-lsp/src/main.rs
+  s_0f2d3d8d5bcae1::t_e9629946021fd3 143-164,167-170
+aureline-docs/content/docs/getting-started.mdx
+  s_0f2d3d8d5bcae1::t_72b6d25f8fe01c 9-24
+README.md
+  s_0f2d3d8d5bcae1::t_bfcd70913821c5 149-150,152-154
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "919422dd393f2f0e1d8de0d42c7ef2fe16c570aa",
+  "prompts": {},
+  "sessions": {
+    "s_0f2d3d8d5bcae1": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e39d3-71e7-7190-b238-0a954767cff3",
+        "model": "gpt-5.5"
+      },
+      "human_author": "JustKira <shighgamerhg@gmail.com>"
+    }
+  }
+}
