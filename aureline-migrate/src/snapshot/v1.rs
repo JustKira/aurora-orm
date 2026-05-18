@@ -1,4 +1,4 @@
-use aureline_core::ast::{Analyzer, Field, Index, Schema, SchemaItem, Table, Type};
+use aureline_core::ast::{Analyzer, DefaultValue, Field, Index, Schema, SchemaItem, Table, Type};
 use serde::Deserialize;
 
 use crate::error::Result;
