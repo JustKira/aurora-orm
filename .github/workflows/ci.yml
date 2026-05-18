@@ -17,7 +17,6 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
-  CARGO_TARGET_DIR: ${{ github.workspace }}/.cargo-target
 
 jobs:
   verify:
@@ -42,7 +41,7 @@ jobs:
           path: |
             ~/.cargo/git
             ~/.cargo/registry
-            .cargo-target
+            target
           key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-${{ github.sha }}
           restore-keys: |
             cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-
@@ -81,7 +80,7 @@ jobs:
           path: |
             ~/.cargo/git
             ~/.cargo/registry
-            .cargo-target
+            target
           key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-${{ github.sha }}-${{ github.run_attempt }}
 
       - name: Save Bun cache
@@ -156,7 +155,7 @@ jobs:
           path: |
             ~/.cargo/git
             ~/.cargo/registry
-            .cargo-target
+            target
           key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-${{ github.sha }}
           restore-keys: |
             cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-
@@ -186,7 +185,7 @@ jobs:
           path: |
             ~/.cargo/git
             ~/.cargo/registry
-            .cargo-target
+            target
           key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-${{ github.sha }}-release-${{ github.run_attempt }}
 
       - name: Save Bun cache
