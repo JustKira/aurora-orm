@@ -1,0 +1,23 @@
+.github/workflows/ci.yml
+  s_0f2d3d8d5bcae1::t_4beb7a5644511d 36,38-39,41-43,60,63,66,69,135,137-138,140-142
+RELEASING.md
+  s_0f2d3d8d5bcae1::t_2cad5aaaa5dd02 91-94,101
+moon.yml
+  s_0f2d3d8d5bcae1::t_f081579ecf4f11 4,6-11,29,51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "915bd2c6919dc6d20fe09ee9530836549140ae17",
+  "prompts": {},
+  "sessions": {
+    "s_0f2d3d8d5bcae1": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e39d3-71e7-7190-b238-0a954767cff3",
+        "model": "gpt-5.5"
+      },
+      "human_author": "JustKira <shighgamerhg@gmail.com>"
+    }
+  }
+}
