@@ -22,7 +22,20 @@ fileGroups:
     - 'rustfmt.toml'
 
 tasks:
-  fmt:
+  prepare-rust:
+    command: 'cargo'
+    args:
+      - 'test'
+      - '--workspace'
+      - '--all-targets'
+      - '--all-features'
+      - '--no-run'
+      - '--locked'
+    inputs:
+      - '@group(rust-sources)'
+      - '@group(rust-config)'
+
+  workspace-fmt:
     command: 'cargo'
     args:
       - 'fmt'
@@ -32,7 +45,7 @@ tasks:
       - '@group(rust-sources)'
       - '@group(rust-config)'
 
-  check:
+  workspace-check:
     command: 'cargo'
     args:
       - 'check'
@@ -44,7 +57,7 @@ tasks:
       - '@group(rust-sources)'
       - '@group(rust-config)'
 
-  clippy:
+  workspace-clippy:
     command: 'cargo'
     args:
       - 'clippy'
@@ -59,7 +72,7 @@ tasks:
       - '@group(rust-sources)'
       - '@group(rust-config)'
 
-  test:
+  workspace-test:
     command: 'cargo'
     args:
       - 'test'

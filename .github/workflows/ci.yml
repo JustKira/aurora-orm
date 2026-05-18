@@ -17,180 +17,11 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  CARGO_TARGET_DIR: ${{ github.workspace }}/.cargo-target
 
 jobs:
-  format:
-    name: Format
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Moon Toolchain
-        uses: moonrepo/setup-toolchain@v0
-        with:
-          auto-install: true
-
-      - name: Restore Cargo cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.cargo/git
-            ~/.cargo/registry
-            target
-          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
-          restore-keys: |
-            cargo-${{ runner.os }}-
-
-      - name: Restore Bun cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-            aureline-tree-sitter/node_modules
-            aureline-docs/node_modules
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'aureline-tree-sitter/package.json', 'aureline-docs/bun.lock', 'aureline-docs/package.json') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-
-      - name: Run format check
-        run: moon ci repo:fmt
-
-  lint:
-    name: Lint
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Moon Toolchain
-        uses: moonrepo/setup-toolchain@v0
-        with:
-          auto-install: true
-
-      - name: Restore Cargo cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.cargo/git
-            ~/.cargo/registry
-            target
-          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
-          restore-keys: |
-            cargo-${{ runner.os }}-
-
-      - name: Restore Bun cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-            aureline-tree-sitter/node_modules
-            aureline-docs/node_modules
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'aureline-tree-sitter/package.json', 'aureline-docs/bun.lock', 'aureline-docs/package.json') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-
-      - name: Run lint
-        run: moon ci repo:clippy
-
-  check-typecheck:
-    name: Check / Typecheck
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Moon Toolchain
-        uses: moonrepo/setup-toolchain@v0
-        with:
-          auto-install: true
-
-      - name: Restore Cargo cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.cargo/git
-            ~/.cargo/registry
-            target
-          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
-          restore-keys: |
-            cargo-${{ runner.os }}-
-
-      - name: Restore Bun cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-            aureline-tree-sitter/node_modules
-            aureline-docs/node_modules
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'aureline-tree-sitter/package.json', 'aureline-docs/bun.lock', 'aureline-docs/package.json') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-
-      - name: Run check / typecheck
-        run: moon ci repo:check tree-sitter:generated-check docs:typecheck
-
-  test:
-    name: Test
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Moon Toolchain
-        uses: moonrepo/setup-toolchain@v0
-        with:
-          auto-install: true
-
-      - name: Restore Cargo cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.cargo/git
-            ~/.cargo/registry
-            target
-          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
-          restore-keys: |
-            cargo-${{ runner.os }}-
-
-      - name: Restore Bun cache
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            ~/.bun/install/cache
-            node_modules
-            aureline-tree-sitter/node_modules
-            aureline-docs/node_modules
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'aureline-tree-sitter/package.json', 'aureline-docs/bun.lock', 'aureline-docs/package.json') }}
-          restore-keys: |
-            bun-${{ runner.os }}-
-
-      - name: Run tests
-        run: moon ci repo:test tree-sitter:test
-
-  build-release:
-    name: Build Release
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs:
-      - format
-      - lint
-      - check-typecheck
-      - test
+  verify:
+    name: Verify
     runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
@@ -211,9 +42,10 @@ jobs:
           path: |
             ~/.cargo/git
             ~/.cargo/registry
-            target
-          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+            .cargo-target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-${{ github.sha }}
           restore-keys: |
+            cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-
             cargo-${{ runner.os }}-
 
       - name: Restore Bun cache
@@ -225,25 +57,35 @@ jobs:
             node_modules
             aureline-tree-sitter/node_modules
             aureline-docs/node_modules
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'aureline-tree-sitter/package.json', 'aureline-docs/bun.lock', 'aureline-docs/package.json') }}
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'aureline-tree-sitter/package.json', 'aureline-docs/bun.lock', 'aureline-docs/package.json') }}-${{ github.sha }}
           restore-keys: |
+            bun-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'aureline-tree-sitter/package.json', 'aureline-docs/bun.lock', 'aureline-docs/package.json') }}-
             bun-${{ runner.os }}-
 
-      - name: Run release build
-        run: moon ci repo:build-release
+      - name: Run format
+        run: moon ci '*:fmt'
+
+      - name: Run lint
+        run: moon ci '*:clippy'
+
+      - name: Run checks
+        run: moon ci '*:check' docs:typecheck tree-sitter:generated-check
+
+      - name: Run tests
+        run: moon ci '*:test' tree-sitter:test
 
       - name: Save Cargo cache
-        if: steps.restore-cargo.outputs.cache-hit != 'true'
+        if: always()
         uses: actions/cache/save@v4
         with:
           path: |
             ~/.cargo/git
             ~/.cargo/registry
-            target
-          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+            .cargo-target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-${{ github.sha }}-${{ github.run_attempt }}
 
       - name: Save Bun cache
-        if: steps.restore-bun.outputs.cache-hit != 'true'
+        if: always()
         uses: actions/cache/save@v4
         with:
           path: |
@@ -251,4 +93,109 @@ jobs:
             node_modules
             aureline-tree-sitter/node_modules
             aureline-docs/node_modules
-          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'aureline-tree-sitter/package.json', 'aureline-docs/bun.lock', 'aureline-docs/package.json') }}
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'aureline-tree-sitter/package.json', 'aureline-docs/bun.lock', 'aureline-docs/package.json') }}-${{ github.sha }}-${{ github.run_attempt }}
+
+  release-tag:
+    name: Check Release Tag
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs:
+      - verify
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    outputs:
+      has_release_tag: ${{ steps.release-tag.outputs.has_release_tag }}
+      release_tag: ${{ steps.release-tag.outputs.release_tag }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for release tag
+        id: release-tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch --force --tags origin
+          release_tag="$(git tag --points-at HEAD --list 'v*' | sort -V | tail -n 1)"
+
+          if [[ -n "$release_tag" ]]; then
+            echo "Found release tag ${release_tag}; release build should run."
+            echo "has_release_tag=true" >> "$GITHUB_OUTPUT"
+            echo "release_tag=${release_tag}" >> "$GITHUB_OUTPUT"
+          else
+            echo "No v* tag points at this main commit; skipping release build."
+            echo "has_release_tag=false" >> "$GITHUB_OUTPUT"
+            echo "release_tag=" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-release:
+    name: Build Release
+    if: needs.release-tag.outputs.has_release_tag == 'true'
+    needs:
+      - verify
+      - release-tag
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Moon Toolchain
+        uses: moonrepo/setup-toolchain@v0
+        with:
+          auto-install: true
+
+      - name: Restore Cargo cache
+        id: restore-cargo
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo/git
+            ~/.cargo/registry
+            .cargo-target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-${{ github.sha }}
+          restore-keys: |
+            cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-
+            cargo-${{ runner.os }}-
+
+      - name: Restore Bun cache
+        id: restore-bun
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+            aureline-tree-sitter/node_modules
+            aureline-docs/node_modules
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'aureline-tree-sitter/package.json', 'aureline-docs/bun.lock', 'aureline-docs/package.json') }}-${{ github.sha }}
+          restore-keys: |
+            bun-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'aureline-tree-sitter/package.json', 'aureline-docs/bun.lock', 'aureline-docs/package.json') }}-
+            bun-${{ runner.os }}-
+
+      - name: Run release build
+        run: moon ci :build-release
+
+      - name: Save Cargo cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cargo/git
+            ~/.cargo/registry
+            .cargo-target
+          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-${{ github.sha }}-release-${{ github.run_attempt }}
+
+      - name: Save Bun cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+            aureline-tree-sitter/node_modules
+            aureline-docs/node_modules
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock', 'package.json', 'aureline-tree-sitter/package.json', 'aureline-docs/bun.lock', 'aureline-docs/package.json') }}-${{ github.sha }}-release-${{ github.run_attempt }}

@@ -15,6 +15,8 @@ fileGroups:
 tasks:
   build:
     command: 'cargo'
+    deps:
+      - 'repo:prepare-rust'
     args:
       - 'build'
       - '--manifest-path'
@@ -27,6 +29,8 @@ tasks:
 
   check:
     command: 'cargo'
+    deps:
+      - 'repo:prepare-rust'
     args:
       - 'check'
       - '--manifest-path'
@@ -38,6 +42,7 @@ tasks:
       - '@globs(sources)'
       - '/Cargo.toml'
       - '/Cargo.lock'
+      - '/rust-toolchain.toml'
 
   fmt:
     command: 'cargo'
@@ -52,6 +57,8 @@ tasks:
 
   clippy:
     command: 'cargo'
+    deps:
+      - 'repo:prepare-rust'
     args:
       - 'clippy'
       - '--manifest-path'
@@ -65,10 +72,14 @@ tasks:
     inputs:
       - '@globs(sources)'
       - '@globs(tests)'
+      - '/Cargo.toml'
       - '/Cargo.lock'
+      - '/rust-toolchain.toml'
 
   test:
     command: 'cargo'
+    deps:
+      - 'repo:prepare-rust'
     args:
       - 'test'
       - '--manifest-path'
@@ -79,4 +90,6 @@ tasks:
     inputs:
       - '@globs(sources)'
       - '@globs(tests)'
+      - '/Cargo.toml'
       - '/Cargo.lock'
+      - '/rust-toolchain.toml'
