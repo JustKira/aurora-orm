@@ -88,17 +88,17 @@ Run the same phase checks locally that CI runs on Blacksmith for normal PR
 validation:
 
 ```bash
-moon ci repo:fmt
-moon ci repo:clippy
-moon ci repo:check tree-sitter:generated-check docs:typecheck
-moon ci repo:test tree-sitter:test
+moon ci :workspace-format
+moon ci :workspace-lint
+moon ci :workspace-check tree-sitter:generated-check docs:typecheck
+moon ci :workspace-test tree-sitter:test
 ```
 
 Normal PR validation does not run the release build. Main/release validation
 includes the release build phase:
 
 ```bash
-moon ci repo:build-release
+moon ci :build-release
 ```
 
 Release publishing requires successful main CI validation/checking for the exact

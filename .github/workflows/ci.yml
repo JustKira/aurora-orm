@@ -33,19 +33,14 @@ jobs:
         uses: moonrepo/setup-toolchain@v0
         with:
           auto-install: true
+          cache-base: main
 
-      - name: Restore Cargo cache
-        id: restore-cargo
-        uses: actions/cache/restore@v4
+      - name: Setup Rust Toolchain and Cache
+        uses: moonrepo/setup-rust@v1
         with:
-          path: |
-            ~/.cargo/git
-            ~/.cargo/registry
-            target
-          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-${{ github.sha }}
-          restore-keys: |
-            cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-
-            cargo-${{ runner.os }}-
+          inherit-toolchain: true
+          components: clippy,rustfmt
+          cache-base: main
 
       - name: Restore Bun cache
         id: restore-bun
@@ -62,26 +57,16 @@ jobs:
             bun-${{ runner.os }}-
 
       - name: Run format
-        run: moon ci '*:fmt'
+        run: moon ci :workspace-format
 
       - name: Run lint
-        run: moon ci '*:clippy'
+        run: moon ci :workspace-lint
 
       - name: Run checks
-        run: moon ci '*:check' docs:typecheck tree-sitter:generated-check
+        run: moon ci :workspace-check docs:typecheck tree-sitter:generated-check
 
       - name: Run tests
-        run: moon ci '*:test' tree-sitter:test
-
-      - name: Save Cargo cache
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            ~/.cargo/git
-            ~/.cargo/registry
-            target
-          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-${{ github.sha }}-${{ github.run_attempt }}
+        run: moon ci :workspace-test tree-sitter:test
 
       - name: Save Bun cache
         if: always()
@@ -147,19 +132,14 @@ jobs:
         uses: moonrepo/setup-toolchain@v0
         with:
           auto-install: true
+          cache-base: main
 
-      - name: Restore Cargo cache
-        id: restore-cargo
-        uses: actions/cache/restore@v4
+      - name: Setup Rust Toolchain and Release Cache
+        uses: moonrepo/setup-rust@v1
         with:
-          path: |
-            ~/.cargo/git
-            ~/.cargo/registry
-            target
-          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-${{ github.sha }}
-          restore-keys: |
-            cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-
-            cargo-${{ runner.os }}-
+          inherit-toolchain: true
+          cache-base: main
+          cache-target: release
 
       - name: Restore Bun cache
         id: restore-bun
@@ -177,16 +157,6 @@ jobs:
 
       - name: Run release build
         run: moon ci :build-release
-
-      - name: Save Cargo cache
-        if: always()
-        uses: actions/cache/save@v4
-        with:
-          path: |
-            ~/.cargo/git
-            ~/.cargo/registry
-            target
-          key: cargo-${{ runner.os }}-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}-${{ github.sha }}-release-${{ github.run_attempt }}
 
       - name: Save Bun cache
         if: always()

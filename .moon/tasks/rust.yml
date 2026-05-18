@@ -15,8 +15,6 @@ fileGroups:
 tasks:
   build:
     command: 'cargo'
-    deps:
-      - 'repo:prepare-rust'
     args:
       - 'build'
       - '--manifest-path'
@@ -29,8 +27,6 @@ tasks:
 
   check:
     command: 'cargo'
-    deps:
-      - 'repo:prepare-rust'
     args:
       - 'check'
       - '--manifest-path'
@@ -57,8 +53,6 @@ tasks:
 
   clippy:
     command: 'cargo'
-    deps:
-      - 'repo:prepare-rust'
     args:
       - 'clippy'
       - '--manifest-path'
@@ -78,8 +72,6 @@ tasks:
 
   test:
     command: 'cargo'
-    deps:
-      - 'repo:prepare-rust'
     args:
       - 'test'
       - '--manifest-path'
