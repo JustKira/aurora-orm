@@ -31,7 +31,7 @@ fn emits_array_and_tuple_defaults() {
     let schema = parse_schema(aureline_test_support::aureline_schema!(
         "table User {",
         "  tags array<string> @default([admin, \"staff\"])",
-        "  point object @default((1, 2))",
+        "  point any @default((1, 2))",
         "}",
     ));
 
@@ -39,7 +39,7 @@ fn emits_array_and_tuple_defaults() {
         emit_schema(&schema),
         expected_surql!(
             "DEFINE TABLE user;",
-            "DEFINE FIELD point ON user TYPE object DEFAULT (1, 2);",
+            "DEFINE FIELD point ON user TYPE any DEFAULT (1, 2);",
             "DEFINE FIELD tags ON user TYPE array<string> DEFAULT [admin, \"staff\"];",
         )
     );
@@ -166,6 +166,68 @@ fn default_rejects_invalid_surql_expression() {
             || errors[0].message.contains("expected"),
         "{}",
         errors[0].message
+    );
+}
+
+#[test]
+fn default_rejects_string_for_int_field() {
+    let errors = validation_errors(aureline_test_support::aureline_schema!(
+        "table User {",
+        "  score int @default(\"10\")",
+        "}",
+    ));
+
+    assert_eq!(errors.len(), 1);
+    assert_eq!(
+        errors[0].message,
+        "@default value type `string` does not match field `score` type `int`"
+    );
+}
+
+#[test]
+fn default_rejects_fraction_for_int_field() {
+    let errors = validation_errors(aureline_test_support::aureline_schema!(
+        "table User {",
+        "  score int @default(1.5)",
+        "}",
+    ));
+
+    assert_eq!(errors.len(), 1);
+    assert_eq!(
+        errors[0].message,
+        "@default value type `number` does not match field `score` type `int`"
+    );
+}
+
+#[test]
+fn default_rejects_array_item_type_mismatch() {
+    let errors = validation_errors(aureline_test_support::aureline_schema!(
+        "table User {",
+        "  scores array<int> @default([1, \"2\"])",
+        "}",
+    ));
+
+    assert_eq!(errors.len(), 1);
+    assert_eq!(
+        errors[0].message,
+        "@default value type `array` does not match field `scores` type `array<int>`"
+    );
+}
+
+#[test]
+fn optional_field_allows_none_default() {
+    let schema = parse_schema(aureline_test_support::aureline_schema!(
+        "table User {",
+        "  name string? @default(NONE)",
+        "}",
+    ));
+
+    assert_eq!(
+        emit_schema(&schema),
+        expected_surql!(
+            "DEFINE TABLE user;",
+            "DEFINE FIELD name ON user TYPE option<string> DEFAULT NONE;",
+        )
     );
 }
 

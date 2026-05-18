@@ -69,7 +69,7 @@ fn lower_field_attributes(
                     field.flexible = true;
                 }
             }
-            "default" => default::lower(field, attr, errors),
+            "default" => default::lower(field, attr),
             "hnsw" => hnsw::lower(table, field, attr, lowered_indexes, errors),
             "fulltext" => fulltext::lower(table, field, attr, lowered_indexes, errors),
             "assert" => assertions::lower(attr, errors),

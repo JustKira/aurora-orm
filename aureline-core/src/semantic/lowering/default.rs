@@ -1,69 +1,44 @@
 use crate::ast::{Attribute, AttributeArg, AttributeValue, DefaultValue, Field};
 
-use super::super::SemanticError;
-use super::attributes::err_at;
-
-pub(super) fn lower(field: &mut Field, attr: &Attribute, errors: &mut Vec<SemanticError>) {
-    if field.default.is_some() {
-        errors.push(err_at(
-            attr,
-            format!("@default on field `{}` is already defined", field.name),
-        ));
-        return;
-    }
+pub(super) fn lower(field: &mut Field, attr: &Attribute) {
     match parse_default(attr) {
         Ok((value, always)) => {
             field.default = Some(value);
             field.always = always;
         }
-        Err(error) => errors.push(error),
+        Err(()) => {}
     }
 }
 
-fn parse_default(attr: &Attribute) -> Result<(DefaultValue, bool), SemanticError> {
+fn parse_default(attr: &Attribute) -> Result<(DefaultValue, bool), ()> {
     let mut default = None;
     let mut always = false;
 
     for arg in &attr.args {
         match arg {
             AttributeArg::Keyword { name, value } if name == "always" => {
-                let AttributeValue::Bool { value } = value else {
-                    return Err(err_at(
-                        attr,
-                        "@default `always:` must be a boolean".to_string(),
-                    ));
+                if let AttributeValue::Bool { value } = value {
+                    always = *value;
+                } else {
+                    return Err(());
                 };
-                always = *value;
             }
-            AttributeArg::Keyword { name, .. } => {
-                return Err(err_at(
-                    attr,
-                    format!("unknown @default arg `{name}`; expected `always`"),
-                ));
-            }
+            AttributeArg::Keyword { .. } => return Err(()),
             AttributeArg::Positional { value } => {
                 if default.is_some() {
-                    return Err(err_at(
-                        attr,
-                        "@default expects exactly one positional value".to_string(),
-                    ));
+                    return Err(());
                 }
-                default = Some(default_value(value, attr)?);
+                default = Some(default_value(value)?);
             }
         }
     }
 
-    let Some(default) = default else {
-        return Err(err_at(
-            attr,
-            "@default expects exactly one positional value".to_string(),
-        ));
-    };
+    let Some(default) = default else { return Err(()) };
 
     Ok((default, always))
 }
 
-fn default_value(value: &AttributeValue, attr: &Attribute) -> Result<DefaultValue, SemanticError> {
+fn default_value(value: &AttributeValue) -> Result<DefaultValue, ()> {
     match value {
         AttributeValue::Number { value } => Ok(DefaultValue::Number { value: *value }),
         AttributeValue::Bool { value } => Ok(DefaultValue::Bool { value: *value }),
@@ -73,24 +48,15 @@ fn default_value(value: &AttributeValue, attr: &Attribute) -> Result<DefaultValu
         AttributeValue::String { value } => Ok(DefaultValue::String {
             value: value.clone(),
         }),
-        AttributeValue::Surql { body, source_range } => {
-            if let Err(error) = crate::surql::validate_expression(body) {
-                return Err(SemanticError {
-                    message: error.message,
-                    hint: None,
-                    range: source_range.or(attr.source_range),
-                });
-            }
-            Ok(DefaultValue::Surql { body: body.clone() })
-        }
+        AttributeValue::Surql { body, .. } => Ok(DefaultValue::Surql { body: body.clone() }),
         AttributeValue::Array { values } => values
             .iter()
-            .map(|value| default_value(value, attr))
+            .map(default_value)
             .collect::<Result<Vec<_>, _>>()
             .map(|values| DefaultValue::Array { values }),
         AttributeValue::Tuple { values } => values
             .iter()
-            .map(|value| default_value(value, attr))
+            .map(default_value)
             .collect::<Result<Vec<_>, _>>()
             .map(|values| DefaultValue::Tuple { values }),
     }
