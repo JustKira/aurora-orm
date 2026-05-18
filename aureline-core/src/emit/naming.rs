@@ -1,4 +1,4 @@
-use crate::ast::Type;
+use crate::ast::{DefaultValue, Type};
 
 pub fn pascal_to_snake(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
@@ -41,4 +41,34 @@ pub fn surql_type(ty: &Type) -> String {
         Type::Record { table: Some(t) } => format!("record<{}>", pascal_to_snake(t)),
         Type::Geometry { features } => format!("geometry<{}>", features.join(" | ")),
     }
+}
+
+pub fn surql_default(value: &DefaultValue) -> String {
+    match value {
+        DefaultValue::Number { value } => format_number(*value),
+        DefaultValue::Bool { value } => value.to_string().to_ascii_uppercase(),
+        DefaultValue::Ident { value } => value.clone(),
+        DefaultValue::String { value } => format!("{value:?}"),
+        DefaultValue::Surql { body } => body.trim().to_string(),
+        DefaultValue::Array { values } => {
+            let values = values
+                .iter()
+                .map(surql_default)
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("[{values}]")
+        }
+        DefaultValue::Tuple { values } => {
+            let values = values
+                .iter()
+                .map(surql_default)
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("({values})")
+        }
+    }
+}
+
+fn format_number(n: f64) -> String {
+    format!("{}", n)
 }

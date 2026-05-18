@@ -7,6 +7,8 @@ use aureline_test_support::validation_errors;
 
 #[path = "definitions/compound_index.rs"]
 mod compound_index;
+#[path = "definitions/default_attr.rs"]
+mod default_attr;
 #[path = "definitions/fulltext_index.rs"]
 mod fulltext_index;
 #[path = "definitions/table_field_index.rs"]

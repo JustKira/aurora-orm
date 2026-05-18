@@ -117,6 +117,13 @@ pub struct Field {
     /// emitted as `TYPE object FLEXIBLE`. Validator enforces the constraint.
     #[serde(default, skip_serializing_if = "is_false")]
     pub flexible: bool,
+    /// True if `@always` was applied. Only valid when `ty` is `object`;
+    /// emitted as `DEFAULT ALWAYS object`. Validator enforces the constraint.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub always: bool,
+    /// Default value lowered from `@default(...)`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default: Option<DefaultValue>,
     /// Field-level `@`-attributes the user wrote. See `Table::raw_attributes`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub raw_attributes: Vec<Attribute>,
@@ -128,6 +135,8 @@ impl PartialEq for Field {
             && self.ty == other.ty
             && self.optional == other.optional
             && self.flexible == other.flexible
+            && self.always == other.always
+            && self.default == other.default
             && self.raw_attributes == other.raw_attributes
     }
 }
@@ -214,6 +223,18 @@ pub enum AttributeValue {
     Tuple {
         values: Vec<AttributeValue>,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum DefaultValue {
+    Number { value: f64 },
+    Bool { value: bool },
+    Ident { value: String },
+    String { value: String },
+    Surql { body: String },
+    Array { values: Vec<DefaultValue> },
+    Tuple { values: Vec<DefaultValue> },
 }
 
 /// A SurrealDB index, post-validation. Built from the user's `@`/`@@`

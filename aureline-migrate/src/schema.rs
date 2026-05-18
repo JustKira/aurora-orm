@@ -35,6 +35,8 @@ pub(crate) fn table_field_field(field: &Field) -> Field {
         ty: field.ty.clone(),
         optional: field.optional,
         flexible: field.flexible,
+        always: field.always,
+        default: field.default.clone(),
         raw_attributes: Vec::new(),
     }
 }
@@ -78,6 +80,8 @@ fn full_field(field: &Field) -> Field {
         ty: field.ty.clone(),
         optional: field.optional,
         flexible: field.flexible,
+        always: field.always,
+        default: field.default.clone(),
         // Strip raw_attributes as they're intermediate representation
         raw_attributes: Vec::new(),
     }

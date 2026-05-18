@@ -207,6 +207,8 @@ fn emits_field_with_compound_types() {
         },
         optional: false,
         flexible: false,
+        always: false,
+        default: None,
         raw_attributes: Vec::new(),
     };
     assert_eq!(
@@ -223,6 +225,8 @@ fn emits_field_with_compound_types() {
         },
         optional: true,
         flexible: false,
+        always: false,
+        default: None,
         raw_attributes: Vec::new(),
     };
     assert_eq!(
