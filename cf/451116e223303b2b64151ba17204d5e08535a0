@@ -1,0 +1,27 @@
+.github/workflows/release.yml
+  s_bec419d2137d3d::t_f1c2e85635cb78 195,198-201
+README.md
+  s_bec419d2137d3d::t_f31e2212e5aea9 148,152,155-156
+aureline-docs/content/docs/getting-started.mdx
+  s_bec419d2137d3d::t_95f44aedc792c7 11-27
+.github/workflows/cli-build.yml
+  s_bec419d2137d3d::t_982c9ff75bbeb1 1-271
+RELEASING.md
+  s_bec419d2137d3d::t_8ae1e4db3562f3 32-34,55-59,96-100
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.10",
+  "base_commit_sha": "cf451116e223303b2b64151ba17204d5e08535a0",
+  "prompts": {},
+  "sessions": {
+    "s_bec419d2137d3d": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e4073-52c7-767b-9368-254456e2af13",
+        "model": "gpt-5.5"
+      },
+      "human_author": "JustKira <shighgamerhg@gmail.com>"
+    }
+  }
+}
