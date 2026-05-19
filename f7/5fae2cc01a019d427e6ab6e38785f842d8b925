@@ -1,0 +1,19 @@
+.github/workflows/release.yml
+  s_cb40d9cd2d4d5e::t_878ce06871eb2b 307-310
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.10",
+  "base_commit_sha": "f75fae2cc01a019d427e6ab6e38785f842d8b925",
+  "prompts": {},
+  "sessions": {
+    "s_cb40d9cd2d4d5e": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e40b4-48f3-721a-81dd-4f16fa4a9e02",
+        "model": "gpt-5.5"
+      },
+      "human_author": "JustKira <shighgamerhg@gmail.com>"
+    }
+  }
+}
