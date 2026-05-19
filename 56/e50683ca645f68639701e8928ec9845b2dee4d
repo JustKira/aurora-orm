@@ -1,0 +1,37 @@
+aureline-tree-sitter/package.json
+  s_5d831541503615::t_fe1e09a4dfcdca 3
+aureline-cli/Cargo.toml
+  s_5d831541503615::t_86f4f34b7fddf2 4
+aureline-lsp/Cargo.toml
+  s_5d831541503615::t_f72490e5da6a30 4
+aureline-config/Cargo.toml
+  s_5d831541503615::t_c7aab0597bf858 4
+package.json
+  s_5d831541503615::t_4f0454ec1fc9d2 3
+aureline-migrate/Cargo.toml
+  s_5d831541503615::t_607d847558c8e1 4
+Cargo.toml
+  s_5d831541503615::t_ecff2ff1504fc0 15,22-25
+aureline-test-support/Cargo.toml
+  s_5d831541503615::t_549271a66517fa 4
+aureline-core/Cargo.toml
+  s_5d831541503615::t_d01e982a360234 4
+aureline-codegen/Cargo.toml
+  s_5d831541503615::t_e5a638a4e5a6d9 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "56e50683ca645f68639701e8928ec9845b2dee4d",
+  "prompts": {},
+  "sessions": {
+    "s_5d831541503615": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e3f45-aad2-77c2-a209-5c57f09957d1",
+        "model": "gpt-5.5"
+      },
+      "human_author": "JustKira <shighgamerhg@gmail.com>"
+    }
+  }
+}
