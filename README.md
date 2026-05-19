@@ -144,9 +144,18 @@ cargo build --workspace
 cargo test -p aureline-core
 cd aureline-tree-sitter && bunx tree-sitter test
 
-# Install the CLI
+# Install the CLI without Cargo on Linux x86_64 Docker/Linux
+curl -fsSL https://aureline.pixelscortex.com/install.sh | sh
+
+# Install a specific release or the newest prerelease/dev release
+curl -fsSL https://aureline.pixelscortex.com/install.sh | sh -s -- --version 0.1.0-dev.3
+curl -fsSL https://aureline.pixelscortex.com/install.sh | sh -s -- --pre
+
+# Optional: choose the GNU Linux fallback instead of the default musl build
+curl -fsSL https://aureline.pixelscortex.com/install.sh | sh -s -- --target x86_64-unknown-linux-gnu
+
+# Optional: install from source with Cargo
 cargo install --path aureline-cli
-# Or from crates.io / this repo once published
 cargo install aureline-cli
 cargo install aureline-cli --git https://github.com/pixelscortex/aureline-orm --branch main
 
