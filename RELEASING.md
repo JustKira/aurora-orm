@@ -29,8 +29,9 @@ runs in this order:
 
 1. `gate` resolves and validates the tag, release SHA, and main CI status.
 2. `validate-version` checks the tag against every synchronized repo version.
-3. `build-cli-assets` builds, smoke-tests, packages, installer-tests, and uploads
-   one workflow artifact for each supported CLI platform.
+3. `build-cli-assets` calls `.github/workflows/cli-build.yml`, which builds,
+   smoke-tests, packages, installer-tests, and uploads one workflow artifact for
+   each supported CLI platform.
 4. `publish-crates-and-release` publishes missing crates and creates the GitHub
    Release when it does not already exist.
 5. `upload-cli-assets` verifies the exact asset set and uploads it to the GitHub
@@ -50,6 +51,11 @@ The crates.io publish step skips crate versions that already exist. If a GitHub
 Release for the tag already exists, only release creation is skipped; the CLI
 binary assets are still rebuilt and uploaded with `--clobber`, so a release
 created from the GitHub UI can still receive or replace the generated assets.
+
+To validate only the prebuilt CLI asset matrix without publishing crates or a
+GitHub Release, run the `CLI Release Assets` workflow manually with the same tag.
+That workflow uses the same build/package/installer-test matrix that `Release`
+invokes through `workflow_call`.
 
 ## Version Policy
 
@@ -86,6 +92,12 @@ cargo install aureline-cli
 The installed binary is named `aureline`.
 
 ## Prebuilt CLI Binary
+
+Install links:
+
+- Unix installer: <https://aureline.pixelscortex.com/install.sh>
+- Windows PowerShell installer: <https://aureline.pixelscortex.com/install.ps1>
+- GitHub Releases: <https://github.com/pixelscortex/aureline-orm/releases>
 
 The release workflow publishes these user-platform CLI assets in addition to the
 crates.io packages:

@@ -145,10 +145,15 @@ cargo test -p aureline-core
 cd aureline-tree-sitter && bunx tree-sitter test
 
 # Install the CLI without Cargo on Linux x64, Linux ARM64, or macOS ARM64
+# Installer link: https://aureline.pixelscortex.com/install.sh
 curl -fsSL https://aureline.pixelscortex.com/install.sh | sh
 
 # Install the CLI without Cargo on Windows x64 PowerShell
+# Installer link: https://aureline.pixelscortex.com/install.ps1
 irm https://aureline.pixelscortex.com/install.ps1 | iex
+
+# Download archives directly from GitHub Releases:
+# https://github.com/pixelscortex/aureline-orm/releases
 
 # Install a specific release or the newest prerelease/dev release
 curl -fsSL https://aureline.pixelscortex.com/install.sh | sh -s -- --version 0.1.0-dev.3
