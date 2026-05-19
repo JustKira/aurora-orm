@@ -304,7 +304,10 @@ jobs:
           archive="dist/aureline-${VERSION}-${TARGET}.tar.gz"
           tar -C "$package_dir" -czf "$archive" "$BINARY_NAME"
 
-          mapfile -t entries < <(tar -tzf "$archive")
+          entries=()
+          while IFS= read -r entry; do
+            entries+=("$entry")
+          done < <(tar -tzf "$archive")
           if [[ "${#entries[@]}" -ne 1 || "${entries[0]}" != "$BINARY_NAME" ]]; then
             printf 'unexpected archive contents:\n' >&2
             printf '%s\n' "${entries[@]}" >&2
