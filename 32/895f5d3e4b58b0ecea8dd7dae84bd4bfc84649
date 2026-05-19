@@ -1,0 +1,30 @@
+.github/workflows/release.yml
+  s_322007dfa0192a::t_7b86a4e7639fbc 347
+  s_322007dfa0192a::t_834f7346aba5bc 143,152-162,336-346,348-377
+  s_322007dfa0192a::t_dd36e82ae09834 320,323-329,334-335
+aureline-docs/public/install.sh
+  s_322007dfa0192a::t_1c101c018391e1 1-136
+README.md
+  s_322007dfa0192a::t_d5a9ee9647d192 154-156
+  s_322007dfa0192a::t_69a69ab969db59 147-153,157
+RELEASING.md
+  s_322007dfa0192a::t_08c43d096adc25 34-38
+  s_322007dfa0192a::t_14873d97dbcb51 82,87,90-93
+  s_322007dfa0192a::t_ea71f846862eb1 28-30,42-44,80-81,83-86,88-89,94-117,122-123,151-157
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "32895f5d3e4b58b0ecea8dd7dae84bd4bfc84649",
+  "prompts": {},
+  "sessions": {
+    "s_322007dfa0192a": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e3f82-7a17-75d1-89c4-f1f54af24de4",
+        "model": "gpt-5.5"
+      },
+      "human_author": "JustKira <shighgamerhg@gmail.com>"
+    }
+  }
+}
