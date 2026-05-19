@@ -1,0 +1,32 @@
+RELEASING.md
+  s_322007dfa0192a::t_14873d97dbcb51 82,87,90-93
+  s_322007dfa0192a::t_ea71f846862eb1 28-30,42-44,80-81,83-86,88-89,94-117,122-123,151-157
+  s_322007dfa0192a::t_08c43d096adc25 34-38
+.github/workflows/release.yml
+  s_322007dfa0192a::t_834f7346aba5bc 143,152-162,336-338,340-347,351-367,378-389
+  s_322007dfa0192a::t_dd36e82ae09834 320,323-329,334-335
+  s_322007dfa0192a::t_7b86a4e7639fbc 348
+  s_322007dfa0192a::t_b71f746e1c65e9 339,349-350,368-377
+README.md
+  s_322007dfa0192a::t_d5a9ee9647d192 154-156
+  s_322007dfa0192a::t_69a69ab969db59 147-153,157
+aureline-docs/public/install.sh
+  s_322007dfa0192a::t_1c101c018391e1 1-92,108-120,124-147
+  s_322007dfa0192a::t_fba63bd07a937d 93-107,121-123
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "b83d2763388817c879472641ec27b41d37ac49aa",
+  "prompts": {},
+  "sessions": {
+    "s_322007dfa0192a": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e3f82-7a17-75d1-89c4-f1f54af24de4",
+        "model": "gpt-5.5"
+      },
+      "human_author": null
+    }
+  }
+}
