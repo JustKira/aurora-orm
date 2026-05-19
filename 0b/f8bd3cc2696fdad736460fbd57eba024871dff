@@ -1,0 +1,30 @@
+aureline-docs/public/install.sh
+  s_98837df3cf67c7::t_7a93d8d2193fdf 82-87,96-106,137,145-148,153-169,171-172,176-177,179
+.github/workflows/release.yml
+  s_98837df3cf67c7::t_541482169b6354 573
+  s_98837df3cf67c7::t_abf6e4fa683ef9 259-260,264-270,272-276
+  s_98837df3cf67c7::t_bc28559cba3f33 138-139,143,194-258,261-263,271,277-417,550-564,566,572,574-581,583-584,586-592,594
+aureline-docs/public/install.ps1
+  s_98837df3cf67c7::t_cbafb47c80a642 1-79,81-96
+  s_98837df3cf67c7::t_05d0c448c3d9c4 80
+RELEASING.md
+  s_98837df3cf67c7::t_1974839c6341a2 27-37,52,90,93-105,108,114,118,121-123,125-128,135-140,143-145,177-186
+README.md
+  s_98837df3cf67c7::t_936a2dac9729af 147,150-152,156-157,159,161-162
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "0bf8bd3cc2696fdad736460fbd57eba024871dff",
+  "prompts": {},
+  "sessions": {
+    "s_98837df3cf67c7": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e4077-c434-7e36-9b0a-d0cce684745c",
+        "model": "gpt-5.5"
+      },
+      "human_author": "JustKira <shighgamerhg@gmail.com>"
+    }
+  }
+}
