@@ -1,6 +1,6 @@
 {
   "name": "aureline-tree-sitter",
-  "version": "0.1.0-dev.3",
+  "version": "0.1.0-dev.4",
   "description": "Tree-sitter grammar for the Aureline schema language.",
   "private": true,
   "scripts": {

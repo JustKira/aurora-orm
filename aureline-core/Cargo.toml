@@ -1,7 +1,7 @@
 [package]
 name = "aureline-core"
 description = "Aureline schema language parser, validator, emitter, and serializable AST."
-version = "0.1.0-dev.3"
+version = "0.1.0-dev.4"
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
