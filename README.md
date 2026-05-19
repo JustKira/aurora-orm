@@ -144,15 +144,22 @@ cargo build --workspace
 cargo test -p aureline-core
 cd aureline-tree-sitter && bunx tree-sitter test
 
-# Install the CLI without Cargo on Linux x86_64 Docker/Linux
+# Install the CLI without Cargo on Linux x64, Linux ARM64, or macOS ARM64
 curl -fsSL https://aureline.pixelscortex.com/install.sh | sh
+
+# Install the CLI without Cargo on Windows x64 PowerShell
+irm https://aureline.pixelscortex.com/install.ps1 | iex
 
 # Install a specific release or the newest prerelease/dev release
 curl -fsSL https://aureline.pixelscortex.com/install.sh | sh -s -- --version 0.1.0-dev.3
 curl -fsSL https://aureline.pixelscortex.com/install.sh | sh -s -- --pre
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm https://aureline.pixelscortex.com/install.ps1))) -Version 0.1.0-dev.3"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm https://aureline.pixelscortex.com/install.ps1))) -Pre"
 
-# Optional: choose the GNU Linux fallback instead of the default musl build
+# Optional: choose an explicit release target
 curl -fsSL https://aureline.pixelscortex.com/install.sh | sh -s -- --target x86_64-unknown-linux-gnu
+curl -fsSL https://aureline.pixelscortex.com/install.sh | sh -s -- --target aarch64-unknown-linux-musl
+curl -fsSL https://aureline.pixelscortex.com/install.sh | sh -s -- --target aarch64-apple-darwin
 
 # Optional: install from source with Cargo
 cargo install --path aureline-cli

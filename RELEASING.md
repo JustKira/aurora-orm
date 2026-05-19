@@ -24,10 +24,17 @@ git push origin v0.1.0-dev.N
 
 Pushing the tag runs `.github/workflows/release.yml`. Before publishing, the
 release workflow verifies that the tagged commit is contained on `main` and that
-the `CI` workflow completed successfully for that exact commit. It then publishes
-the workspace crates to crates.io, creates a GitHub Release with generated notes
-for that tag, rebuilds the CLI from the checked-out tag, and uploads prebuilt CLI
-binary tarballs to the GitHub Release.
+the `CI` workflow completed successfully for that exact commit. The workflow then
+runs in this order:
+
+1. `gate` resolves and validates the tag, release SHA, and main CI status.
+2. `validate-version` checks the tag against every synchronized repo version.
+3. `build-cli-assets` builds, smoke-tests, packages, installer-tests, and uploads
+   one workflow artifact for each supported CLI platform.
+4. `publish-crates-and-release` publishes missing crates and creates the GitHub
+   Release when it does not already exist.
+5. `upload-cli-assets` verifies the exact asset set and uploads it to the GitHub
+   Release with `gh release upload --clobber`.
 
 The release workflow checks the tag against the synchronized repo versions
 before creating the GitHub Release. For example, `v0.1.0-dev.N` only releases if
@@ -42,7 +49,7 @@ If the tag already exists and the workflow needs to be retried, run the
 The crates.io publish step skips crate versions that already exist. If a GitHub
 Release for the tag already exists, only release creation is skipped; the CLI
 binary assets are still rebuilt and uploaded with `--clobber`, so a release
-created from the GitHub UI can still receive the generated tarballs.
+created from the GitHub UI can still receive or replace the generated assets.
 
 ## Version Policy
 
@@ -80,45 +87,62 @@ The installed binary is named `aureline`.
 
 ## Prebuilt CLI Binary
 
-The release workflow publishes Linux x86_64 CLI tarballs in addition to the
+The release workflow publishes these user-platform CLI assets in addition to the
 crates.io packages:
 
-```text
-aureline-<VERSION>-x86_64-unknown-linux-musl.tar.gz
-aureline-<VERSION>-x86_64-unknown-linux-gnu.tar.gz
-```
+| User platform | Rust target | Runner | Asset |
+| --- | --- | --- | --- |
+| Linux x64 portable | `x86_64-unknown-linux-musl` | `blacksmith-8vcpu-ubuntu-2404` | `aureline-<VERSION>-x86_64-unknown-linux-musl.tar.gz` |
+| Linux x64 GNU fallback | `x86_64-unknown-linux-gnu` | `blacksmith-8vcpu-ubuntu-2404` | `aureline-<VERSION>-x86_64-unknown-linux-gnu.tar.gz` |
+| Linux ARM64 portable | `aarch64-unknown-linux-musl` | `blacksmith-8vcpu-ubuntu-2404-arm` | `aureline-<VERSION>-aarch64-unknown-linux-musl.tar.gz` |
+| macOS ARM64 | `aarch64-apple-darwin` | `blacksmith-6vcpu-macos-15` | `aureline-<VERSION>-aarch64-apple-darwin.tar.gz` |
+| Windows x64 | `x86_64-pc-windows-msvc` | `blacksmith-8vcpu-windows-2025` | `aureline-<VERSION>-x86_64-pc-windows-msvc.zip` |
 
-The archive root contains one executable named `aureline`. The installer defaults
-to the musl target because it is the most portable single Linux binary for
-Alpine, Debian, and Ubuntu Docker images. If a compatibility issue appears on a
-glibc-based image, install the GNU fallback with
+Each archive root contains exactly one executable: `aureline` for `.tar.gz`
+assets and `aureline.exe` for the Windows `.zip` asset. The Unix installer
+defaults to Linux x64 musl on Linux x64, Linux ARM64 musl on Linux ARM64, and
+macOS ARM64 on Apple Silicon macOS. If a compatibility issue appears on a
+glibc-based x64 Linux image, install the GNU fallback with
 `--target x86_64-unknown-linux-gnu`.
 
-The public installer is served by the docs app from:
+The public Unix installer is served by the docs app from:
 
 ```bash
 curl -fsSL https://aureline.pixelscortex.com/install.sh | sh
 ```
 
-To install a specific dev/stable version:
+To install a specific dev/stable version or the newest GitHub prerelease:
 
 ```bash
 curl -fsSL https://aureline.pixelscortex.com/install.sh | sh -s -- --version 0.1.0-dev.N
+curl -fsSL https://aureline.pixelscortex.com/install.sh | sh -s -- --pre
 ```
 
-To install the newest GitHub prerelease:
+Windows x64 uses the PowerShell installer. It installs to the user-local
+`$env:LOCALAPPDATA\Programs\Aureline\bin` directory by default and does not
+require administrator privileges:
 
-```bash
-curl -fsSL https://aureline.pixelscortex.com/install.sh | sh -s -- --pre
+```powershell
+irm https://aureline.pixelscortex.com/install.ps1 | iex
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm https://aureline.pixelscortex.com/install.ps1))) -Version 0.1.0-dev.N"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm https://aureline.pixelscortex.com/install.ps1))) -Pre"
 ```
 
 The `--pre` flag only considers releases marked as GitHub prereleases. Explicit
 `--version` works for any existing `v*` release tag, including dev versions that
 were published as normal releases.
 
+Release toolchain caches use `cache-base: main` and release-target caching. The
+asset build matrix uses `strategy.max-parallel: 2` to control cost while cache
+hit rates and compile times are measured. Review cache restore/save logs and
+per-target compile times after release runs before changing runner sizes, target
+cache strategy, or adding `sccache`.
+
 Package-manager publishing outside crates.io is intentionally not enabled yet.
 The workflows do not call `npm publish` or upload package artifacts. No npm or
-PyPI token is required for the current release flow.
+PyPI token is required for the current release flow. Signing, macOS notarization,
+OS package managers, and `sccache` are also non-goals for this release support
+change.
 
 `aureline-lsp` prebuilt binaries are tracked as follow-up work and can be added
 later if we want to distribute the language server separately.
@@ -150,7 +174,16 @@ release commit before it publishes crates or creates the GitHub Release. Manual
 retries fail fast when that CI validation is missing instead of waiting on an idle
 runner.
 
-After a release, verify the prebuilt CLI in a clean Linux container:
+After a release, verify the prebuilt CLI assets:
+
+- Manual dispatch against an existing dev tag succeeds.
+- Each matrix job uploads exactly one workflow artifact.
+- The final release contains exactly the five expected assets listed above.
+- Linux x64 default install works in a clean container.
+- Linux ARM64 default install works on an ARM runner.
+- macOS ARM64 default install works on an Apple Silicon runner.
+- Windows PowerShell install works on a Windows runner.
+- Cache restore/save logs and compile times are reviewed.
 
 ```bash
 INSTALL_DIR=/tmp/aureline-bin sh -c 'curl -fsSL https://aureline.pixelscortex.com/install.sh | sh'
