@@ -1,0 +1,25 @@
+aureline-docs/src/components/cli-install.tsx
+  s_af52f8e8b4f28a::t_2df30d7d29e286 1-72
+.github/workflows/ci.yml
+  s_af52f8e8b4f28a::t_396c76a397be1c 66
+aureline-docs/content/docs/getting-started.mdx
+  s_af52f8e8b4f28a::t_b124dab3fe4826 11,13,15
+aureline-docs/src/components/mdx.tsx
+  s_af52f8e8b4f28a::t_81f0678bb90301 1,8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.10",
+  "base_commit_sha": "b76e2b1921140c52b602cd0417f94a97765935ec",
+  "prompts": {},
+  "sessions": {
+    "s_af52f8e8b4f28a": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e43ae-1abc-79b1-adcd-664a3da9af4c",
+        "model": "gpt-5.5"
+      },
+      "human_author": "JustKira <shighgamerhg@gmail.com>"
+    }
+  }
+}
