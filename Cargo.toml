@@ -12,15 +12,15 @@ members = [
 exclude = ["aureline-zed"]
 
 [workspace.package]
-version = "0.1.0-dev.4"
+version = "0.1.0-dev.5"
 edition = "2024"
 license = "MIT"
 publish = true
 repository = "https://github.com/pixelscortex/aureline-orm"
 
 [workspace.dependencies]
-aureline-codegen = { path = "aureline-codegen", version = "=0.1.0-dev.4" }
-aureline-config = { path = "aureline-config", version = "=0.1.0-dev.4" }
-aureline-core = { path = "aureline-core", version = "=0.1.0-dev.4" }
-aureline-migrate = { path = "aureline-migrate", version = "=0.1.0-dev.4" }
+aureline-codegen = { path = "aureline-codegen", version = "=0.1.0-dev.5" }
+aureline-config = { path = "aureline-config", version = "=0.1.0-dev.5" }
+aureline-core = { path = "aureline-core", version = "=0.1.0-dev.5" }
+aureline-migrate = { path = "aureline-migrate", version = "=0.1.0-dev.5" }
 aureline-test-support = { path = "aureline-test-support" }

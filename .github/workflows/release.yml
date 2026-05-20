@@ -59,19 +59,24 @@ jobs:
           release_sha=""
 
           if [[ "$EVENT_NAME" == "workflow_run" ]]; then
+            release_sha="$WORKFLOW_RUN_SHA"
+            tag="$(git tag --points-at "$release_sha" --list 'v*' | sort -V | tail -n 1)"
+
             if [[ "$WORKFLOW_RUN_CONCLUSION" != "success" ]]; then
-              echo "CI workflow completed with conclusion=${WORKFLOW_RUN_CONCLUSION}; no release."
+              if [[ -n "$tag" ]]; then
+                echo "CI workflow completed with conclusion=${WORKFLOW_RUN_CONCLUSION} for release tag ${tag} (${release_sha}); release blocked." >&2
+                exit 1
+              fi
+
+              echo "CI workflow completed with conclusion=${WORKFLOW_RUN_CONCLUSION}; no release tag points at ${release_sha}."
               {
                 echo "should_publish=false"
                 echo "tag="
                 echo "version="
-                echo "release_sha="
+                echo "release_sha=${release_sha}"
               } >> "$GITHUB_OUTPUT"
               exit 0
             fi
-
-            release_sha="$WORKFLOW_RUN_SHA"
-            tag="$(git tag --points-at "$release_sha" --list 'v*' | sort -V | tail -n 1)"
             if [[ -z "$tag" ]]; then
               echo "No v* tag points at successful CI commit ${release_sha}; no release."
               {
@@ -109,22 +114,47 @@ jobs:
               --workflow ci.yml \
               --branch main \
               --commit "$release_sha" \
-              --limit 20 \
+              --limit 50 \
               --json status,conclusion,databaseId,url)"
 
             completed_success="$(jq -r '[.[] | select(.status == "completed" and .conclusion == "success")] | first | .databaseId // empty' <<< "$runs_json")"
-            if [[ -z "$completed_success" ]]; then
+            if [[ -n "$completed_success" ]]; then
+              echo "Found successful CI run ${completed_success} for ${release_sha}."
+            else
+              active_run="$(jq -r '[.[] | select(.status != "completed")] | first | .url // empty' <<< "$runs_json")"
+              active_status="$(jq -r '[.[] | select(.status != "completed")] | first | .status // empty' <<< "$runs_json")"
               latest_run="$(jq -r '[.[]] | first | .url // empty' <<< "$runs_json")"
-              if [[ -n "$latest_run" ]]; then
-                echo "No successful main CI run exists yet for ${release_sha}. Latest related run: ${latest_run}" >&2
-              else
-                echo "No main CI run exists yet for ${release_sha}." >&2
-              fi
-              echo "Wait for main CI to pass for this commit, then rerun release." >&2
-              exit 1
-            fi
+              latest_status="$(jq -r '[.[]] | first | .status // empty' <<< "$runs_json")"
+              latest_conclusion="$(jq -r '[.[]] | first | .conclusion // empty' <<< "$runs_json")"
 
-            echo "Found successful CI run ${completed_success} for ${release_sha}."
+              if [[ -n "$active_run" ]]; then
+                echo "Main CI for ${release_sha} is still ${active_status}: ${active_run}"
+                echo "This release run will not publish yet. The workflow_run trigger will publish ${tag} automatically if CI succeeds."
+                {
+                  echo "should_publish=false"
+                  echo "tag=${tag}"
+                  echo "version=${version}"
+                  echo "release_sha=${release_sha}"
+                } >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+
+              if [[ -n "$latest_run" ]]; then
+                echo "Main CI for ${release_sha} completed with conclusion=${latest_conclusion:-unknown}: ${latest_run}" >&2
+                echo "Fix or rerun CI for this commit before publishing ${tag}." >&2
+                exit 1
+              fi
+
+              echo "No main CI run is visible yet for ${release_sha}."
+              echo "This release run will not publish yet. Push or rerun main CI for this commit; the workflow_run trigger will publish ${tag} automatically if CI succeeds."
+              {
+                echo "should_publish=false"
+                echo "tag=${tag}"
+                echo "version=${version}"
+                echo "release_sha=${release_sha}"
+              } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
           fi
 
           should_publish=true

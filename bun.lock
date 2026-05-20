@@ -10,7 +10,7 @@
     },
     "aureline-tree-sitter": {
       "name": "aureline-tree-sitter",
-      "version": "0.1.0-dev.1",
+      "version": "0.1.0-dev.5",
       "devDependencies": {
         "tree-sitter-cli": "0.25.10",
       },

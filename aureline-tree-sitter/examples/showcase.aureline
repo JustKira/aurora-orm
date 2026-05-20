@@ -13,7 +13,7 @@
 /// Minimal table for a quick parser smoke test.
 table showcase_user schemafull {
   email string @unique @assert(#surql {
-    $value != NONE AND string::is::email($value)
+    $value != NONE AND string::is_email($value)
   })
   meta  object @flexible
 }
