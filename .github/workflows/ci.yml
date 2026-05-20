@@ -63,7 +63,7 @@ jobs:
         run: moon ci :workspace-lint
 
       - name: Run checks
-        run: moon ci :workspace-check docs:typecheck tree-sitter:generated-check
+        run: moon ci :workspace-check docs:typecheck docs:build tree-sitter:generated-check
 
       - name: Run tests
         run: moon ci :workspace-test tree-sitter:test
