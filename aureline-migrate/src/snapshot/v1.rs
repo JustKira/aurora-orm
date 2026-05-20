@@ -1,4 +1,4 @@
-use aureline_core::ast::{Analyzer, Field, Index, Schema, SchemaItem, Table, Type};
+use aureline_core::ast::{Analyzer, DefaultValue, Field, Index, Schema, SchemaItem, Table, Type};
 use serde::Deserialize;
 
 use crate::error::Result;
@@ -37,6 +37,8 @@ impl SnapshotTable {
                     ty: field.ty,
                     optional: field.optional,
                     flexible: field.flexible,
+                    always: field.always,
+                    default: field.default,
                     raw_attributes: Vec::new(),
                 })
                 .collect(),
@@ -54,6 +56,10 @@ struct SnapshotField {
     optional: bool,
     #[serde(default)]
     flexible: bool,
+    #[serde(default)]
+    always: bool,
+    #[serde(default)]
+    default: Option<DefaultValue>,
 }
 
 pub(super) fn snapshot_v1_to_schema(snapshot: Snapshot) -> Result<Schema> {

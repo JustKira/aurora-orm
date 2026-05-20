@@ -6,6 +6,7 @@
 
 mod assertions;
 mod attributes;
+mod default;
 mod flexible;
 mod fulltext;
 mod hnsw;

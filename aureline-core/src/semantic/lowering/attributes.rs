@@ -1,7 +1,7 @@
 use crate::ast::{Attribute, AttributeValue, Field, Schema, SchemaItem, Table, Type};
 
 use super::super::{SemanticError, SemanticResult};
-use super::{assertions, flexible, fulltext, hnsw, indexes, permissions};
+use super::{assertions, default, flexible, fulltext, hnsw, indexes, permissions};
 
 /// Lower raw `@`/`@@` attributes into structured schema fields.
 ///
@@ -50,7 +50,7 @@ fn lower_table(table: &mut Table, errors: &mut Vec<SemanticError>) {
 }
 
 const FIELD_ATTRS: &[&str] = &[
-    "unique", "index", "flexible", "hnsw", "fulltext", "assert", "allow",
+    "unique", "index", "flexible", "hnsw", "fulltext", "assert", "allow", "default",
 ];
 
 fn lower_field_attributes(
@@ -59,7 +59,8 @@ fn lower_field_attributes(
     lowered_indexes: &mut Vec<indexes::LoweredIndex>,
     errors: &mut Vec<SemanticError>,
 ) {
-    for attr in &field.raw_attributes {
+    let raw_attributes = field.raw_attributes.clone();
+    for attr in &raw_attributes {
         match attr.name.as_str() {
             "unique" => indexes::lower_field_unique(table, field, attr, lowered_indexes, errors),
             "index" => indexes::lower_field_index(table, field, attr, lowered_indexes, errors),
@@ -68,6 +69,7 @@ fn lower_field_attributes(
                     field.flexible = true;
                 }
             }
+            "default" => default::lower(field, attr),
             "hnsw" => hnsw::lower(table, field, attr, lowered_indexes, errors),
             "fulltext" => fulltext::lower(table, field, attr, lowered_indexes, errors),
             "assert" => assertions::lower(attr, errors),

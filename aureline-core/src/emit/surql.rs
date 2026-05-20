@@ -3,7 +3,7 @@ use crate::ast::{
     IndexKind, Schema, SchemaItem, Table,
 };
 
-use super::naming::{pascal_to_snake, surql_type};
+use super::naming::{pascal_to_snake, surql_default, surql_type};
 
 pub fn emit_schema(schema: &Schema) -> String {
     let mut analyzers = Vec::new();
@@ -98,19 +98,27 @@ pub fn emit_table(t: &Table) -> String {
 
 pub fn emit_field(table_name: &str, f: &Field) -> String {
     let table_name = pascal_to_snake(table_name);
-    let ty = field_type_clause(f);
-    format!("DEFINE FIELD {} ON {} {};", f.name, table_name, ty)
+    let clause = field_clause(f);
+    format!("DEFINE FIELD {} ON {} {};", f.name, table_name, clause)
 }
 
 pub fn emit_alter_field(table_name: &str, f: &Field) -> String {
     let table_name = pascal_to_snake(table_name);
-    let ty = field_type_clause(f);
-    format!("ALTER FIELD {} ON {} {};", f.name, table_name, ty)
+    let clause = field_clause(f);
+    format!("ALTER FIELD {} ON {} {};", f.name, table_name, clause)
+}
+
+fn field_clause(f: &Field) -> String {
+    let clauses = [field_type_clause(f), field_default_clause(f)];
+    clauses
+        .into_iter()
+        .filter(|clause| !clause.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 /// `TYPE <ty>` or `TYPE option<...>`, with trailing ` FLEXIBLE` when the field
-/// is `object @flexible`. Returned as a single string to keep emit_field /
-/// emit_alter_field tidy.
+/// is `object @flexible`.
 fn field_type_clause(f: &Field) -> String {
     let ty = surql_type(&f.ty);
     let mut clause = if f.optional {
@@ -121,6 +129,18 @@ fn field_type_clause(f: &Field) -> String {
     if f.flexible {
         clause.push_str(" FLEXIBLE");
     }
+    clause
+}
+
+fn field_default_clause(f: &Field) -> String {
+    let Some(default) = &f.default else {
+        return String::new();
+    };
+    let mut clause = "DEFAULT".to_string();
+    if f.always {
+        clause.push_str(" ALWAYS");
+    }
+    clause.push_str(&format!(" {}", surql_default(default)));
     clause
 }
 

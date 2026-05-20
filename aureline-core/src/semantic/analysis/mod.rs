@@ -5,6 +5,7 @@
 
 mod analyzers;
 mod context;
+mod default_attr;
 mod functions;
 mod surql;
 mod symbols;
@@ -33,6 +34,7 @@ pub fn analyze(schema: &Schema) -> SemanticResult {
     symbols::analyze(schema, &context, &mut errors);
     types::analyze(schema, &context, &mut errors);
     analyzers::analyze(schema, &schema_index, &mut errors);
+    default_attr::analyze(schema, &mut errors);
     functions::analyze(schema, &mut errors);
     surql::analyze(schema, &mut errors);
 

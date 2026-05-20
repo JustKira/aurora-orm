@@ -61,6 +61,8 @@ pub fn field(name: &str, type_name: &str, optional: bool) -> Field {
         ty: Type::primitive(type_name),
         optional,
         flexible: false,
+        always: false,
+        default: None,
         raw_attributes: Vec::new(),
     }
 }

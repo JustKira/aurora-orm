@@ -619,6 +619,8 @@ impl FieldNode {
             ty,
             optional,
             flexible: false, // populated by semantic lowering
+            always: false,   // populated by semantic lowering
+            default: None,   // populated by semantic lowering
             raw_attributes,
         }
     }
