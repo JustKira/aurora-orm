@@ -19,7 +19,12 @@ export function CliInstall() {
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function copyCommand(command: string) {
-    await navigator.clipboard.writeText(command);
+    try {
+      await navigator.clipboard.writeText(command);
+    } catch {
+      return;
+    }
+
     setCopiedCommand(command);
 
     if (resetTimer.current) {
