@@ -79,6 +79,12 @@ if [ -z "$TARGET" ]; then
     Linux:x86_64|Linux:amd64)
       TARGET="x86_64-unknown-linux-musl"
       ;;
+    Linux:aarch64|Linux:arm64)
+      TARGET="aarch64-unknown-linux-musl"
+      ;;
+    Darwin:arm64|Darwin:aarch64)
+      TARGET="aarch64-apple-darwin"
+      ;;
     *)
       echo "error: unsupported platform $os/$arch" >&2
       echo "hint: pass --target if a matching Aureline release asset exists" >&2
@@ -86,6 +92,17 @@ if [ -z "$TARGET" ]; then
       ;;
   esac
 fi
+
+case "$TARGET" in
+  x86_64-pc-windows-msvc)
+    archive_ext="zip"
+    archive_bin="aureline.exe"
+    ;;
+  *)
+    archive_ext="tar.gz"
+    archive_bin="$BIN"
+    ;;
+esac
 
 api="https://api.github.com/repos/$REPO/releases"
 
@@ -117,7 +134,7 @@ else
 fi
 
 version="${tag#v}"
-asset="$BIN-$version-$TARGET.tar.gz"
+asset="$BIN-$version-$TARGET.$archive_ext"
 download_root="${AURELINE_DOWNLOAD_ROOT:-https://github.com/$REPO/releases/download}"
 download_root="${download_root%/}"
 url="$download_root/$tag/$asset"
@@ -125,22 +142,41 @@ url="$download_root/$tag/$asset"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT INT TERM
 
-need tar
+case "$archive_ext" in
+  tar.gz) need tar ;;
+  zip) need unzip ;;
+esac
 mkdir -p "$INSTALL_DIR"
 
 echo "Downloading $asset"
 fetch "$url" > "$tmp/$asset"
-tar -xzf "$tmp/$asset" -C "$tmp"
+case "$archive_ext" in
+  tar.gz)
+    tar -xzf "$tmp/$asset" -C "$tmp"
+    root_entries="$(tar -tzf "$tmp/$asset")"
+    ;;
+  zip)
+    unzip -q "$tmp/$asset" -d "$tmp"
+    root_entries="$(unzip -Z1 "$tmp/$asset")"
+    ;;
+esac
 
-if [ ! -f "$tmp/$BIN" ]; then
-  echo "error: release archive did not contain $BIN at archive root" >&2
+if [ "$(printf '%s\n' "$root_entries" | sed '/^$/d' | wc -l | tr -d ' ')" != "1" ] || \
+  [ "$(printf '%s\n' "$root_entries" | sed '/^$/d')" != "$archive_bin" ]; then
+  echo "error: release archive must contain exactly one root $archive_bin" >&2
+  printf '%s\n' "$root_entries" >&2
   exit 1
 fi
 
-chmod +x "$tmp/$BIN"
-mv "$tmp/$BIN" "$INSTALL_DIR/$BIN"
+if [ ! -f "$tmp/$archive_bin" ]; then
+  echo "error: release archive did not contain $archive_bin at archive root" >&2
+  exit 1
+fi
 
-echo "Installed $BIN $version to $INSTALL_DIR/$BIN"
+chmod +x "$tmp/$archive_bin"
+mv "$tmp/$archive_bin" "$INSTALL_DIR/$archive_bin"
+
+echo "Installed $archive_bin $version to $INSTALL_DIR/$archive_bin"
 case ":$PATH:" in
   *":$INSTALL_DIR:"*) ;;
   *) echo "Add $INSTALL_DIR to PATH to run $BIN from anywhere." ;;

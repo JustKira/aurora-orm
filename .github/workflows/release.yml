@@ -135,12 +135,12 @@ jobs:
             echo "release_sha=${release_sha}"
           } >> "$GITHUB_OUTPUT"
 
-  publish:
-    name: Publish Release
+  validate-version:
+    name: Validate Release Version
     needs: gate
     if: needs.gate.outputs.should_publish == 'true'
     runs-on: blacksmith-2vcpu-ubuntu-2404
-    timeout-minutes: 30
+    timeout-minutes: 5
 
     steps:
       - name: Check out tag
@@ -148,17 +148,6 @@ jobs:
         with:
           ref: ${{ needs.gate.outputs.tag }}
           fetch-depth: 0
-
-      - name: Setup Moon Toolchain
-        uses: moonrepo/setup-toolchain@v0
-        with:
-          auto-install: true
-
-      - name: Setup Rust Toolchain and Release Cache
-        uses: moonrepo/setup-rust@v1
-        with:
-          inherit-toolchain: true
-          cache-target: release
 
       - name: Validate tag matches repo versions
         env:
@@ -201,6 +190,42 @@ jobs:
               exit 1
             fi
           done
+
+  build-cli-assets:
+    name: Build CLI Assets
+    needs: [gate, validate-version]
+    if: needs.gate.outputs.should_publish == 'true'
+    uses: ./.github/workflows/cli-build.yml
+    with:
+      tag: ${{ needs.gate.outputs.tag }}
+      version: ${{ needs.gate.outputs.version }}
+
+  publish-crates-and-release:
+    name: Publish Crates and Release
+    needs: [gate, build-cli-assets]
+    if: needs.gate.outputs.should_publish == 'true'
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 35
+
+    steps:
+      - name: Check out tag
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.gate.outputs.tag }}
+          fetch-depth: 0
+
+      - name: Setup Moon Toolchain
+        uses: moonrepo/setup-toolchain@v0
+        with:
+          auto-install: true
+          cache-base: main
+
+      - name: Setup Rust Toolchain and Release Cache
+        uses: moonrepo/setup-rust@v1
+        with:
+          inherit-toolchain: true
+          cache-base: main
+          cache-target: release
 
       - name: Check published artifacts
         id: published
@@ -334,56 +359,50 @@ jobs:
             --verify-tag \
             "${release_flags[@]}"
 
-      - name: Build CLI release binary
+  upload-cli-assets:
+    name: Upload CLI Assets
+    needs: [gate, publish-crates-and-release]
+    if: needs.gate.outputs.should_publish == 'true'
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    timeout-minutes: 10
+
+    steps:
+      - name: Download CLI workflow artifacts
+        uses: actions/download-artifact@v5
+        with:
+          pattern: aureline-*
+          path: dist-download
+
+      - name: Verify and upload CLI release assets
         env:
+          GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.gate.outputs.tag }}
           VERSION: ${{ needs.gate.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p dist
+          find dist-download -maxdepth 3 -type f -exec cp {} dist/ \;
 
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends musl-tools
+          expected=(
+            "aureline-${VERSION}-x86_64-unknown-linux-musl.tar.gz"
+            "aureline-${VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+            "aureline-${VERSION}-aarch64-unknown-linux-musl.tar.gz"
+            "aureline-${VERSION}-aarch64-apple-darwin.tar.gz"
+            "aureline-${VERSION}-x86_64-pc-windows-msvc.zip"
+          )
 
-          targets=(x86_64-unknown-linux-musl x86_64-unknown-linux-gnu)
-          download_root="$RUNNER_TEMP/aureline-download"
-          mkdir -p dist "$download_root/$TAG"
+          mapfile -t actual < <(find dist -maxdepth 1 -type f -printf '%f\n' | sort)
+          mapfile -t want < <(printf '%s\n' "${expected[@]}" | sort)
 
-          for target in "${targets[@]}"; do
-            rustup target add "$target"
-            cargo build --package aureline-cli --release --locked --target "$target"
+          if [[ "${actual[*]}" != "${want[*]}" ]]; then
+            echo "Expected release assets:" >&2
+            printf '%s\n' "${want[@]}" >&2
+            echo "Actual release assets:" >&2
+            printf '%s\n' "${actual[@]}" >&2
+            exit 1
+          fi
 
-            binary="target/${target}/release/aureline"
-            "$binary" --help >/dev/null
-
-            package_dir="$RUNNER_TEMP/aureline-${target}"
-            rm -rf "$package_dir"
-            mkdir -p "$package_dir"
-            cp "$binary" "$package_dir/aureline"
-            chmod +x "$package_dir/aureline"
-
-            archive="dist/aureline-${VERSION}-${target}.tar.gz"
-            tar -C "$package_dir" -czf "$archive" aureline
-            tar -tzf "$archive" | grep -Fx aureline >/dev/null
-            cp "$archive" "$download_root/$TAG/"
-
-            install_dir="$RUNNER_TEMP/aureline-install-${target}"
-            rm -rf "$install_dir"
-            AURELINE_DOWNLOAD_ROOT="file://$download_root" \
-              AURELINE_TARGET="$target" \
-              INSTALL_DIR="$install_dir" \
-              VERSION="$VERSION" \
-              sh aureline-docs/public/install.sh
-            "$install_dir/aureline" --help >/dev/null
-          done
-
-      - name: Upload CLI release binary
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.gate.outputs.tag }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          gh release upload "$TAG" dist/*.tar.gz \
+          gh release upload "$TAG" dist/* \
             --repo "$GITHUB_REPOSITORY" \
             --clobber
