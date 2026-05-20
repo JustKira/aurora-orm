@@ -1,0 +1,43 @@
+aureline-migrate/Cargo.toml
+  s_18faa2514eaa52::t_98337fbe2ee1a1 4
+aureline-lsp/Cargo.toml
+  s_18faa2514eaa52::t_98337fbe2ee1a1 4
+.github/workflows/release.yml
+  s_18faa2514eaa52::t_98337fbe2ee1a1 62-64,66-71,76,117,121-125,127-141,143-145,148-157
+aureline-tree-sitter/examples/showcase.aureline
+  s_18faa2514eaa52::t_98337fbe2ee1a1 16
+aureline-test-support/Cargo.toml
+  s_18faa2514eaa52::t_98337fbe2ee1a1 4
+aureline-tree-sitter/examples/commands-test/surql-escape-hatch.aureline
+  s_18faa2514eaa52::t_98337fbe2ee1a1 4
+package.json
+  s_18faa2514eaa52::t_98337fbe2ee1a1 3
+aureline-tree-sitter/package.json
+  s_18faa2514eaa52::t_98337fbe2ee1a1 3
+aureline-config/Cargo.toml
+  s_18faa2514eaa52::t_98337fbe2ee1a1 4
+Cargo.toml
+  s_18faa2514eaa52::t_98337fbe2ee1a1 15,22-25
+aureline-cli/Cargo.toml
+  s_18faa2514eaa52::t_98337fbe2ee1a1 4
+aureline-codegen/Cargo.toml
+  s_18faa2514eaa52::t_98337fbe2ee1a1 4
+aureline-core/Cargo.toml
+  s_18faa2514eaa52::t_98337fbe2ee1a1 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.10",
+  "base_commit_sha": "01c7975b3a34af3680b9d9a99bfa0b12bf414194",
+  "prompts": {},
+  "sessions": {
+    "s_18faa2514eaa52": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e3f3f-4572-73b8-9c5e-2ecba229f427",
+        "model": "gpt-5.5"
+      },
+      "human_author": "JustKira <shighgamerhg@gmail.com>"
+    }
+  }
+}
