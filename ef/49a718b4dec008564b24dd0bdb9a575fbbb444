@@ -1,0 +1,19 @@
+aureline-core/src/semantic/diagnostics/analysis.rs
+  s_69b3d24c02b0e8::t_fb715b0f9d4656 96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "ef49a718b4dec008564b24dd0bdb9a575fbbb444",
+  "prompts": {},
+  "sessions": {
+    "s_69b3d24c02b0e8": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e4a30-f659-72f0-8578-3aad47e316a0",
+        "model": "gpt-5.5"
+      },
+      "human_author": "JustKira <shighgamerhg@gmail.com>"
+    }
+  }
+}
