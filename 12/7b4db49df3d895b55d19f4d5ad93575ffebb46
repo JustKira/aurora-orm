@@ -1,0 +1,19 @@
+aureline-core/src/check/mod.rs
+  s_69b3d24c02b0e8::t_13943df5fba2cd 52-53,55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "127b4db49df3d895b55d19f4d5ad93575ffebb46",
+  "prompts": {},
+  "sessions": {
+    "s_69b3d24c02b0e8": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e4a30-f659-72f0-8578-3aad47e316a0",
+        "model": "gpt-5.5"
+      },
+      "human_author": "JustKira <shighgamerhg@gmail.com>"
+    }
+  }
+}
