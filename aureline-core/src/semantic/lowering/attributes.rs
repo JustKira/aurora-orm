@@ -1,6 +1,7 @@
 use crate::ast::{Attribute, AttributeValue, Field, Schema, SchemaItem, Table, Type};
 
-use super::super::{SemanticError, SemanticResult};
+use super::super::diagnostics::{invalid_attribute_usage, unknown_attribute};
+use super::super::{AttributeScope, SemanticError, SemanticResult};
 use super::{assertions, flexible, fulltext, hnsw, indexes, permissions};
 
 /// Lower raw `@`/`@@` attributes into structured schema fields.
@@ -73,7 +74,7 @@ fn lower_field_attributes(
             "assert" => assertions::lower(attr, errors),
             "allow" => permissions::lower(attr, errors),
             unknown => errors.push(at_attr(
-                unknown_attribute(unknown, FIELD_ATTRS, "field"),
+                unknown_attribute(AttributeScope::Field, unknown, FIELD_ATTRS),
                 attr,
             )),
         }
@@ -98,18 +99,14 @@ fn lower_block_attribute(
         "index" => indexes::lower_block_index(table, fields, attr, lowered_indexes, errors),
         "unique" => indexes::lower_block_unique(table, fields, attr, lowered_indexes, errors),
         unknown => errors.push(at_attr(
-            unknown_attribute(unknown, BLOCK_ATTRS, "block"),
+            unknown_attribute(AttributeScope::Block, unknown, BLOCK_ATTRS),
             attr,
         )),
     }
 }
 
 pub(super) fn err(message: String) -> SemanticError {
-    SemanticError {
-        message,
-        hint: None,
-        range: None,
-    }
+    invalid_attribute_usage(message)
 }
 
 pub(super) fn err_at(attr: &Attribute, message: String) -> SemanticError {
@@ -119,16 +116,6 @@ pub(super) fn err_at(attr: &Attribute, message: String) -> SemanticError {
 pub(super) fn at_attr(mut error: SemanticError, attr: &Attribute) -> SemanticError {
     error.range = attr.source_range;
     error
-}
-
-pub(super) fn unknown_attribute(name: &str, valid: &[&str], scope: &str) -> SemanticError {
-    let suggestion = closest_match(name, valid);
-    let prefix = if scope == "block" { "@@" } else { "@" };
-    SemanticError {
-        message: format!("unknown {scope} attribute `{prefix}{name}`"),
-        hint: suggestion.map(|s| format!("did you mean `{prefix}{s}`?")),
-        range: None,
-    }
 }
 
 pub(super) fn ident_value(v: &AttributeValue, label: &str) -> Result<String, SemanticError> {
@@ -205,33 +192,4 @@ pub(super) fn auto_name(table: &str, fields: &[String], suffix: &str) -> String 
     } else {
         format!("{table_part}_{}_{suffix}", fields.join("_"))
     }
-}
-
-/// Cheap edit-distance for "did you mean" suggestions. Levenshtein with a
-/// distance cap of 3 - anything further isn't really a typo.
-fn closest_match(target: &str, candidates: &[&str]) -> Option<String> {
-    let mut best: Option<(&str, usize)> = None;
-    for c in candidates {
-        let d = levenshtein(target, c);
-        if d <= 3 && best.is_none_or(|(_, bd)| d < bd) {
-            best = Some((c, d));
-        }
-    }
-    best.map(|(s, _)| s.to_string())
-}
-
-fn levenshtein(a: &str, b: &str) -> usize {
-    let a: Vec<char> = a.chars().collect();
-    let b: Vec<char> = b.chars().collect();
-    let mut prev: Vec<usize> = (0..=b.len()).collect();
-    let mut curr = vec![0usize; b.len() + 1];
-    for (i, ac) in a.iter().enumerate() {
-        curr[0] = i + 1;
-        for (j, bc) in b.iter().enumerate() {
-            let cost = if ac == bc { 0 } else { 1 };
-            curr[j + 1] = (curr[j] + 1).min(prev[j + 1] + 1).min(prev[j] + cost);
-        }
-        std::mem::swap(&mut prev, &mut curr);
-    }
-    prev[b.len()]
 }

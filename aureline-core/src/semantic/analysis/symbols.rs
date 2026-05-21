@@ -2,8 +2,12 @@ use std::collections::{HashMap, HashSet};
 
 use crate::ast::{Schema, SchemaItem};
 
+use super::super::SemanticError;
+use super::super::diagnostics::{
+    duplicate_analyzer_name, duplicate_field_name, duplicate_normalized_table_name,
+    duplicate_table_name,
+};
 use super::context::{AnalysisContext, normalized_name};
-use super::{SemanticError, error};
 
 pub(super) fn analyze(
     schema: &Schema,
@@ -29,9 +33,7 @@ fn table_names(schema: &Schema, errors: &mut Vec<SemanticError>) {
         };
 
         if !seen_raw.insert(table.name.as_str()) {
-            let mut err = error(format!("duplicate table name `{}`", table.name));
-            err.range = table.name_range;
-            errors.push(err);
+            errors.push(duplicate_table_name(&table.name).at(table.name_range));
         }
 
         let normalized = normalized_name(&table.name);
@@ -40,11 +42,7 @@ fn table_names(schema: &Schema, errors: &mut Vec<SemanticError>) {
             // Exact duplicate raw names are already reported above. This branch
             // is specifically for collisions like `User` vs `user`.
             if previous_raw != table.name {
-                let mut err = error(format!(
-                    "duplicate table name `{normalized}` after normalization"
-                ));
-                err.range = table.name_range;
-                errors.push(err);
+                errors.push(duplicate_normalized_table_name(normalized).at(table.name_range));
             }
         }
     }
@@ -59,9 +57,7 @@ fn analyzer_names(schema: &Schema, errors: &mut Vec<SemanticError>) {
         };
 
         if !seen.insert(analyzer.name.as_str()) {
-            let mut err = error(format!("duplicate analyzer name `{}`", analyzer.name));
-            err.range = analyzer.name_range;
-            errors.push(err);
+            errors.push(duplicate_analyzer_name(&analyzer.name).at(analyzer.name_range));
         }
     }
 }
@@ -77,12 +73,7 @@ fn field_names(schema: &Schema, errors: &mut Vec<SemanticError>) {
         let mut seen = HashSet::new();
         for field in &table.fields {
             if !seen.insert(field.name.as_str()) {
-                let mut err = error(format!(
-                    "duplicate field name `{}` on table {}",
-                    field.name, table.name
-                ));
-                err.range = field.name_range;
-                errors.push(err);
+                errors.push(duplicate_field_name(&table.name, &field.name).at(field.name_range));
             }
         }
     }

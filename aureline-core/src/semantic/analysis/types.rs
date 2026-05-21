@@ -1,7 +1,8 @@
 use crate::ast::{Schema, SchemaItem, Type};
 
+use super::super::SemanticError;
+use super::super::diagnostics::unknown_record_table;
 use super::context::AnalysisContext;
-use super::{SemanticError, error};
 
 pub(super) fn analyze(schema: &Schema, context: &AnalysisContext, errors: &mut Vec<SemanticError>) {
     for item in &schema.items {
@@ -44,6 +45,6 @@ fn check_record_table_exists(
     errors: &mut Vec<SemanticError>,
 ) {
     if !context.has_table(table) {
-        errors.push(error(format!("unknown record table `{table}`")));
+        errors.push(unknown_record_table(table));
     }
 }

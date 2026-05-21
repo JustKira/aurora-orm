@@ -49,10 +49,10 @@ pub fn check(source: &str) -> CheckReport {
             diagnostics.extend(errors.into_iter().map(|error| {
                 let mut diagnostic = Diagnostic::error(
                     DiagnosticCode::ValidationError,
-                    error.message,
-                    error.range.unwrap_or_else(SourceRange::first_character),
+                    error.message(),
+                    error.range().unwrap_or_else(SourceRange::first_character),
                 );
-                if let Some(hint) = error.hint {
+                if let Some(hint) = error.hint() {
                     diagnostic = diagnostic.with_help(hint);
                 }
                 diagnostic

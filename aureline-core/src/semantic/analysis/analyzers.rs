@@ -1,7 +1,8 @@
 use crate::ast::{AttributeArg, AttributeValue, Schema, SchemaItem};
 use crate::schema_index::SchemaIndex;
 
-use super::{SemanticError, error};
+use super::super::SemanticError;
+use super::super::diagnostics::unknown_analyzer;
 
 pub(super) fn analyze(
     schema: &Schema,
@@ -27,9 +28,7 @@ pub(super) fn analyze(
                 };
 
                 if !schema_index.has_analyzer(analyzer) {
-                    let mut err = error(format!("unknown analyzer `{analyzer}`"));
-                    err.range = attr.source_range;
-                    errors.push(err);
+                    errors.push(unknown_analyzer(analyzer).at(attr.source_range));
                 }
             }
         }

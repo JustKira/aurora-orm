@@ -2,7 +2,12 @@ use std::collections::BTreeSet;
 
 use crate::ast::{Attribute, AttributeArg, AttributeValue, Function, Schema, SchemaItem};
 
-use super::{SemanticError, error};
+use super::super::AttributeScope;
+use super::super::SemanticError;
+use super::super::diagnostics::{
+    function_body_param_mismatch, invalid_attribute_usage, invalid_function_body_params,
+    reserved_function_param, unknown_attribute,
+};
 
 const FUNCTION_ATTRS: &[&str] = &["allow"];
 
@@ -21,12 +26,9 @@ pub(super) fn analyze(schema: &Schema, errors: &mut Vec<SemanticError>) {
 fn validate_reserved_params(function: &Function, errors: &mut Vec<SemanticError>) {
     for param in &function.params {
         if crate::surql::is_builtin_param(&param.name) {
-            let mut err = error(format!(
-                "function parameter name `{}` is reserved",
-                param.name
-            ));
-            err.range = param.name_range.or(function.source_range);
-            errors.push(err);
+            errors.push(
+                reserved_function_param(&param.name).at(param.name_range.or(function.source_range)),
+            );
         }
     }
 }
@@ -42,9 +44,8 @@ fn validate_body_params(function: &Function, errors: &mut Vec<SemanticError>) {
     let referenced = match crate::surql::function_body_params(&function.body.body) {
         Ok(referenced) => referenced,
         Err(parse_error) => {
-            let mut err = error(parse_error.message);
-            err.range = function.source_range;
-            errors.push(err);
+            errors
+                .push(invalid_function_body_params(parse_error.message).at(function.source_range));
             return;
         }
     };
@@ -62,35 +63,9 @@ fn validate_body_params(function: &Function, errors: &mut Vec<SemanticError>) {
         return;
     }
 
-    let mut parts = Vec::new();
-    if !missing.is_empty() {
-        parts.push(format!(
-            "missing references for function arguments: {}",
-            missing
-                .iter()
-                .map(|name| format!("`${name}`"))
-                .collect::<Vec<_>>()
-                .join(", ")
-        ));
-    }
-    if !unknown.is_empty() {
-        parts.push(format!(
-            "unknown function body parameters: {}",
-            unknown
-                .iter()
-                .map(|name| format!("`${name}`"))
-                .collect::<Vec<_>>()
-                .join(", ")
-        ));
-    }
-
-    let mut err = error(format!(
-        "function `{}` SurQL body parameters do not match signature: {}",
-        function.name,
-        parts.join("; ")
-    ));
-    err.range = function.source_range;
-    errors.push(err);
+    errors.push(
+        function_body_param_mismatch(&function.name, missing, unknown).at(function.source_range),
+    );
 }
 
 fn validate_attributes(function: &Function, errors: &mut Vec<SemanticError>) {
@@ -102,9 +77,10 @@ fn validate_attributes(function: &Function, errors: &mut Vec<SemanticError>) {
                 }
             }
             unknown => {
-                let mut err = unknown_attribute(unknown, FUNCTION_ATTRS, "function block");
-                err.range = attr.source_range;
-                errors.push(err);
+                errors.push(
+                    unknown_attribute(AttributeScope::FunctionBlock, unknown, FUNCTION_ATTRS)
+                        .at(attr.source_range),
+                );
             }
         }
     }
@@ -178,53 +154,11 @@ fn validate_allow_args(attr: &Attribute) -> Result<(), SemanticError> {
         ));
     };
 
-    crate::surql::validate_function_permission(body).map_err(|error| SemanticError {
-        message: error.message,
-        hint: None,
-        range: source_range.or(attr.source_range),
+    crate::surql::validate_function_permission(body).map_err(|error| {
+        invalid_attribute_usage(error.message).at(source_range.or(attr.source_range))
     })
 }
 
 fn err_at(attr: &Attribute, message: String) -> SemanticError {
-    let mut err = error(message);
-    err.range = attr.source_range;
-    err
-}
-
-fn unknown_attribute(name: &str, valid: &[&str], scope: &str) -> SemanticError {
-    let suggestion = closest_match(name, valid);
-    SemanticError {
-        message: format!("unknown {scope} attribute `@@{name}`"),
-        hint: suggestion.map(|s| format!("did you mean `@@{s}`?")),
-        range: None,
-    }
-}
-
-fn closest_match(target: &str, candidates: &[&str]) -> Option<String> {
-    let mut best: Option<(&str, usize)> = None;
-    for candidate in candidates {
-        let distance = levenshtein(target, candidate);
-        if distance <= 3 && best.is_none_or(|(_, best_distance)| distance < best_distance) {
-            best = Some((candidate, distance));
-        }
-    }
-    best.map(|(candidate, _)| candidate.to_string())
-}
-
-fn levenshtein(a: &str, b: &str) -> usize {
-    let a = a.chars().collect::<Vec<_>>();
-    let b = b.chars().collect::<Vec<_>>();
-    let mut prev = (0..=b.len()).collect::<Vec<_>>();
-    let mut curr = vec![0; b.len() + 1];
-
-    for (i, ac) in a.iter().enumerate() {
-        curr[0] = i + 1;
-        for (j, bc) in b.iter().enumerate() {
-            let cost = usize::from(ac != bc);
-            curr[j + 1] = (curr[j] + 1).min(prev[j + 1] + 1).min(prev[j] + cost);
-        }
-        std::mem::swap(&mut prev, &mut curr);
-    }
-
-    prev[b.len()]
+    invalid_attribute_usage(message).at(attr.source_range)
 }

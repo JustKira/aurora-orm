@@ -17,7 +17,9 @@ mod vector_index;
 fn assert_validation_contains(source: &str, expected: &str) {
     let errors = validation_errors(source);
     assert!(
-        errors.iter().any(|error| error.message.contains(expected)),
+        errors
+            .iter()
+            .any(|error| error.message().contains(expected)),
         "expected validation error containing `{expected}`, got {errors:#?}"
     );
 }

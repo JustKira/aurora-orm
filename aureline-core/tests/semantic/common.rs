@@ -36,7 +36,9 @@ pub fn semantic_errors(source: &str) -> Vec<ValidationError> {
 pub fn assert_semantic_error_contains(source: &str, expected: &str) {
     let errors = semantic_errors(source);
     assert!(
-        errors.iter().any(|error| error.message.contains(expected)),
+        errors
+            .iter()
+            .any(|error| error.message().contains(expected)),
         "expected semantic error containing `{expected}`, got {errors:#?}"
     );
 }

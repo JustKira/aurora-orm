@@ -126,7 +126,7 @@ fn semantic_scope_errors_keep_surql_block_range() {
         .iter()
         .find(|error| {
             error
-                .message
+                .message()
                 .contains("unknown SurrealQL variable `$hello`")
         })
         .expect("expected unknown variable error");

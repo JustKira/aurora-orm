@@ -1,6 +1,7 @@
 use crate::ast::{AttributeArg, AttributeValue, Schema, SchemaItem};
 
-use super::{SemanticError, error};
+use super::super::SemanticError;
+use super::super::diagnostics::unknown_surql_variable;
 
 pub(super) fn analyze(schema: &Schema, errors: &mut Vec<SemanticError>) {
     for item in &schema.items {
@@ -95,9 +96,7 @@ fn variable_scope(
     errors: &mut Vec<SemanticError>,
 ) {
     for variable in unknown_variables(body, allowed) {
-        let mut err = error(format!("unknown SurrealQL variable `${variable}`"));
-        err.range = range;
-        errors.push(err);
+        errors.push(unknown_surql_variable(variable).at(range));
     }
 }
 

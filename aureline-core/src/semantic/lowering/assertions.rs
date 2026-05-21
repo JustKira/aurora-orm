@@ -1,6 +1,7 @@
 use crate::ast::{Attribute, AttributeArg, AttributeValue};
 
 use super::super::SemanticError;
+use super::super::diagnostics::invalid_attribute_usage;
 use super::attributes::err_at;
 
 pub(super) fn lower(attr: &Attribute, errors: &mut Vec<SemanticError>) {
@@ -11,11 +12,9 @@ pub(super) fn lower(attr: &Attribute, errors: &mut Vec<SemanticError>) {
             },
         ] => {
             if let Err(error) = crate::surql::validate_expression(body) {
-                errors.push(SemanticError {
-                    message: error.message,
-                    hint: None,
-                    range: source_range.or(attr.source_range),
-                });
+                errors.push(
+                    invalid_attribute_usage(error.message).at(source_range.or(attr.source_range)),
+                );
             }
         }
         _ => {
