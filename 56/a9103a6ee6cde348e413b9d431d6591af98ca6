@@ -1,0 +1,39 @@
+aureline-core/src/semantic/diagnostics/mod.rs
+  s_69b3d24c02b0e8::t_b8ef9761584454 9-10
+  s_69b3d24c02b0e8::t_2a21c3a610a8f8 1-8
+aureline-core/src/semantic/lowering/attributes.rs
+  s_69b3d24c02b0e8::t_26359a05437dbe 3-4
+  s_69b3d24c02b0e8::t_09ff6f49104c27 77,102
+aureline-core/src/semantic/diagnostics/suggestions.rs
+  s_69b3d24c02b0e8::t_a7669a95033e37 3
+  s_69b3d24c02b0e8::t_d76f1d514ae21c 1-2,4-30
+aureline-core/src/semantic/mod.rs
+  s_69b3d24c02b0e8::t_1b55df34e98c50 15-17
+  s_69b3d24c02b0e8::t_8c1917db3e6dd2 9
+aureline-core/src/semantic/analysis/mod.rs
+  s_69b3d24c02b0e8::t_6ba3e26f074fd2 47
+aureline-core/src/semantic/analysis/functions.rs
+  s_69b3d24c02b0e8::t_8cd7037d2660f1 5-6
+  s_69b3d24c02b0e8::t_f7651916e6760e 107-110
+aureline-core/src/semantic/error.rs
+  s_69b3d24c02b0e8::t_a7b640bb7f4648 5-30,32-64,68-91,93-94,101-102
+aureline-core/src/semantic/diagnostics/attributes.rs
+  s_69b3d24c02b0e8::t_e394150a64e2d6 2-5,7,13
+  s_69b3d24c02b0e8::t_88b774bd4061e3 1,6,8-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.11",
+  "base_commit_sha": "56a9103a6ee6cde348e413b9d431d6591af98ca6",
+  "prompts": {},
+  "sessions": {
+    "s_69b3d24c02b0e8": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019e4a30-f659-72f0-8578-3aad47e316a0",
+        "model": "gpt-5.5"
+      },
+      "human_author": "JustKira <shighgamerhg@gmail.com>"
+    }
+  }
+}
