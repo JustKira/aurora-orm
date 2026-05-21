@@ -12,9 +12,8 @@ mod lowering;
 
 use crate::ast::Schema;
 
-pub use error::{
-    AttributeScope, SemanticDiagnostic, SemanticDiagnosticKind, SemanticError, SemanticResult,
-};
+pub use diagnostics::{AttributeDiagnosticKind, AttributeScope};
+pub use error::{SemanticDiagnostic, SemanticDiagnosticKind, SemanticError, SemanticResult};
 
 pub use analysis::analyze;
 pub use lowering::lower;

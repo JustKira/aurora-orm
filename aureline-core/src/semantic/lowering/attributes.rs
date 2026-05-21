@@ -1,6 +1,6 @@
 use crate::ast::{Attribute, AttributeValue, Field, Schema, SchemaItem, Table, Type};
 
-use super::super::diagnostics::unknown_attribute;
+use super::super::diagnostics::{invalid_attribute_usage, unknown_attribute};
 use super::super::{AttributeScope, SemanticError, SemanticResult};
 use super::{assertions, flexible, fulltext, hnsw, indexes, permissions};
 
@@ -106,11 +106,7 @@ fn lower_block_attribute(
 }
 
 pub(super) fn err(message: String) -> SemanticError {
-    SemanticError {
-        message,
-        hint: None,
-        range: None,
-    }
+    invalid_attribute_usage(message)
 }
 
 pub(super) fn err_at(attr: &Attribute, message: String) -> SemanticError {

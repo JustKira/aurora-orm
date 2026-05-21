@@ -6,5 +6,5 @@
 mod attributes;
 mod suggestions;
 
-pub(crate) use attributes::unknown_attribute;
-pub(crate) use suggestions::closest_match;
+pub use attributes::{AttributeDiagnosticKind, AttributeScope};
+pub(crate) use attributes::{invalid_attribute_usage, unknown_attribute};

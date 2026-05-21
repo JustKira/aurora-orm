@@ -2,59 +2,23 @@ use std::fmt;
 
 use crate::check::diagnostics::SourceRange;
 
-use super::diagnostics::closest_match;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AttributeScope {
-    Field,
-    Block,
-    FunctionBlock,
-}
-
-impl AttributeScope {
-    pub(crate) fn label(self) -> &'static str {
-        match self {
-            Self::Field => "field",
-            Self::Block => "block",
-            Self::FunctionBlock => "function block",
-        }
-    }
-
-    pub(crate) fn prefix(self) -> &'static str {
-        match self {
-            Self::Field => "@",
-            Self::Block | Self::FunctionBlock => "@@",
-        }
-    }
-}
+use super::diagnostics::AttributeDiagnosticKind;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SemanticDiagnosticKind {
-    UnknownAttribute {
-        scope: AttributeScope,
-        name: String,
-        valid: &'static [&'static str],
-    },
+    Attribute(AttributeDiagnosticKind),
 }
 
 impl SemanticDiagnosticKind {
     pub fn message(&self) -> String {
         match self {
-            Self::UnknownAttribute { scope, name, .. } => {
-                format!(
-                    "unknown {} attribute `{}{}`",
-                    scope.label(),
-                    scope.prefix(),
-                    name
-                )
-            }
+            Self::Attribute(diagnostic) => diagnostic.message(),
         }
     }
 
     pub fn hint(&self) -> Option<String> {
         match self {
-            Self::UnknownAttribute { scope, name, valid } => closest_match(name, valid)
-                .map(|suggestion| format!("did you mean `{}{}`?", scope.prefix(), suggestion)),
+            Self::Attribute(diagnostic) => diagnostic.hint(),
         }
     }
 }

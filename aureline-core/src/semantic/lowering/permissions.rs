@@ -1,6 +1,7 @@
 use crate::ast::{Attribute, AttributeArg, AttributeValue};
 
 use super::super::SemanticError;
+use super::super::diagnostics::invalid_attribute_usage;
 use super::attributes::err_at;
 
 pub(super) fn lower(attr: &Attribute, errors: &mut Vec<SemanticError>) {
@@ -84,10 +85,6 @@ fn validate_allow_args(attr: &Attribute) -> Result<(), SemanticError> {
     }
 
     crate::surql::validate_field_permission(&operation_keyword, body).map_err(|error| {
-        SemanticError {
-            message: error.message,
-            hint: None,
-            range: source_range.or(attr.source_range),
-        }
+        invalid_attribute_usage(error.message).at(source_range.or(attr.source_range))
     })
 }

@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use crate::ast::{Attribute, AttributeArg, AttributeValue, Function, Schema, SchemaItem};
 
 use super::super::AttributeScope;
-use super::super::diagnostics::unknown_attribute;
+use super::super::diagnostics::{invalid_attribute_usage, unknown_attribute};
 use super::{SemanticError, error};
 
 const FUNCTION_ATTRS: &[&str] = &["allow"];
@@ -181,15 +181,11 @@ fn validate_allow_args(attr: &Attribute) -> Result<(), SemanticError> {
         ));
     };
 
-    crate::surql::validate_function_permission(body).map_err(|error| SemanticError {
-        message: error.message,
-        hint: None,
-        range: source_range.or(attr.source_range),
+    crate::surql::validate_function_permission(body).map_err(|error| {
+        invalid_attribute_usage(error.message).at(source_range.or(attr.source_range))
     })
 }
 
 fn err_at(attr: &Attribute, message: String) -> SemanticError {
-    let mut err = error(message);
-    err.range = attr.source_range;
-    err
+    invalid_attribute_usage(message).at(attr.source_range)
 }
