@@ -3,8 +3,11 @@ use std::collections::BTreeSet;
 use crate::ast::{Attribute, AttributeArg, AttributeValue, Function, Schema, SchemaItem};
 
 use super::super::AttributeScope;
-use super::super::diagnostics::{invalid_attribute_usage, unknown_attribute};
-use super::{SemanticError, error};
+use super::super::SemanticError;
+use super::super::diagnostics::{
+    function_body_param_mismatch, invalid_attribute_usage, invalid_function_body_params,
+    reserved_function_param, unknown_attribute,
+};
 
 const FUNCTION_ATTRS: &[&str] = &["allow"];
 
@@ -23,12 +26,9 @@ pub(super) fn analyze(schema: &Schema, errors: &mut Vec<SemanticError>) {
 fn validate_reserved_params(function: &Function, errors: &mut Vec<SemanticError>) {
     for param in &function.params {
         if crate::surql::is_builtin_param(&param.name) {
-            let mut err = error(format!(
-                "function parameter name `{}` is reserved",
-                param.name
-            ));
-            err.range = param.name_range.or(function.source_range);
-            errors.push(err);
+            errors.push(
+                reserved_function_param(&param.name).at(param.name_range.or(function.source_range)),
+            );
         }
     }
 }
@@ -44,9 +44,8 @@ fn validate_body_params(function: &Function, errors: &mut Vec<SemanticError>) {
     let referenced = match crate::surql::function_body_params(&function.body.body) {
         Ok(referenced) => referenced,
         Err(parse_error) => {
-            let mut err = error(parse_error.message);
-            err.range = function.source_range;
-            errors.push(err);
+            errors
+                .push(invalid_function_body_params(parse_error.message).at(function.source_range));
             return;
         }
     };
@@ -64,35 +63,9 @@ fn validate_body_params(function: &Function, errors: &mut Vec<SemanticError>) {
         return;
     }
 
-    let mut parts = Vec::new();
-    if !missing.is_empty() {
-        parts.push(format!(
-            "missing references for function arguments: {}",
-            missing
-                .iter()
-                .map(|name| format!("`${name}`"))
-                .collect::<Vec<_>>()
-                .join(", ")
-        ));
-    }
-    if !unknown.is_empty() {
-        parts.push(format!(
-            "unknown function body parameters: {}",
-            unknown
-                .iter()
-                .map(|name| format!("`${name}`"))
-                .collect::<Vec<_>>()
-                .join(", ")
-        ));
-    }
-
-    let mut err = error(format!(
-        "function `{}` SurQL body parameters do not match signature: {}",
-        function.name,
-        parts.join("; ")
-    ));
-    err.range = function.source_range;
-    errors.push(err);
+    errors.push(
+        function_body_param_mismatch(&function.name, missing, unknown).at(function.source_range),
+    );
 }
 
 fn validate_attributes(function: &Function, errors: &mut Vec<SemanticError>) {

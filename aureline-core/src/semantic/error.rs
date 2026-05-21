@@ -2,22 +2,27 @@ use std::fmt;
 
 use crate::check::diagnostics::SourceRange;
 
-use super::diagnostics::{AttributeDiagnosticKind, RenderSemanticDiagnostic};
+use super::diagnostics::{
+    AnalysisDiagnosticKind, AttributeDiagnosticKind, RenderSemanticDiagnostic,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SemanticDiagnosticKind {
+    Analysis(AnalysisDiagnosticKind),
     Attribute(AttributeDiagnosticKind),
 }
 
 impl SemanticDiagnosticKind {
     pub fn message(&self) -> String {
         match self {
+            Self::Analysis(diagnostic) => diagnostic.message(),
             Self::Attribute(diagnostic) => diagnostic.message(),
         }
     }
 
     pub fn hint(&self) -> Option<String> {
         match self {
+            Self::Analysis(diagnostic) => diagnostic.hint(),
             Self::Attribute(diagnostic) => diagnostic.hint(),
         }
     }

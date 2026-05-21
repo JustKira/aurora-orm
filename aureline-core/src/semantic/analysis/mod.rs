@@ -13,7 +13,7 @@ mod types;
 use crate::ast::Schema;
 use crate::schema_index::SchemaIndex;
 
-use super::{SemanticError, SemanticResult};
+use super::SemanticResult;
 use context::AnalysisContext;
 
 /// Meaning-only checks over the raw AST.
@@ -41,8 +41,4 @@ pub fn analyze(schema: &Schema) -> SemanticResult {
     } else {
         Err(errors)
     }
-}
-
-fn error(message: impl Into<String>) -> SemanticError {
-    SemanticError::new(message)
 }
