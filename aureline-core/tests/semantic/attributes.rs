@@ -21,11 +21,11 @@ fn unknown_field_attribute_errors_with_suggestion() {
     ));
 
     assert!(
-        errors[0].message.contains("@uniqu"),
+        errors[0].message().contains("@uniqu"),
         "{}",
-        errors[0].message
+        errors[0].message()
     );
-    assert_eq!(errors[0].hint.as_deref(), Some("did you mean `@unique`?"));
+    assert_eq!(errors[0].hint().as_deref(), Some("did you mean `@unique`?"));
 }
 
 #[test]
@@ -39,11 +39,14 @@ fn unknown_block_attribute_errors_with_suggestion() {
     ));
 
     assert!(
-        errors[0].message.contains("@@uniqu"),
+        errors[0].message().contains("@@uniqu"),
         "{}",
-        errors[0].message
+        errors[0].message()
     );
-    assert_eq!(errors[0].hint.as_deref(), Some("did you mean `@@unique`?"));
+    assert_eq!(
+        errors[0].hint().as_deref(),
+        Some("did you mean `@@unique`?")
+    );
 }
 
 #[test]

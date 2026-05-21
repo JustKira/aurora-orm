@@ -101,7 +101,7 @@ fn function_allow_rejects_invalid_permission_surql() {
 
     let error = errors
         .iter()
-        .find(|error| error.message.contains("invalid SurrealQL"))
+        .find(|error| error.message().contains("invalid SurrealQL"))
         .expect("invalid function permission SurQL should be reported");
     assert!(error.range.is_some(), "{errors:#?}");
 }
@@ -120,7 +120,7 @@ fn function_params_cannot_use_reserved_builtin_names() {
         .iter()
         .find(|error| {
             error
-                .message
+                .message()
                 .contains("function parameter name `auth` is reserved")
         })
         .expect("reserved parameter name should be reported");
@@ -128,7 +128,7 @@ fn function_params_cannot_use_reserved_builtin_names() {
     assert!(
         !errors
             .iter()
-            .any(|error| error.message.contains("missing references")),
+            .any(|error| error.message().contains("missing references")),
         "reserved params should not also produce misleading missing-reference errors: {errors:#?}"
     );
 }
@@ -188,13 +188,13 @@ fn function_validation_can_report_multiple_errors() {
     assert!(
         errors
             .iter()
-            .any(|error| error.message.contains("missing references")),
+            .any(|error| error.message().contains("missing references")),
         "{errors:#?}"
     );
     assert!(
         errors
             .iter()
-            .any(|error| error.message.contains("expected RUN")),
+            .any(|error| error.message().contains("expected RUN")),
         "{errors:#?}"
     );
 }
