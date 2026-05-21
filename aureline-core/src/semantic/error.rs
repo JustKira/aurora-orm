@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::check::diagnostics::SourceRange;
 
-use super::diagnostics::AttributeDiagnosticKind;
+use super::diagnostics::{AttributeDiagnosticKind, RenderSemanticDiagnostic};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SemanticDiagnosticKind {

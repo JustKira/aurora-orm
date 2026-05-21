@@ -1,3 +1,4 @@
+use super::RenderSemanticDiagnostic;
 use super::suggestions::closest_match;
 use crate::semantic::{SemanticDiagnostic, SemanticDiagnosticKind, SemanticError};
 
@@ -37,8 +38,8 @@ pub enum AttributeDiagnosticKind {
     },
 }
 
-impl AttributeDiagnosticKind {
-    pub(crate) fn message(&self) -> String {
+impl RenderSemanticDiagnostic for AttributeDiagnosticKind {
+    fn message(&self) -> String {
         match self {
             Self::UnknownAttribute { scope, name, .. } => {
                 format!(
@@ -52,7 +53,7 @@ impl AttributeDiagnosticKind {
         }
     }
 
-    pub(crate) fn hint(&self) -> Option<String> {
+    fn hint(&self) -> Option<String> {
         match self {
             Self::UnknownAttribute { scope, name, valid } => closest_match(name, valid)
                 .map(|suggestion| format!("did you mean `{}{}`?", scope.prefix(), suggestion)),
