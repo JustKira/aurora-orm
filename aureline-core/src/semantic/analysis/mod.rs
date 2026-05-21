@@ -44,9 +44,5 @@ pub fn analyze(schema: &Schema) -> SemanticResult {
 }
 
 fn error(message: impl Into<String>) -> SemanticError {
-    SemanticError {
-        message: message.into(),
-        hint: None,
-        range: None,
-    }
+    SemanticError::new(message)
 }

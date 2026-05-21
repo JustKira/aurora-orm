@@ -2,6 +2,8 @@ use std::collections::BTreeSet;
 
 use crate::ast::{Attribute, AttributeArg, AttributeValue, Function, Schema, SchemaItem};
 
+use super::super::AttributeScope;
+use super::super::diagnostics::unknown_attribute;
 use super::{SemanticError, error};
 
 const FUNCTION_ATTRS: &[&str] = &["allow"];
@@ -102,9 +104,10 @@ fn validate_attributes(function: &Function, errors: &mut Vec<SemanticError>) {
                 }
             }
             unknown => {
-                let mut err = unknown_attribute(unknown, FUNCTION_ATTRS, "function block");
-                err.range = attr.source_range;
-                errors.push(err);
+                errors.push(
+                    unknown_attribute(AttributeScope::FunctionBlock, unknown, FUNCTION_ATTRS)
+                        .at(attr.source_range),
+                );
             }
         }
     }
@@ -189,42 +192,4 @@ fn err_at(attr: &Attribute, message: String) -> SemanticError {
     let mut err = error(message);
     err.range = attr.source_range;
     err
-}
-
-fn unknown_attribute(name: &str, valid: &[&str], scope: &str) -> SemanticError {
-    let suggestion = closest_match(name, valid);
-    SemanticError {
-        message: format!("unknown {scope} attribute `@@{name}`"),
-        hint: suggestion.map(|s| format!("did you mean `@@{s}`?")),
-        range: None,
-    }
-}
-
-fn closest_match(target: &str, candidates: &[&str]) -> Option<String> {
-    let mut best: Option<(&str, usize)> = None;
-    for candidate in candidates {
-        let distance = levenshtein(target, candidate);
-        if distance <= 3 && best.is_none_or(|(_, best_distance)| distance < best_distance) {
-            best = Some((candidate, distance));
-        }
-    }
-    best.map(|(candidate, _)| candidate.to_string())
-}
-
-fn levenshtein(a: &str, b: &str) -> usize {
-    let a = a.chars().collect::<Vec<_>>();
-    let b = b.chars().collect::<Vec<_>>();
-    let mut prev = (0..=b.len()).collect::<Vec<_>>();
-    let mut curr = vec![0; b.len() + 1];
-
-    for (i, ac) in a.iter().enumerate() {
-        curr[0] = i + 1;
-        for (j, bc) in b.iter().enumerate() {
-            let cost = usize::from(ac != bc);
-            curr[j + 1] = (curr[j] + 1).min(prev[j + 1] + 1).min(prev[j] + cost);
-        }
-        std::mem::swap(&mut prev, &mut curr);
-    }
-
-    prev[b.len()]
 }

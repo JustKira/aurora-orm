@@ -6,12 +6,15 @@
 //! and migration.
 
 mod analysis;
+mod diagnostics;
 mod error;
 mod lowering;
 
 use crate::ast::Schema;
 
-pub use error::{SemanticError, SemanticResult};
+pub use error::{
+    AttributeScope, SemanticDiagnostic, SemanticDiagnosticKind, SemanticError, SemanticResult,
+};
 
 pub use analysis::analyze;
 pub use lowering::lower;
